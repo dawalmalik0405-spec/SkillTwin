@@ -9,7 +9,7 @@ SkillTwin is an evidence-based skill development platform that helps students id
 | Full Name | GitHub Username | Role |
 |-----------|-----------------|------|
 |           |                 |      |
-| Layeeba Haram | layeebaharam14 | Frontend development and ui/ux |
+| Layeeba Haram | layeebaharam14 | Frontend development and UI/UX |
 | Davalmalik Sayadali Makandar | dawalmalik0405-spec | Backend Development and AI/ML |
 
 
