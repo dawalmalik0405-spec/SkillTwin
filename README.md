@@ -8,7 +8,7 @@ SkillTwin is an evidence-based skill development platform that helps students id
 
 | Full Name | GitHub Username | Role |
 |-----------|-----------------|------|
-|  |  |  |
+|           |                 |      |
 | Davalmalik Sayadali Makandar | dawalmalik0405-spec | Backend Development and AI/ML |
 
 > **Note:** All team members contributed approximately equal effort to the design, development, testing, and documentation of this project.
