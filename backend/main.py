@@ -2,6 +2,7 @@ import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from backend.database import check_db_connection, init_db
 from backend.shared.llm_client import llm_client
 from backend.shared.models import HealthCheckResponse, SystemInfoResponse
@@ -71,6 +72,46 @@ def health_check():
         "version": "1.0.0",
         "database": db_status,
         "environment": env
+    }
+
+
+@app.get("/api/llm/test", tags=["LLM"])
+async def test_llm():
+    """
+    Test OpenRouter LLM connectivity.
+    Sends a simple test message to verify the API key and connection work.
+    """
+    if not llm_client.is_configured:
+        return JSONResponse(
+            status_code=503,
+            content={
+                "status": "error",
+                "message": "OpenRouter API key not configured. Set OPENROUTER_API_KEY in .env"
+            }
+        )
+
+    result = await llm_client.chat(
+        messages=[{"role": "user", "content": "Say 'SkillTwin LLM connection successful!' if you can hear me."}],
+        temperature=0.7,
+        max_tokens=50
+    )
+
+    if result.get("error"):
+        return JSONResponse(
+            status_code=500,
+            content={
+                "status": "error",
+                "message": f"OpenRouter API error: {result['error']}",
+                "model": llm_client.model
+            }
+        )
+
+    return {
+        "status": "success",
+        "message": "OpenRouter LLM connected successfully!",
+        "model": llm_client.model,
+        "response": result.get("content"),
+        "usage": result.get("usage")
     }
 
 
