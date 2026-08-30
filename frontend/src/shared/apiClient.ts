@@ -10,6 +10,9 @@ import {
   IndustryRole,
   OnboardingFormData,
   UserProfile,
+  AuthResponse,
+  LoginRequest,
+  SignUpRequest,
   ResumeAnalysisResponse,
   GitHubConnectPayload,
   GitHubAnalysisResponse,
@@ -18,7 +21,13 @@ import {
   EvidenceSummaryResponse,
   FinalizeEvidencePayload,
   SkillTwinSummaryResponse,
-  TargetRoleMappingResponse
+  TargetRoleMappingResponse,
+  GapAnalysisSummaryResponse,
+  PersonalizedRoadmapResponse,
+  VerificationSummaryResponse,
+  ProjectVerificationItem,
+  SkillTwinUpdatedResponse,
+  CareerReadinessResponse
 } from './types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -34,15 +43,39 @@ class ApiClient {
     return this.baseUrl;
   }
 
+  public getToken(): string | null {
+    return localStorage.getItem('skilltwin_auth_token');
+  }
+
+  public getUser(): UserProfile | null {
+    try {
+      const raw = localStorage.getItem('skilltwin_auth_user');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  public setToken(token: string | null): void {
+    if (token) {
+      localStorage.setItem('skilltwin_auth_token', token);
+    } else {
+      localStorage.removeItem('skilltwin_auth_token');
+    }
+  }
+
   private async fetchJson<T>(endpoint: string, options?: RequestInit): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
+    const token = this.getToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...((options?.headers as Record<string, string>) || {})
+    };
     try {
       const response = await fetch(url, {
         ...options,
-        headers: {
-          'Content-Type': 'application/json',
-          ...(options?.headers || {})
-        }
+        headers
       });
 
       if (!response.ok) {
@@ -60,6 +93,57 @@ class ApiClient {
     } catch (error) {
       console.warn(`[ApiClient] Request to ${url} failed:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Register a new user account.
+   */
+  public async signup(payload: SignUpRequest): Promise<AuthResponse> {
+    const res = await this.fetchJson<AuthResponse>('/api/auth/signup', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    if (res && res.token) {
+      this.setToken(res.token);
+      localStorage.setItem('skilltwin_auth_user', JSON.stringify(res.user));
+    }
+    return res;
+  }
+
+  /**
+   * Authenticate an existing user account.
+   */
+  public async login(payload: LoginRequest): Promise<AuthResponse> {
+    const res = await this.fetchJson<AuthResponse>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    if (res && res.token) {
+      this.setToken(res.token);
+      localStorage.setItem('skilltwin_auth_user', JSON.stringify(res.user));
+    }
+    return res;
+  }
+
+  /**
+   * Fetch current authenticated user.
+   */
+  public async getMe(): Promise<UserProfile> {
+    return this.fetchJson<UserProfile>('/api/auth/me');
+  }
+
+  /**
+   * Log out current user and clear tokens.
+   */
+  public async logout(): Promise<void> {
+    try {
+      await this.fetchJson('/api/auth/logout', { method: 'POST' });
+    } catch {
+      // ignore network errors on logout
+    } finally {
+      this.setToken(null);
+      localStorage.removeItem('skilltwin_auth_user');
     }
   }
 
@@ -113,6 +197,16 @@ class ApiClient {
    */
   public async getProfile(email: string): Promise<UserProfile> {
     return this.fetchJson<UserProfile>(`/api/evidence/onboarding/profile?email=${encodeURIComponent(email)}`);
+  }
+
+  /**
+   * Update student profile in PostgreSQL users table and backend cache.
+   */
+  public async updateProfile(profile: Partial<UserProfile> & { email: string; name: string }): Promise<UserProfile> {
+    return this.fetchJson<UserProfile>('/api/evidence/onboarding/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profile)
+    });
   }
 
   // =========================================================
@@ -202,6 +296,16 @@ class ApiClient {
     });
   }
 
+  /**
+   * Permanently reset user's profile and evidence state while preserving authentication account.
+   */
+  public async resetProfileData(email?: string, userId?: string): Promise<{ status: string; message: string }> {
+    return this.fetchJson('/api/evidence/reset-profile', {
+      method: 'POST',
+      body: JSON.stringify({ email, user_id: userId })
+    });
+  }
+
   // =========================================================
   // Page 3: Living SkillTwin Endpoints
   // =========================================================
@@ -276,6 +380,255 @@ class ApiClient {
       industry
     });
     return `${this.baseUrl}/api/target-role/export-report?${params.toString()}`;
+  }
+
+  /**
+   * Fetch complete Skill Gap Analysis comparing Living SkillTwin with Target Role requirements.
+   */
+  public async getGapAnalysis(
+    role: string = "Full-Stack Developer",
+    experienceLevel: string = "Entry Level (0-2 years)",
+    industry: string = "All Industries",
+    userId?: string
+  ): Promise<GapAnalysisSummaryResponse> {
+    const params = new URLSearchParams({
+      role,
+      experience: experienceLevel,
+      industry
+    });
+    if (userId) params.append('user_id', userId);
+    return this.fetchJson<GapAnalysisSummaryResponse>(`/api/gap-analysis/analysis?${params.toString()}`);
+  }
+
+  /**
+   * Trigger live recalculation of Skill Gap Analysis.
+   */
+  public async recalculateGapAnalysis(
+    role: string = "Full-Stack Developer",
+    experienceLevel: string = "Entry Level (0-2 years)",
+    industry: string = "All Industries",
+    userId?: string
+  ): Promise<GapAnalysisSummaryResponse> {
+    const params = new URLSearchParams({
+      role,
+      experience: experienceLevel,
+      industry
+    });
+    if (userId) params.append('user_id', userId);
+    return this.fetchJson<GapAnalysisSummaryResponse>(`/api/gap-analysis/recalculate?${params.toString()}`, {
+      method: 'POST'
+    });
+  }
+
+  /**
+   * Get direct download URL for Gap Analysis summary report.
+   */
+  public downloadGapReportUrl(
+    role: string = "Full-Stack Developer",
+    experienceLevel: string = "Entry Level (0-2 years)",
+    industry: string = "All Industries"
+  ): string {
+    const params = new URLSearchParams({
+      role,
+      experience: experienceLevel,
+      industry
+    });
+    return `${this.baseUrl}/api/gap-analysis/export-report?${params.toString()}`;
+  }
+
+  /**
+   * Fetch generated personalized roadmap.
+   */
+  public async getPersonalizedRoadmap(
+    role: string = "Full-Stack Developer",
+    experienceLevel: string = "Entry Level (0-2 years)",
+    dailyEffort: string = "1-2 hours/day",
+    userId?: string
+  ): Promise<PersonalizedRoadmapResponse> {
+    const params = new URLSearchParams({
+      role,
+      experience: experienceLevel,
+      daily_effort: dailyEffort
+    });
+    if (userId) params.append('user_id', userId);
+    return this.fetchJson<PersonalizedRoadmapResponse>(`/api/roadmap/plan?${params.toString()}`);
+  }
+
+  /**
+   * Toggle task completion state and persist updated progress.
+   */
+  public async toggleRoadmapTask(
+    taskId: string,
+    isCompleted: boolean,
+    role: string = "Full-Stack Developer",
+    experienceLevel: string = "Entry Level (0-2 years)",
+    dailyEffort: string = "1-2 hours/day",
+    userId?: string
+  ): Promise<PersonalizedRoadmapResponse> {
+    const params = new URLSearchParams({
+      role,
+      experience: experienceLevel,
+      daily_effort: dailyEffort
+    });
+    return this.fetchJson<PersonalizedRoadmapResponse>(`/api/roadmap/task/toggle?${params.toString()}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        task_id: taskId,
+        is_completed: isCompleted,
+        user_id: userId
+      })
+    });
+  }
+
+  /**
+   * Recalculate personalized roadmap.
+   */
+  public async recalculateRoadmap(
+    role: string = "Full-Stack Developer",
+    experienceLevel: string = "Entry Level (0-2 years)",
+    dailyEffort: string = "1-2 hours/day",
+    userId?: string
+  ): Promise<PersonalizedRoadmapResponse> {
+    const params = new URLSearchParams({
+      role,
+      experience: experienceLevel,
+      daily_effort: dailyEffort
+    });
+    if (userId) params.append('user_id', userId);
+    return this.fetchJson<PersonalizedRoadmapResponse>(`/api/roadmap/recalculate?${params.toString()}`, {
+      method: 'POST'
+    });
+  }
+
+  /**
+   * Get direct download URL for personalized roadmap export report.
+   */
+  public downloadRoadmapUrl(
+    role: string = "Full-Stack Developer",
+    experienceLevel: string = "Entry Level (0-2 years)",
+    dailyEffort: string = "1-2 hours/day",
+    userId?: string
+  ): string {
+    const params = new URLSearchParams({
+      role,
+      experience: experienceLevel,
+      daily_effort: dailyEffort
+    });
+    if (userId) params.append('user_id', userId);
+    return `${this.baseUrl}/api/roadmap/export?${params.toString()}`;
+  }
+
+  /**
+   * Fetch candidate's submitted projects and verification summary.
+   */
+  public async getProjectVerifications(userId?: string): Promise<VerificationSummaryResponse> {
+    const params = new URLSearchParams();
+    if (userId) params.append('user_id', userId);
+    return this.fetchJson<VerificationSummaryResponse>(`/api/verification/projects?${params.toString()}`);
+  }
+
+  /**
+   * Submit a new GitHub project repository for implementation analysis.
+   */
+  public async submitProjectForVerification(
+    repoUrl: string,
+    primarySkill: string,
+    userId?: string
+  ): Promise<VerificationSummaryResponse> {
+    return this.fetchJson<VerificationSummaryResponse>('/api/verification/submit', {
+      method: 'POST',
+      body: JSON.stringify({
+        repo_url: repoUrl,
+        primary_skill: primarySkill,
+        user_id: userId
+      })
+    });
+  }
+
+  /**
+   * Fetch deep-dive evidence details for a specific verified project.
+   */
+  public async getProjectVerificationDetails(
+    projectId: string,
+    userId?: string
+  ): Promise<ProjectVerificationItem> {
+    const params = new URLSearchParams();
+    if (userId) params.append('user_id', userId);
+    return this.fetchJson<ProjectVerificationItem>(`/api/verification/project/${projectId}?${params.toString()}`);
+  }
+
+  /**
+   * Get direct download URL for project verification summary report.
+   */
+  public downloadVerificationReportUrl(userId?: string): string {
+    const params = new URLSearchParams();
+    if (userId) params.append('user_id', userId);
+    return `${this.baseUrl}/api/verification/export-report?${params.toString()}`;
+  }
+
+  /**
+   * Fetch refreshed SkillTwin state after project verification.
+   */
+  public async getSkillTwinUpdated(userId?: string): Promise<SkillTwinUpdatedResponse> {
+    const params = new URLSearchParams();
+    if (userId) params.append('user_id', userId);
+    return this.fetchJson<SkillTwinUpdatedResponse>(`/api/skilltwin/updated?${params.toString()}`);
+  }
+
+  /**
+   * Apply a verified project evidence into the living SkillTwin profile.
+   */
+  public async applyProjectVerificationToSkillTwin(
+    projectId: string,
+    targetRole: string = "Full-Stack Developer",
+    userId?: string
+  ): Promise<SkillTwinUpdatedResponse> {
+    return this.fetchJson<SkillTwinUpdatedResponse>('/api/skilltwin/apply-verification', {
+      method: 'POST',
+      body: JSON.stringify({
+        project_id: projectId,
+        target_role: targetRole,
+        user_id: userId
+      })
+    });
+  }
+
+  /**
+   * Get direct download URL for refreshed SkillTwin update report.
+   */
+  public downloadSkillTwinUpdatedReportUrl(userId?: string): string {
+    const params = new URLSearchParams();
+    if (userId) params.append('user_id', userId);
+    return `${this.baseUrl}/api/skilltwin/updated/export-report?${params.toString()}`;
+  }
+
+  /**
+   * Fetch candidate's Career Readiness dashboard data.
+   */
+  public async getCareerReadiness(userId?: string): Promise<CareerReadinessResponse> {
+    const params = new URLSearchParams();
+    if (userId) params.append('user_id', userId);
+    return this.fetchJson<CareerReadinessResponse>(`/api/readiness/dashboard?${params.toString()}`);
+  }
+
+  /**
+   * Recalculate Career Readiness metrics.
+   */
+  public async recalculateCareerReadiness(userId?: string): Promise<CareerReadinessResponse> {
+    const params = new URLSearchParams();
+    if (userId) params.append('user_id', userId);
+    return this.fetchJson<CareerReadinessResponse>(`/api/readiness/recalculate?${params.toString()}`, {
+      method: 'POST'
+    });
+  }
+
+  /**
+   * Get direct download URL for Career Readiness summary report.
+   */
+  public downloadCareerReadinessReportUrl(userId?: string): string {
+    const params = new URLSearchParams();
+    if (userId) params.append('user_id', userId);
+    return `${this.baseUrl}/api/readiness/export-report?${params.toString()}`;
   }
 }
 

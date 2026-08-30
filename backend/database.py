@@ -22,7 +22,7 @@ engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=300,
-    connect_args={"connect_timeout": 5}
+    connect_args={"connect_timeout": 1}
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -80,6 +80,8 @@ def init_db():
             with open(schema_path, "r", encoding="utf-8") as f:
                 sql_script = f.read()
             connection.execute(text(sql_script))
+            # Auto-ensure password_hash column is present
+            connection.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(255);"))
             connection.commit()
     except Exception as e:
         print(f"[Database Init Warning] Could not auto-apply schema.sql: {e}")

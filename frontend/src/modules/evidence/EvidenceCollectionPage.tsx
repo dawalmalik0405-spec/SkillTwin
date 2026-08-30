@@ -8,9 +8,7 @@ import {
   ExternalLink,
   RefreshCw,
   UploadCloud,
-  Layers,
   ArrowRight,
-  Moon,
   Info,
   X,
   Code2,
@@ -23,6 +21,7 @@ import {
   Briefcase
 } from 'lucide-react';
 import { apiClient } from '../../shared/apiClient';
+import { GlobalHeaderBadge } from '../../shared/components/GlobalHeaderBadge';
 import {
   UserProfile,
   ResumeAnalysisResponse,
@@ -41,7 +40,7 @@ interface EvidenceCollectionPageProps {
   onNavigateToProfile?: () => void;
   onNavigateToSettings?: () => void;
   onNavigateToHelp?: () => void;
-  onOpenDiagnostics?: () => void;
+  onEvidenceUpdated?: (completed: boolean) => void;
 }
 
 export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
@@ -52,16 +51,37 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
   onNavigateToProfile,
   onNavigateToSettings,
   onNavigateToHelp,
-  onOpenDiagnostics
+  onEvidenceUpdated
 }) => {
   // Active email / user ID
   const userEmail = userProfile?.email || 'layeeba@skilltwin.dev';
   const userId = userProfile?.id;
 
-  // Real Evidence State
-  const [resumeData, setResumeData] = useState<ResumeAnalysisResponse | null>(null);
-  const [githubData, setGithubData] = useState<GitHubAnalysisResponse | null>(null);
-  const [projectsData, setProjectsData] = useState<ProjectItem[]>([]);
+  // Real Evidence State with localStorage cache recovery
+  const [resumeData, setResumeData] = useState<ResumeAnalysisResponse | null>(() => {
+    try {
+      const cached = localStorage.getItem('skilltwin_resume_data');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [githubData, setGithubData] = useState<GitHubAnalysisResponse | null>(() => {
+    try {
+      const cached = localStorage.getItem('skilltwin_github_data');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [projectsData, setProjectsData] = useState<ProjectItem[]>(() => {
+    try {
+      const cached = localStorage.getItem('skilltwin_projects_data');
+      return cached ? JSON.parse(cached) : [];
+    } catch {
+      return [];
+    }
+  });
   const [summaryData, setSummaryData] = useState<EvidenceSummaryResponse | null>(null);
 
   // Loading States
@@ -78,9 +98,9 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
   const [detailsTab, setDetailsTab] = useState<'all' | 'resume' | 'github' | 'projects'>('all');
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState<boolean>(false);
 
-  // Form Inputs in Modals
-  const [githubUsername, setGithubUsername] = useState<string>('layeebaharam14');
-  const [githubProfileUrl, setGithubProfileUrl] = useState<string>('https://github.com/layeebaharam14');
+  // Form Inputs in Modals - Neutral defaults without prefilled personal account
+  const [githubUsername, setGithubUsername] = useState<string>('');
+  const [githubProfileUrl, setGithubProfileUrl] = useState<string>('');
   const [githubError, setGithubError] = useState<string | null>(null);
 
   const [projectTitle, setProjectTitle] = useState<string>('');
@@ -98,15 +118,41 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
     try {
       const summary = await apiClient.getEvidenceSummary(userEmail, userId);
       setSummaryData(summary);
-      if (summary.resume_data) setResumeData(summary.resume_data);
-      if (summary.github_data) setGithubData(summary.github_data);
-      if (summary.projects_data && summary.projects_data.length > 0) setProjectsData(summary.projects_data);
+      if (summary.resume_data) {
+        setResumeData(summary.resume_data);
+        localStorage.setItem('skilltwin_resume_data', JSON.stringify(summary.resume_data));
+      }
+      if (summary.github_data) {
+        setGithubData(summary.github_data);
+        localStorage.setItem('skilltwin_github_data', JSON.stringify(summary.github_data));
+      }
+      if (summary.projects_data && summary.projects_data.length > 0) {
+        setProjectsData(summary.projects_data);
+        localStorage.setItem('skilltwin_projects_data', JSON.stringify(summary.projects_data));
+      }
+
+      const hasAnyEvidence = Boolean(
+        summary.can_continue ||
+        summary.total_skills > 0 ||
+        summary.resume_data ||
+        summary.github_data ||
+        (summary.projects_data && summary.projects_data.length > 0) ||
+        resumeData ||
+        githubData ||
+        projectsData.length > 0
+      );
+
+      if (hasAnyEvidence) {
+        localStorage.setItem('skilltwin_evidence_completed', 'true');
+        if (onEvidenceUpdated) onEvidenceUpdated(true);
+      }
     } catch (err) {
       console.warn('Could not fetch initial evidence summary:', err);
     }
   };
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     refreshSummary();
   }, [userEmail, userId]);
 
@@ -120,6 +166,9 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
     try {
       const result = await apiClient.uploadResume(file, userEmail, userId);
       setResumeData(result);
+      localStorage.setItem('skilltwin_resume_data', JSON.stringify(result));
+      localStorage.setItem('skilltwin_evidence_completed', 'true');
+      if (onEvidenceUpdated) onEvidenceUpdated(true);
       setActionSuccessMessage(`Resume "${file.name}" successfully parsed. Extracted ${result.skills_extracted.length} skills.`);
       await refreshSummary();
     } catch (err: any) {
@@ -163,8 +212,12 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
         email: userEmail
       });
       setGithubData(result);
+      localStorage.setItem('skilltwin_github_data', JSON.stringify(result));
+      localStorage.setItem('skilltwin_evidence_completed', 'true');
+      if (onEvidenceUpdated) onEvidenceUpdated(true);
       setIsGithubModalOpen(false);
-      setActionSuccessMessage(`Connected to GitHub @${result.username}. Extracted ${result.repos.length} public repositories.`);
+      const count = result.repos ? result.repos.length : (result.total_repositories ?? 0);
+      setActionSuccessMessage(`Connected to GitHub @${result.username}. Extracted ${count} public ${count === 1 ? 'repository' : 'repositories'}.`);
       await refreshSummary();
     } catch (err: any) {
       setGithubError(err.message || 'Could not connect to GitHub profile. Please check the username.');
@@ -187,7 +240,11 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
         email: userEmail
       });
       setGithubData(result);
-      setActionSuccessMessage(`Resynced ${result.repos.length} repositories from GitHub @${result.username}.`);
+      localStorage.setItem('skilltwin_github_data', JSON.stringify(result));
+      localStorage.setItem('skilltwin_evidence_completed', 'true');
+      if (onEvidenceUpdated) onEvidenceUpdated(true);
+      const count = result.repos ? result.repos.length : (result.total_repositories ?? 0);
+      setActionSuccessMessage(`Resynced ${count} public ${count === 1 ? 'repository' : 'repositories'} from GitHub @${result.username}.`);
       await refreshSummary();
     } catch (err: any) {
       console.error('GitHub resync error:', err);
@@ -213,7 +270,11 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
         email: userEmail
       });
 
-      setProjectsData(prev => [...prev, result.project]);
+      const updated = [...projectsData, result.project];
+      setProjectsData(updated);
+      localStorage.setItem('skilltwin_projects_data', JSON.stringify(updated));
+      localStorage.setItem('skilltwin_evidence_completed', 'true');
+      if (onEvidenceUpdated) onEvidenceUpdated(true);
       setIsProjectModalOpen(false);
       setProjectTitle('');
       setProjectUrl('');
@@ -229,7 +290,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
 
   // Finalize & Continue Handler
   const handleContinueToSkillTwin = async () => {
-    if (!summaryData?.can_continue || isFinalizing) return;
+    if (!canContinue || isFinalizing) return;
     setIsFinalizing(true);
 
     try {
@@ -237,12 +298,16 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
         email: userEmail,
         user_id: userId
       });
+    } catch (err: any) {
+      console.warn('Finalize notice (continuing with analyzed evidence):', err);
+    } finally {
+      localStorage.setItem('skilltwin_evidence_completed', 'true');
+      if (onEvidenceUpdated) {
+        onEvidenceUpdated(true);
+      }
       if (onNavigateToSkillTwin) {
         onNavigateToSkillTwin();
       }
-    } catch (err: any) {
-      console.error('Finalize error:', err);
-    } finally {
       setIsFinalizing(false);
     }
   };
@@ -251,7 +316,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
   const skillsCount = summaryData?.total_skills || 0;
   const techCount = summaryData?.total_technologies || 0;
   const projectsCount = summaryData?.total_projects || (resumeData?.projects.length || 0) + (projectsData.length || 0);
-  const repoCount = summaryData?.total_repositories || githubData?.total_repositories || 0;
+  const repoCount = githubData ? (githubData.repos ? githubData.repos.length : (githubData.total_repositories ?? 0)) : (summaryData?.total_repositories ?? 0);
   const certCount = summaryData?.total_certifications || resumeData?.certifications.length || 0;
   const completionPercentage = summaryData?.completion_percentage || 0;
   const canContinue = summaryData?.can_continue || Boolean(resumeData || githubData || projectsData.length > 0);
@@ -305,12 +370,12 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
           <div
             className="step-item completed"
             onClick={onNavigateToOnboarding}
-            style={{ cursor: onNavigateToOnboarding ? 'pointer' : 'default' }}
-            title="Click to view Onboarding details"
+            style={{ cursor: 'not-allowed', opacity: 0.9 }}
+            title="Onboarding is completed and locked"
           >
             <div className="step-circle"><Check size={14} /></div>
             <span className="step-title" style={{ color: '#34D399' }}>Onboarding</span>
-            <span className="step-subtitle">Completed</span>
+            <span className="step-subtitle">Locked ✓</span>
           </div>
           <div style={{ height: '1px', width: '20px', background: '#10B981' }} />
 
@@ -323,56 +388,60 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
 
           <div
             className="step-item"
-            onClick={onNavigateToSkillTwin}
-            style={{ opacity: onNavigateToSkillTwin ? 0.9 : 0.6, cursor: onNavigateToSkillTwin ? 'pointer' : 'default' }}
+            onClick={() => {
+              if (canContinue) {
+                localStorage.setItem('skilltwin_evidence_completed', 'true');
+                if (onEvidenceUpdated) onEvidenceUpdated(true);
+                if (onNavigateToSkillTwin) onNavigateToSkillTwin();
+              } else {
+                alert('Evidence needed: Please add and analyze your resume, GitHub profile, or projects first before proceeding to SkillTwin.');
+              }
+            }}
+            style={{ opacity: canContinue ? 0.9 : 0.45, cursor: canContinue ? 'pointer' : 'not-allowed' }}
+            title={!canContinue ? 'Evidence needed: Add resume, GitHub, or projects first' : 'Go to SkillTwin'}
           >
             <div className="step-circle">3</div>
             <span className="step-title">SkillTwin</span>
-            <span className="step-subtitle">Pending</span>
+            <span className="step-subtitle">{canContinue ? 'Ready' : 'Locked'}</span>
           </div>
           <div style={{ height: '1px', width: '20px', background: 'rgba(255,255,255,0.1)' }} />
 
           <div
             className="step-item"
-            onClick={onNavigateToTargetRole}
-            style={{ opacity: onNavigateToTargetRole ? 0.9 : 0.6, cursor: onNavigateToTargetRole ? 'pointer' : 'default' }}
+            onClick={() => {
+              if (canContinue) {
+                localStorage.setItem('skilltwin_evidence_completed', 'true');
+                if (onEvidenceUpdated) onEvidenceUpdated(true);
+                if (onNavigateToTargetRole) onNavigateToTargetRole();
+              } else {
+                alert('Evidence needed: Please add and analyze your resume, GitHub profile, or projects first before proceeding.');
+              }
+            }}
+            style={{ opacity: canContinue ? 0.9 : 0.45, cursor: canContinue ? 'pointer' : 'not-allowed' }}
+            title={!canContinue ? 'Evidence needed: Add resume, GitHub, or projects first' : 'Target Role'}
           >
             <div className="step-circle">4</div>
             <span className="step-title">Target Role</span>
-            <span className="step-subtitle">Pending</span>
+            <span className="step-subtitle">{canContinue ? 'Ready' : 'Locked'}</span>
           </div>
           <div style={{ height: '1px', width: '20px', background: 'rgba(255,255,255,0.1)' }} />
 
-          <div className="step-item" style={{ opacity: 0.6 }}>
+          <div className="step-item" style={{ opacity: 0.45, cursor: 'not-allowed' }} title="Complete earlier stages first">
             <div className="step-circle">5</div>
             <span className="step-title">Gap Analysis</span>
-            <span className="step-subtitle">Pending</span>
+            <span className="step-subtitle">Locked</span>
           </div>
           <div style={{ height: '1px', width: '20px', background: 'rgba(255,255,255,0.1)' }} />
 
-          <div className="step-item" style={{ opacity: 0.6 }}>
+          <div className="step-item" style={{ opacity: 0.45, cursor: 'not-allowed' }} title="Complete earlier stages first">
             <div className="step-circle">6</div>
             <span className="step-title">Roadmap</span>
-            <span className="step-subtitle">Pending</span>
+            <span className="step-subtitle">Locked</span>
           </div>
         </div>
 
-        {/* Top Right Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {onOpenDiagnostics && (
-            <button
-              onClick={onOpenDiagnostics}
-              className="btn btn-outline"
-              style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-              title="View Architecture Pipeline"
-            >
-              <Layers size={14} /> Pipeline Status
-            </button>
-          )}
-          <div className="badge badge-purple" style={{ padding: '6px 12px' }}>
-            <Moon size={13} /> Dark Mode
-          </div>
-        </div>
+        {/* Top Right Header Badge */}
+        <GlobalHeaderBadge />
       </header>
 
       {/* Main Dashboard Layout (Left Sidebar + Center/Right Work Area) */}
@@ -522,67 +591,116 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                       }}
                     />
 
-                    <div
-                      className="upload-dropzone"
-                      onDragOver={(e) => e.preventDefault()}
-                      onDrop={handleDrop}
-                      onClick={triggerFileInput}
-                    >
-                      {isResumeUploading ? (
-                        <div style={{ padding: '12px 0' }}>
-                          <Loader2 size={28} color="#C084FC" style={{ animation: 'spin 1s linear infinite', margin: '0 auto 8px' }} />
-                          <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#F8FAFC' }}>Analyzing document...</div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>AI extracting skills & context</div>
-                        </div>
-                      ) : (
-                        <>
-                          <div style={{ color: 'var(--text-muted)', marginBottom: '8px' }}>
-                            <UploadCloud size={28} color="#818CF8" />
-                          </div>
-                          <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-                            Drag & drop your file here
-                          </div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: '4px 0 8px' }}>or</div>
-                          <button
-                            type="button"
-                            className="btn btn-primary"
-                            style={{ padding: '6px 14px', fontSize: '0.78rem' }}
-                            onClick={triggerFileInput}
-                          >
-                            Upload Resume
-                          </button>
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '10px' }}>
-                            Supported formats: PDF, DOCX (Max 10MB)
-                          </div>
-                        </>
-                      )}
-                    </div>
-
-                    {/* Uploaded File Badge */}
-                    {resumeData && (
+                    {/* Resume Card Body: Analyzing State, Completed State, or Empty Dropzone */}
+                    {isResumeUploading ? (
                       <div style={{
-                        marginTop: '12px',
-                        padding: '8px 12px',
-                        background: 'rgba(15, 23, 42, 0.9)',
-                        border: '1px solid rgba(16, 185, 129, 0.3)',
-                        borderRadius: '8px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '8px'
+                        border: '1.5px dashed rgba(192, 132, 252, 0.4)',
+                        borderRadius: '12px',
+                        padding: '28px 16px',
+                        textAlign: 'center',
+                        background: 'rgba(15, 23, 42, 0.7)'
                       }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                          <FileText size={15} color="#F87171" style={{ flexShrink: 0 }} />
-                          <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#F8FAFC' }}>
-                              {resumeData.filename}
+                        <Loader2 size={28} color="#C084FC" style={{ animation: 'spin 1s linear infinite', margin: '0 auto 8px' }} />
+                        <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#F8FAFC' }}>Analyzing document...</div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>AI extracting skills & context</div>
+                      </div>
+                    ) : resumeData ? (
+                      /* Completed Evidence Card State */
+                      <div>
+                        <div style={{
+                          padding: '14px',
+                          background: 'rgba(6, 78, 59, 0.2)',
+                          border: '1px solid rgba(16, 185, 129, 0.35)',
+                          borderRadius: '12px',
+                          marginBottom: '12px'
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+                              <div style={{
+                                width: '34px',
+                                height: '34px',
+                                borderRadius: '8px',
+                                background: 'rgba(16, 185, 129, 0.2)',
+                                border: '1px solid rgba(16, 185, 129, 0.4)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0
+                              }}>
+                                <FileText size={18} color="#34D399" />
+                              </div>
+                              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#F8FAFC' }} title={resumeData.filename}>
+                                  {resumeData.filename}
+                                </div>
+                                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                  {resumeData.file_size_kb} KB • {resumeData.file_type.toUpperCase()}
+                                </div>
+                              </div>
                             </div>
-                            <div style={{ fontSize: '0.66rem', color: 'var(--text-muted)' }}>
-                              {resumeData.file_size_kb} KB • Uploaded just now
-                            </div>
+                            <span className="badge badge-connected" style={{ padding: '2px 8px', fontSize: '0.65rem', flexShrink: 0 }}>
+                              <CheckCircle2 size={11} style={{ marginRight: '3px' }} /> Uploaded
+                            </span>
+                          </div>
+
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            fontSize: '0.72rem',
+                            color: '#34D399',
+                            fontWeight: 600,
+                            paddingTop: '6px',
+                            borderTop: '1px solid rgba(16, 185, 129, 0.2)'
+                          }}>
+                            <span>✓ {resumeData.skills_extracted.length} skills extracted</span>
+                            {resumeData.technologies && resumeData.technologies.length > 0 && (
+                              <span>• {resumeData.technologies.length} technologies</span>
+                            )}
                           </div>
                         </div>
-                        <CheckCircle2 size={16} color="#10B981" style={{ flexShrink: 0 }} />
+
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                          Processed: {new Date(resumeData.processed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        </div>
+
+                        {/* Compact Replace Resume Action */}
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          style={{ width: '100%', padding: '8px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                          onClick={triggerFileInput}
+                          title="Upload a different resume to replace the current evidence"
+                        >
+                          <RefreshCw size={13} /> Replace Resume
+                        </button>
+                      </div>
+                    ) : (
+                      /* Empty Dropzone State (before upload) */
+                      <div
+                        className="upload-dropzone"
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={handleDrop}
+                        onClick={triggerFileInput}
+                      >
+                        <div style={{ color: 'var(--text-muted)', marginBottom: '8px' }}>
+                          <UploadCloud size={28} color="#818CF8" />
+                        </div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
+                          Drag & drop your file here
+                        </div>
+                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: '4px 0 8px' }}>or</div>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          style={{ padding: '6px 14px', fontSize: '0.78rem' }}
+                          onClick={triggerFileInput}
+                        >
+                          Upload Resume
+                        </button>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '10px' }}>
+                          Supported formats: PDF, DOCX (Max 10MB)
+                        </div>
                       </div>
                     )}
                   </div>
@@ -678,7 +796,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                             </span>
                           </div>
                           <div style={{ fontSize: '0.72rem', color: '#34D399', fontWeight: 600 }}>
-                            {githubData.total_repositories} repositories analyzed
+                            {githubData.repos ? githubData.repos.length : (githubData.total_repositories ?? 0)} {(githubData.repos ? githubData.repos.length : (githubData.total_repositories ?? 0)) === 1 ? 'repository' : 'repositories'} analyzed
                           </div>
                         </div>
 
@@ -686,16 +804,33 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                           Last synced: {new Date(githubData.last_synced).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </div>
 
-                        <button
-                          type="button"
-                          className="btn btn-outline"
-                          style={{ width: '100%', padding: '8px', fontSize: '0.78rem' }}
-                          onClick={handleResyncGithub}
-                          disabled={isGithubResyncing}
-                        >
-                          <RefreshCw size={13} className={isGithubResyncing ? 'animated-glow' : ''} style={{ animation: isGithubResyncing ? 'spin 1s linear infinite' : 'none' }} />
-                          {isGithubResyncing ? 'Resyncing Repositories...' : 'Resync Repositories'}
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            style={{ flex: 1, padding: '8px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                            onClick={handleResyncGithub}
+                            disabled={isGithubResyncing}
+                            title="Resync the currently connected GitHub profile"
+                          >
+                            <RefreshCw size={13} className={isGithubResyncing ? 'animated-glow' : ''} style={{ animation: isGithubResyncing ? 'spin 1s linear infinite' : 'none' }} />
+                            {isGithubResyncing ? 'Resyncing...' : 'Resync'}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline"
+                            style={{ flex: 1, padding: '8px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                            onClick={() => {
+                              setGithubUsername('');
+                              setGithubProfileUrl('');
+                              setGithubError(null);
+                              setIsGithubModalOpen(true);
+                            }}
+                            title="Connect a different GitHub account"
+                          >
+                            <FolderGit2 size={13} /> Switch Account
+                          </button>
+                        </div>
                       </div>
                     ) : (
                       /* Not Connected State */
@@ -1188,11 +1323,12 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                   type="text"
                   required
                   className="form-input"
-                  placeholder="e.g. layeebaharam14 or johndoe"
+                  placeholder="e.g. your-username"
                   value={githubUsername}
                   onChange={(e) => {
-                    setGithubUsername(e.target.value);
-                    setGithubProfileUrl(`https://github.com/${e.target.value.replace('@', '')}`);
+                    const val = e.target.value;
+                    setGithubUsername(val);
+                    setGithubProfileUrl(val.trim() ? `https://github.com/${val.replace('@', '').trim()}` : '');
                   }}
                 />
               </div>
@@ -1203,7 +1339,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                   id="github-url-input"
                   type="url"
                   className="form-input"
-                  placeholder="https://github.com/username"
+                  placeholder="https://github.com/your-username"
                   value={githubProfileUrl}
                   onChange={(e) => setGithubProfileUrl(e.target.value)}
                 />

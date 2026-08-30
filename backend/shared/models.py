@@ -34,6 +34,7 @@ class UserModel(Base):
     study_time_per_day = Column(String(50), nullable=True)
     preferred_learning_style = Column(String(50), nullable=True)
     preferred_language = Column(String(50), default="English")
+    password_hash = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -140,9 +141,12 @@ class UserProfileResponse(BaseModel):
     branch: Optional[str] = None
     semester_year: Optional[str] = None
     target_role: Optional[str] = None
+    career_interests: Optional[str] = None
     study_time_per_day: Optional[str] = None
     preferred_learning_style: Optional[str] = None
     preferred_language: Optional[str] = "English"
+    avatar_base64: Optional[str] = None
+    avatar_url: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
 
@@ -455,3 +459,307 @@ class GapAnalysisSummaryResponse(BaseModel):
     calculated_at: datetime = Field(default_factory=datetime.utcnow)
     version: str = "1.0.0"
 
+
+# =========================================================
+# Page 6: Personalized Roadmap Contracts
+# =========================================================
+
+class RoadmapResourceItem(BaseModel):
+    title: str
+    url: str
+    type: str = "documentation"  # 'documentation', 'course', 'tutorial', 'interactive'
+    is_free: bool = True
+    provider: str = "Official"
+
+
+class RoadmapTaskItem(BaseModel):
+    id: str
+    title: str
+    type: str  # 'Course', 'Practice', 'Project'
+    description: str
+    progress_pct: int = 0  # 0 to 100
+    estimated_hours: int = 10
+    is_completed: bool = False
+    topics: List[str] = Field(default_factory=list)
+    resources: List[RoadmapResourceItem] = Field(default_factory=list)
+    practice_exercises: List[Dict[str, Any]] = Field(default_factory=list)
+    project_deliverable: Optional[Dict[str, Any]] = None
+
+
+class RoadmapPhaseItem(BaseModel):
+    phase_number: int  # 1 to 6
+    title: str
+    subtitle: str
+    priority: str  # 'Critical', 'High', 'Medium', 'Low'
+    estimated_duration_weeks: str  # e.g. '4–5 Weeks'
+    progress_pct: int = 0  # 0 to 100
+    status: str = "Not Started"  # 'Not Started', 'In Progress', 'Completed'
+    topics_count: int = 0
+    projects_count: int = 0
+    resources_count: int = 0
+    why_it_matters: str
+    exact_gap_addressed: str
+    current_proficiency: str
+    required_proficiency: str
+    tasks: List[RoadmapTaskItem] = Field(default_factory=list)
+
+
+class RoadmapMilestoneItem(BaseModel):
+    milestone_number: int
+    title: str
+    description: str
+    is_achieved: bool = False
+
+
+class RoadmapSummary(BaseModel):
+    overall_completion_pct: int
+    completed_phases_count: int
+    in_progress_phases_count: int
+    not_started_phases_count: int
+    total_phases: int
+    total_duration: str
+    total_projects: int
+    total_resources: int
+    total_items: int
+
+
+class PersonalizedRoadmapResponse(BaseModel):
+    target_role: str
+    experience_level: str
+    estimated_duration: str
+    weekly_commitment: str
+    daily_effort: str
+    summary: RoadmapSummary
+    top_skills_you_will_gain: List[Dict[str, str]]
+    why_this_roadmap_reasons: List[str]
+    milestones: List[RoadmapMilestoneItem]
+    phases: List[RoadmapPhaseItem]
+    calendar_events: List[Dict[str, Any]] = Field(default_factory=list)
+    calculated_at: datetime = Field(default_factory=datetime.utcnow)
+    version: str = "1.0.0"
+
+
+class TaskToggleRequest(BaseModel):
+    task_id: str
+    is_completed: bool
+    user_id: Optional[str] = None
+
+
+# =========================================================
+# Page 7: Project Verification Contracts
+# =========================================================
+
+class VerifiedSkillItem(BaseModel):
+    skill_name: str
+    category: str = "General"
+    status: str  # 'Demonstrated', 'Partially Demonstrated', 'Not Demonstrated'
+    evidence: str
+    file_locations: List[str] = Field(default_factory=list)
+    reasoning: str
+
+
+class ProjectVerificationItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    repo_url: str
+    primary_skill: str
+    detected_technologies: List[str] = Field(default_factory=list)
+    description: str
+    status: str  # 'Verified', 'In Review', 'Needs Improvement', 'Rejected'
+    score_pct: int = 0  # 0 to 100
+    score_label: str = "Under Review"  # 'Excellent', 'Very Good', 'Under Review', 'Needs Improvement', 'Rejected'
+    score_explanation: str = ""
+    submission_date: str = "Submitted recently"
+    commits_count: int = 0
+    branches_count: int = 1
+    has_readme: bool = True
+    has_tests: bool = False
+    has_live_demo: bool = False
+    live_demo_url: Optional[str] = None
+    recent_commits: List[Dict[str, Any]] = Field(default_factory=list)
+    latest_commit_message: Optional[str] = None
+    latest_commit_date: Optional[str] = None
+    latest_commit_author: Optional[str] = None
+    verified_skills: List[VerifiedSkillItem] = Field(default_factory=list)
+    missing_evidence: List[str] = Field(default_factory=list)
+    recommendations: List[str] = Field(default_factory=list)
+    verified_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class VerificationSummaryResponse(BaseModel):
+    total_projects: int
+    total_repositories: int = 0
+    verified_count: int
+    in_review_count: int
+    needs_improvement_count: int
+    rejected_count: int
+    overall_credibility_score: int
+    credibility_trend: str
+    projects: List[ProjectVerificationItem]
+    calculated_at: datetime = Field(default_factory=datetime.utcnow)
+    version: str = "1.0.0"
+
+
+class ProjectSubmissionRequest(BaseModel):
+    repo_url: str
+    primary_skill: str
+    user_id: Optional[str] = "default_user"
+
+
+# =========================================================
+# Page 8: SkillTwin Updated Models
+# =========================================================
+
+class SkillTwinUpdatedSkillChange(BaseModel):
+    skill_name: str
+    category: str
+    icon_type: Optional[str] = None
+    before_level: str  # 'Beginner', 'Intermediate', 'Advanced'
+    before_pct: int  # 0 to 100
+    after_level: str  # 'Beginner', 'Intermediate', 'Advanced'
+    after_pct: int  # 0 to 100
+    change_pct: int  # e.g. 17 (+17%)
+    reason: str
+    evidence_text: str
+    file_citations: List[str] = Field(default_factory=list)
+    project_id: str
+    project_name: str
+
+
+class SkillGrowthPoint(BaseModel):
+    date_label: str  # e.g. 'Apr 10', 'Apr 20', 'Apr 30', 'May 10', 'May 20', 'May 26'
+    proficiency_pct: int
+    alignment_pct: int
+    event_label: Optional[str] = None
+
+
+class RecentActivityItem(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    title: str  # e.g. 'Project Verified'
+    subtitle: str  # e.g. 'Portfolio Website'
+    timestamp_label: str  # e.g. 'May 26, 2:45 PM'
+    icon_type: str = "check"  # 'project', 'skill', 'refresh', 'check'
+    status: str = "Completed"
+
+
+class SkillTwinUpdatedResponse(BaseModel):
+    user_id: str = "default_user"
+    target_role: str = "Full-Stack Developer"
+    experience_level: str = "Entry Level (0-2 years)"
+    last_updated_label: str = "May 26, 2026, 2:45 PM"
+    overall_alignment_pct: int = 78
+    overall_alignment_before_pct: int = 64
+    overall_alignment_change_pct: int = 14
+    average_proficiency_pct: int = 61
+    average_proficiency_before_pct: int = 49
+    average_proficiency_change_pct: int = 12
+    average_confidence_pct: int = 72
+    average_confidence_before_pct: int = 56
+    average_confidence_change_pct: int = 16
+    verified_projects_count: int = 5
+    verified_projects_change_count: int = 1
+    skills_improved_count: int = 12
+    new_evidence_count: int = 1
+    latest_verified_project: Optional[ProjectVerificationItem] = None
+    skill_changes: List[SkillTwinUpdatedSkillChange] = Field(default_factory=list)
+    growth_timeline: List[SkillGrowthPoint] = Field(default_factory=list)
+    recent_activity: List[RecentActivityItem] = Field(default_factory=list)
+    target_role_impact_explanation: str = "You're now better aligned with the requirements for Full Stack Developer role."
+    calculated_at: datetime = Field(default_factory=datetime.utcnow)
+    version: str = "1.0.0"
+
+
+class ApplyVerificationRequest(BaseModel):
+    project_id: str
+    user_id: Optional[str] = "default_user"
+    target_role: Optional[str] = "Full-Stack Developer"
+
+
+# =========================================================
+# Page 9: Career Readiness / Continuous SkillTwin Models
+# =========================================================
+
+class CareerReadinessSkillItem(BaseModel):
+    name: str
+    category: str
+    proficiency_pct: int
+    confidence_pct: int
+    status: str = "Strong"  # 'Strong', 'Developing', 'Critical Gap', 'Verified'
+    verified_date: Optional[str] = None
+
+
+class RecentlyVerifiedSkillItem(BaseModel):
+    name: str  # Project or Skill Name
+    project_name: str
+    verified_date: str
+
+
+class RecommendedActionItem(BaseModel):
+    skill_name: str
+    title: str  # e.g. 'System Design Fundamentals'
+    priority_label: str = "High Impact"
+    why_text: str  # e.g. 'High demand skill with major impact on your target role.'
+    action_type: str = "roadmap"
+
+
+class JourneyMilestoneItem(BaseModel):
+    label: str  # 'Started On', 'Evidence Collected', 'Skills Identified', 'Projects Verified', 'SkillTwin Updates'
+    value: str  # 'Apr 10, 2026', '15 Items', '38 Skills', '5 Projects', '3 Updates'
+    icon_type: str = "calendar"
+
+
+class OverallProgressPoint(BaseModel):
+    date_label: str  # 'Apr 10', 'Apr 20', 'Apr 30', 'May 10', 'May 20', 'May 26'
+    this_journey_pct: int
+    industry_benchmark_pct: int
+
+
+class ReadinessGrowthPoint(BaseModel):
+    date_label: str  # 'Apr 10', 'Apr 20', 'Apr 30', 'May 10', 'May 20', 'May 26'
+    proficiency_pct: int
+    confidence_pct: int
+    alignment_pct: int
+
+
+class LatestUpdateSummary(BaseModel):
+    updated_date: str = "May 26, 2026"
+    description: str = "New evidence has improved your proficiency, confidence and alignment."
+    proficiency_change_pct: int = 12
+    confidence_change_pct: int = 16
+    alignment_change_pct: int = 14
+
+
+class TopSkillRankingItem(BaseModel):
+    name: str
+    category: str
+    proficiency_pct: int
+
+
+class CareerReadinessResponse(BaseModel):
+    user_id: str = "default_user"
+    target_role: str = "Full-Stack Developer"
+    experience_level: str = "Entry Level (0-2 years)"
+    last_refreshed_label: str = "May 26, 2026, 2:45 PM"
+    career_readiness_score: int = 76
+    career_readiness_label: str = "Good"
+    career_readiness_change_pct: int = 18
+    career_readiness_explanation: str = "You're on the right track! Keep building and verifying."
+    industry_alignment_pct: int = 78
+    industry_alignment_label: str = "High"
+    industry_alignment_change_pct: int = 16
+    industry_alignment_explanation: str = "Strong alignment with Full Stack Developer role."
+    total_verified_projects: int = 5
+    verified_projects_change_count: int = 1
+    verified_projects_explanation: str = "Excellent! More real projects = Higher credibility."
+    overall_progress_points: List[OverallProgressPoint] = Field(default_factory=list)
+    recommended_action: RecommendedActionItem
+    strong_skills: List[CareerReadinessSkillItem] = Field(default_factory=list)
+    developing_skills: List[CareerReadinessSkillItem] = Field(default_factory=list)
+    critical_gaps: List[CareerReadinessSkillItem] = Field(default_factory=list)
+    recently_verified: List[RecentlyVerifiedSkillItem] = Field(default_factory=list)
+    skill_growth_points: List[ReadinessGrowthPoint] = Field(default_factory=list)
+    latest_update: LatestUpdateSummary
+    top_skills_by_proficiency: List[TopSkillRankingItem] = Field(default_factory=list)
+    journey_milestones: List[JourneyMilestoneItem] = Field(default_factory=list)
+    calculated_at: datetime = Field(default_factory=datetime.utcnow)
+    version: str = "1.0.0"

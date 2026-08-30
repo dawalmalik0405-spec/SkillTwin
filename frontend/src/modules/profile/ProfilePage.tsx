@@ -10,11 +10,11 @@ import {
   Briefcase,
   BookOpen,
   Mail,
-  Layers,
-  Moon
+  Shield
 } from 'lucide-react';
 import { UserProfile } from '../../shared/types';
 import PersistentSidebar from '../../shared/components/PersistentSidebar';
+import { GlobalHeaderBadge } from '../../shared/components/GlobalHeaderBadge';
 
 interface ProfilePageProps {
   userProfile: UserProfile | null;
@@ -27,7 +27,6 @@ interface ProfilePageProps {
   onNavigateToRoadmap?: () => void;
   onNavigateToSettings?: () => void;
   onNavigateToHelp?: () => void;
-  onOpenDiagnostics?: () => void;
 }
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({
@@ -40,8 +39,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
   onNavigateToGapAnalysis,
   onNavigateToRoadmap,
   onNavigateToSettings,
-  onNavigateToHelp,
-  onOpenDiagnostics
+  onNavigateToHelp
 }) => {
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -62,6 +60,26 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     preferred_language: userProfile?.preferred_language || 'English',
     avatar_base64: userProfile?.avatar_base64 || userProfile?.avatar_url || ''
   });
+
+  // Keep form fields synced whenever userProfile updates
+  React.useEffect(() => {
+    if (userProfile) {
+      setFormData({
+        name: userProfile.name || '',
+        email: userProfile.email || '',
+        education_level: userProfile.education_level || 'Undergraduate',
+        degree: userProfile.degree || 'B.Tech / B.E.',
+        branch: userProfile.branch || 'Computer Science',
+        semester_year: userProfile.semester_year || 'Semester 6 / Year 3',
+        target_role: userProfile.target_role || 'Full-Stack Developer',
+        career_interests: userProfile.career_interests || '',
+        study_time_per_day: userProfile.study_time_per_day || '2-4 hours/day',
+        preferred_learning_style: userProfile.preferred_learning_style || 'Hands-on Projects',
+        preferred_language: userProfile.preferred_language || 'English',
+        avatar_base64: userProfile.avatar_base64 || userProfile.avatar_url || ''
+      });
+    }
+  }, [userProfile]);
 
   const getInitials = (name: string): string => {
     const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -125,7 +143,7 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
     const updatedProfile: UserProfile = {
       id: userProfile?.id || 'usr_' + Date.now(),
       name: formData.name.trim(),
-      email: formData.email.trim(),
+      email: (userProfile?.email || formData.email).trim().toLowerCase(),
       avatar_base64: formData.avatar_base64,
       avatar_url: formData.avatar_base64,
       education_level: formData.education_level,
@@ -208,21 +226,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
           </div>
         </div>
 
-        {/* Header Badges & Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {onOpenDiagnostics && (
-            <button
-              onClick={onOpenDiagnostics}
-              className="btn btn-outline"
-              style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-            >
-              <Layers size={14} /> Pipeline Status
-            </button>
-          )}
-          <div className="badge badge-purple" style={{ padding: '6px 12px' }}>
-            <Moon size={13} /> Dark Mode
-          </div>
-        </div>
+        {/* Top Right Header Badge */}
+        <GlobalHeaderBadge />
       </header>
 
       {/* Main Dashboard Layout */}
@@ -230,7 +235,6 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
         {/* Left Persistent Dashboard Sidebar */}
         <PersistentSidebar
           userProfile={userProfile}
-          activeStep={2}
           activeView="profile"
           onNavigateToOnboarding={onNavigateToOnboarding}
           onNavigateToEvidence={onNavigateToEvidence}
@@ -438,22 +442,38 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({
                   </div>
 
                   <div>
-                    <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: 500 }}>
-                      Email Address *
-                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                      <label style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+                        Email Address *
+                      </label>
+                      <span style={{ fontSize: '0.7rem', color: '#34D399', display: 'flex', alignItems: 'center', gap: '3px', fontWeight: 600 }}>
+                        <Shield size={11} /> Authenticated Account
+                      </span>
+                    </div>
                     {isEditing ? (
                       <input
                         type="email"
                         className="form-input"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        required
+                        value={userProfile?.email || formData.email}
+                        readOnly
+                        disabled
+                        style={{
+                          backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                          color: 'var(--text-secondary)',
+                          cursor: 'not-allowed',
+                          borderColor: 'rgba(255, 255, 255, 0.08)',
+                          opacity: 0.85
+                        }}
+                        title="Email is linked to your authenticated account and cannot be modified"
                       />
                     ) : (
                       <div style={{ fontSize: '0.88rem', color: '#FFFFFF', fontWeight: 600, padding: '8px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: '8px' }}>
-                        {formData.email}
+                        {userProfile?.email || formData.email}
                       </div>
                     )}
+                    <p style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Linked to your authenticated login account.
+                    </p>
                   </div>
                 </div>
               </div>
