@@ -16,6 +16,7 @@ from backend.shared.models import (
 )
 from backend.routers.evidence import (
     _get_user_evidence_store,
+    _normalize_user_key,
     _in_memory_evidence,
     _in_memory_users,
     SKILL_TAXONOMY
@@ -176,9 +177,20 @@ def synthesize_living_skilltwin(
     Aggregates Resume text extractions, GitHub API repository metadata, and Registered Projects
     into a verified Living SkillTwin profile with dynamic score breakdown and insights.
     """
-    user_key = email or user_id or "default_user"
+    user_key = _normalize_user_key(email or user_id or "default_user")
     store = _get_user_evidence_store(user_key)
-    user_profile = _in_memory_users.get(email or "", {})
+
+    # If the direct store has no skills, check candidate aliases
+    if len(store.get("skills", {})) == 0:
+        for candidate in [email, user_id, "default_user"]:
+            if candidate:
+                cand_key = _normalize_user_key(candidate)
+                cand_store = _in_memory_evidence.get(cand_key)
+                if cand_store and len(cand_store.get("skills", {})) > 0:
+                    store = cand_store
+                    break
+
+    user_profile = _in_memory_users.get(_normalize_user_key(email or ""), {})
 
     # Determine target role
     target_role = target_role_override or user_profile.get("target_role") or "Full-Stack Developer"
@@ -312,39 +324,42 @@ def synthesize_living_skilltwin(
             skill_items.append(skill_item)
             seen_canonical.add(canonical_name)
 
-    # If no dynamic skills found yet (e.g. before initial upload), provide canonical seed skills
-    if not skill_items:
-        for seed in DEFAULT_FALLBACK_SKILLS:
-            skill_items.append(
-                SkillTwinSkillItem(
-                    id=str(uuid.uuid4()),
-                    name=seed["name"],
-                    canonical_name=seed["name"],
-                    category=seed["category"],
-                    proficiency=seed["proficiency"],
-                    numeric_proficiency=seed["numeric"],
-                    confidence_score=seed["confidence"],
-                    evidence_sources=seed["sources"],
-                    evidence_status=seed["status"],
-                    reasoning=seed["reasoning"],
-                    evidence_details=SkillTwinEvidenceDetails(
-                        resume_quotes=seed.get("quotes", []),
-                        github_repos=seed.get("repos", []),
-                        project_refs=seed.get("projects", []),
-                        strengths=seed.get("strengths", []),
-                        limitations=seed.get("limitations", []),
-                        recommendations=seed.get("recommendations", [])
-                    ),
-                    has_resume_evidence="Resume" in seed["sources"],
-                    has_github_evidence="GitHub" in seed["sources"],
-                    has_project_evidence="Projects" in seed["sources"],
-                    has_assessment_evidence=False,
-                    last_updated=datetime.utcnow()
-                )
-            )
+    # If no dynamic skills found yet (e.g. before initial upload), do not fabricate fake skills
+    # skill_items remains empty until user provides real evidence on Page 2
+    total_skills = len(skill_items)
+
+    if total_skills == 0:
+        return SkillTwinSummaryResponse(
+            overall_score=0,
+            rating_label="Evidence Needed",
+            encouragement_message="Add your resume, GitHub profile, or projects on Page 2 to build your SkillTwin.",
+            total_skills=0,
+            technical_count=0,
+            tools_count=0,
+            others_count=0,
+            demonstrated_count=0,
+            supported_count=0,
+            mentioned_count=0,
+            no_evidence_count=0,
+            breakdown=SkillTwinScoreBreakdown(
+                technical_score=0,
+                tools_score=0,
+                projects_score=0,
+                evidence_strength=0,
+                role_alignment=0
+            ),
+            insights=[],
+            skills=[],
+            target_role=target_role,
+            sources_connected={
+                "resume": bool(resume_data),
+                "github": bool(github_data),
+                "projects": len(projects_data) > 0
+            },
+            last_recalculated=datetime.utcnow()
+        )
 
     # Calculate Counts
-    total_skills = len(skill_items)
     technical_count = sum(1 for s in skill_items if s.category == "Technical")
     tools_count = sum(1 for s in skill_items if s.category == "Tools")
     others_count = total_skills - (technical_count + tools_count)

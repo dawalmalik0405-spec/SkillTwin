@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Moon,
+  Sparkles,
   Bell,
   Shield,
   Download,
@@ -9,11 +9,12 @@ import {
   Check,
   AlertTriangle,
   X,
-  Layers,
-  UserCheck
+  UserCheck,
+  LogOut
 } from 'lucide-react';
 import { UserProfile, UserPreferences } from '../../shared/types';
 import PersistentSidebar from '../../shared/components/PersistentSidebar';
+import { GlobalHeaderBadge } from '../../shared/components/GlobalHeaderBadge';
 
 interface SettingsPageProps {
   userProfile: UserProfile | null;
@@ -27,6 +28,7 @@ interface SettingsPageProps {
   onNavigateToHelp?: () => void;
   onOpenDiagnostics?: () => void;
   onResetAllData?: () => void;
+  onSignOut?: () => void;
 }
 
 export const SettingsPage: React.FC<SettingsPageProps> = ({
@@ -39,8 +41,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   onNavigateToRoadmap,
   onNavigateToProfile,
   onNavigateToHelp,
-  onOpenDiagnostics,
-  onResetAllData
+  onResetAllData,
+  onSignOut
 }) => {
   // Preferences State
   const [preferences, setPreferences] = useState<UserPreferences>(() => {
@@ -64,6 +66,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
   const [isClearModalOpen, setIsClearModalOpen] = useState<boolean>(false);
+  const [isSignOutModalOpen, setIsSignOutModalOpen] = useState<boolean>(false);
 
   useEffect(() => {
     localStorage.setItem('skilltwin_user_preferences', JSON.stringify(preferences));
@@ -156,21 +159,8 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           </div>
         </div>
 
-        {/* Header Badges & Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {onOpenDiagnostics && (
-            <button
-              onClick={onOpenDiagnostics}
-              className="btn btn-outline"
-              style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-            >
-              <Layers size={14} /> Pipeline Status
-            </button>
-          )}
-          <div className="badge badge-purple" style={{ padding: '6px 12px' }}>
-            <Moon size={13} /> Dark Mode
-          </div>
-        </div>
+        {/* Top Right Header Badge */}
+        <GlobalHeaderBadge />
       </header>
 
       {/* Main Dashboard Layout */}
@@ -178,7 +168,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
         {/* Left Persistent Dashboard Sidebar */}
         <PersistentSidebar
           userProfile={userProfile}
-          activeStep={2}
           activeView="settings"
           onNavigateToOnboarding={onNavigateToOnboarding}
           onNavigateToEvidence={onNavigateToEvidence}
@@ -210,10 +199,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           {toastMessage && (
             <div style={{
               padding: '12px 16px',
-              background: 'rgba(16, 185, 129, 0.15)',
-              border: '1px solid rgba(16, 185, 129, 0.35)',
+              background: 'rgba(168, 85, 247, 0.15)',
+              border: '1px solid rgba(168, 85, 247, 0.35)',
               borderRadius: '10px',
-              color: '#34D399',
+              color: '#C084FC',
               fontSize: '0.875rem',
               display: 'flex',
               alignItems: 'center',
@@ -225,7 +214,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               </div>
               <button
                 onClick={() => setToastMessage(null)}
-                style={{ background: 'none', border: 'none', color: '#34D399', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: '#C084FC', cursor: 'pointer' }}
               >
                 <X size={15} />
               </button>
@@ -238,7 +227,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             <div className="glass-panel" style={{ padding: '22px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '18px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '10px' }}>
                 <div style={{ padding: '6px', background: 'rgba(168, 85, 247, 0.15)', borderRadius: '8px', color: '#C084FC' }}>
-                  <Moon size={18} />
+                  <Sparkles size={18} />
                 </div>
                 <div>
                   <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#F8FAFC' }}>Appearance</h3>
@@ -247,14 +236,14 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {/* Dark Mode */}
+                {/* Visual Experience (Informational) */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#FFFFFF' }}>Dark Mode</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>High-contrast dark glassmorphism (always on)</div>
-                  </div>
-                  <div className="badge badge-purple" style={{ padding: '4px 10px', fontSize: '0.75rem' }}>
-                    Enabled
+                    <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#FFFFFF' }}>Visual Experience</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', lineHeight: 1.4 }}>
+                      Premium glassmorphism interface<br />
+                      Designed for a focused career-development experience.
+                    </div>
                   </div>
                 </div>
 
@@ -421,7 +410,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: '12px' }}>
                   <div>
                     <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#F87171' }}>Delete Profile Data</div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Permanently reset your Onboarding & evidence state</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Permanently reset your SkillTwin profile & evidence state</div>
                   </div>
                   <button
                     type="button"
@@ -429,7 +418,23 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     onClick={() => setIsDeleteModalOpen(true)}
                     style={{ padding: '5px 12px', fontSize: '0.75rem', color: '#F87171', borderColor: 'rgba(239, 68, 68, 0.35)' }}
                   >
-                    <Trash2 size={13} /> Delete Data
+                    <Trash2 size={13} /> Delete Profile Data
+                  </button>
+                </div>
+
+                {/* Sign Out */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-subtle)', paddingTop: '12px' }}>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#FFFFFF' }}>Sign Out</div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Securely sign out of your account</div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    onClick={() => setIsSignOutModalOpen(true)}
+                    style={{ padding: '5px 14px', fontSize: '0.75rem', color: '#F8FAFC', borderColor: 'rgba(255, 255, 255, 0.25)' }}
+                  >
+                    <LogOut size={13} /> Sign Out
                   </button>
                 </div>
               </div>
@@ -508,10 +513,10 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                   <div style={{ padding: '8px', background: 'rgba(239, 68, 68, 0.15)', borderRadius: '10px', color: '#F87171' }}>
                     <AlertTriangle size={20} />
                   </div>
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#FFFFFF' }}>Delete Profile Data?</h3>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#FFFFFF' }}>Delete your profile data?</h3>
                 </div>
                 <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.5, marginBottom: '20px' }}>
-                  Are you sure you want to delete your profile data? This action cannot be undone and will reset your Onboarding information and analyzed evidence.
+                  This will permanently remove your SkillTwin profile data, evidence, analysis and progress. Your login account will remain active.
                 </p>
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
                   <button className="btn btn-outline" onClick={() => setIsDeleteModalOpen(false)}>
@@ -522,7 +527,39 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
                     onClick={handleDeleteProfile}
                     style={{ background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', color: '#FFFFFF', border: 'none', padding: '8px 18px', fontWeight: 600, borderRadius: '8px' }}
                   >
-                    Delete Profile
+                    Delete Profile Data
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Sign Out Confirmation Dialog */}
+          {isSignOutModalOpen && (
+            <div className="modal-backdrop" onClick={() => setIsSignOutModalOpen(false)}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px', borderColor: 'rgba(239, 68, 68, 0.4)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '14px' }}>
+                  <div style={{ padding: '8px', background: 'rgba(239, 68, 68, 0.15)', borderRadius: '10px', color: '#F87171' }}>
+                    <LogOut size={20} />
+                  </div>
+                  <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#FFFFFF' }}>Are you sure you want to sign out?</h3>
+                </div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.5, marginBottom: '20px' }}>
+                  You will be signed out of your SkillTwin account and returned to the landing page. You can sign back in anytime using your registered credentials.
+                </p>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                  <button className="btn btn-outline" onClick={() => setIsSignOutModalOpen(false)}>
+                    Cancel
+                  </button>
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      setIsSignOutModalOpen(false);
+                      if (onSignOut) onSignOut();
+                    }}
+                    style={{ background: 'linear-gradient(135deg, #EF4444 0%, #DC2626 100%)', color: '#FFFFFF', border: 'none', padding: '8px 18px', fontWeight: 600, borderRadius: '8px' }}
+                  >
+                    Sign Out
                   </button>
                 </div>
               </div>

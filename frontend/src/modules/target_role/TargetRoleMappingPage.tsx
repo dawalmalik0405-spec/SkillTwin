@@ -11,7 +11,6 @@ import {
   TrendingUp,
   Target,
   Shield,
-  Layers,
   ExternalLink,
   Loader2,
   AlertCircle,
@@ -28,6 +27,7 @@ import {
 } from '../../shared/types';
 import { apiClient } from '../../shared/apiClient';
 import PersistentSidebar from '../../shared/components/PersistentSidebar';
+import { GlobalHeaderBadge } from '../../shared/components/GlobalHeaderBadge';
 
 interface TargetRoleMappingPageProps {
   userProfile: UserProfile | null;
@@ -39,7 +39,6 @@ interface TargetRoleMappingPageProps {
   onNavigateToProfile?: () => void;
   onNavigateToSettings?: () => void;
   onNavigateToHelp?: () => void;
-  onOpenDiagnostics?: () => void;
 }
 
 export const TargetRoleMappingPage: React.FC<TargetRoleMappingPageProps> = ({
@@ -51,8 +50,7 @@ export const TargetRoleMappingPage: React.FC<TargetRoleMappingPageProps> = ({
   onNavigateToRoadmap,
   onNavigateToProfile,
   onNavigateToSettings,
-  onNavigateToHelp,
-  onOpenDiagnostics
+  onNavigateToHelp
 }) => {
   // Target Role State
   const initialRole = userProfile?.target_role || 'Full-Stack Developer';
@@ -116,6 +114,8 @@ export const TargetRoleMappingPage: React.FC<TargetRoleMappingPageProps> = ({
   };
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    localStorage.setItem('skilltwin_target_role_completed', 'true');
     loadTargetRoleData(selectedRole, selectedExperience, selectedIndustry);
   }, [selectedRole, selectedExperience, selectedIndustry]);
 
@@ -342,8 +342,8 @@ export const TargetRoleMappingPage: React.FC<TargetRoleMappingPageProps> = ({
           </div>
         </div>
 
-        {/* Top Actions: Download Report & Diagnostics */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Top Actions: Download Report & Global Badge */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button
             type="button"
             className="btn btn-outline"
@@ -352,15 +352,7 @@ export const TargetRoleMappingPage: React.FC<TargetRoleMappingPageProps> = ({
           >
             <Download size={13} /> Download Report
           </button>
-          {onOpenDiagnostics && (
-            <button
-              onClick={onOpenDiagnostics}
-              className="btn btn-outline"
-              style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-            >
-              <Layers size={14} /> Pipeline Status
-            </button>
-          )}
+          <GlobalHeaderBadge />
         </div>
       </header>
 
@@ -425,19 +417,24 @@ export const TargetRoleMappingPage: React.FC<TargetRoleMappingPageProps> = ({
               }}>
                 <Code2 size={20} />
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Selected Role</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '2px' }}>Selected Role</div>
                 <select
-                  className="form-input"
+                  id="target-role-select"
+                  className="form-select"
                   value={selectedRole}
                   onChange={(e) => setSelectedRole(e.target.value)}
                   style={{
-                    marginTop: '2px',
-                    height: '34px',
+                    height: '38px',
+                    padding: '6px 30px 6px 12px',
                     fontSize: '0.85rem',
                     fontWeight: 700,
+                    lineHeight: '1.4',
                     color: '#F8FAFC',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    boxSizing: 'border-box',
+                    display: 'block',
+                    width: '100%'
                   }}
                 >
                   {availableRoles.map((r) => (
@@ -463,24 +460,29 @@ export const TargetRoleMappingPage: React.FC<TargetRoleMappingPageProps> = ({
               }}>
                 <BarChart2 size={20} />
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Experience Level</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '2px' }}>Experience Level</div>
                 <select
-                  className="form-input"
+                  id="target-experience-select"
+                  className="form-select"
                   value={selectedExperience}
                   onChange={(e) => setSelectedExperience(e.target.value)}
                   style={{
-                    marginTop: '2px',
-                    height: '34px',
+                    height: '38px',
+                    padding: '6px 30px 6px 12px',
                     fontSize: '0.85rem',
                     fontWeight: 600,
+                    lineHeight: '1.4',
                     color: '#F8FAFC',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    boxSizing: 'border-box',
+                    display: 'block',
+                    width: '100%'
                   }}
                 >
-                  <option value="Entry Level (0-2 years)" style={{ background: '#0F172A' }}>Entry Level (0-2 years)</option>
-                  <option value="Mid Level (2-5 years)" style={{ background: '#0F172A' }}>Mid Level (2-5 years)</option>
-                  <option value="Senior Level (5+ years)" style={{ background: '#0F172A' }}>Senior Level (5+ years)</option>
+                  <option value="Entry Level (0-2 years)" style={{ background: '#0F172A', color: '#F8FAFC' }}>Entry Level (0-2 years)</option>
+                  <option value="Mid Level (2-5 years)" style={{ background: '#0F172A', color: '#F8FAFC' }}>Mid Level (2-5 years)</option>
+                  <option value="Senior Level (5+ years)" style={{ background: '#0F172A', color: '#F8FAFC' }}>Senior Level (5+ years)</option>
                 </select>
               </div>
             </div>
@@ -499,26 +501,31 @@ export const TargetRoleMappingPage: React.FC<TargetRoleMappingPageProps> = ({
               }}>
                 <Building2 size={20} />
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>Industry</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '2px' }}>Industry</div>
                 <select
-                  className="form-input"
+                  id="target-industry-select"
+                  className="form-select"
                   value={selectedIndustry}
                   onChange={(e) => setSelectedIndustry(e.target.value)}
                   style={{
-                    marginTop: '2px',
-                    height: '34px',
+                    height: '38px',
+                    padding: '6px 30px 6px 12px',
                     fontSize: '0.85rem',
                     fontWeight: 600,
+                    lineHeight: '1.4',
                     color: '#F8FAFC',
-                    cursor: 'pointer'
+                    cursor: 'pointer',
+                    boxSizing: 'border-box',
+                    display: 'block',
+                    width: '100%'
                   }}
                 >
-                  <option value="All Industries" style={{ background: '#0F172A' }}>All Industries</option>
-                  <option value="Tech & SaaS" style={{ background: '#0F172A' }}>Tech & SaaS</option>
-                  <option value="Fintech & Banking" style={{ background: '#0F172A' }}>Fintech & Banking</option>
-                  <option value="E-Commerce & Retail" style={{ background: '#0F172A' }}>E-Commerce & Retail</option>
-                  <option value="Healthcare" style={{ background: '#0F172A' }}>Healthcare</option>
+                  <option value="All Industries" style={{ background: '#0F172A', color: '#F8FAFC' }}>All Industries</option>
+                  <option value="Tech & SaaS" style={{ background: '#0F172A', color: '#F8FAFC' }}>Tech & SaaS</option>
+                  <option value="Fintech & Banking" style={{ background: '#0F172A', color: '#F8FAFC' }}>Fintech & Banking</option>
+                  <option value="E-Commerce & Retail" style={{ background: '#0F172A', color: '#F8FAFC' }}>E-Commerce & Retail</option>
+                  <option value="Healthcare" style={{ background: '#0F172A', color: '#F8FAFC' }}>Healthcare</option>
                 </select>
               </div>
             </div>

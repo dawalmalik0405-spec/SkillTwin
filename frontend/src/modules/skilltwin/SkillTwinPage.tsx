@@ -8,8 +8,6 @@ import {
   FileText,
   Github,
   FolderGit2,
-  Moon,
-  Layers,
   Info,
   X,
   ArrowUpRight,
@@ -31,6 +29,7 @@ import {
 } from '../../shared/types';
 import { apiClient } from '../../shared/apiClient';
 import PersistentSidebar from '../../shared/components/PersistentSidebar';
+import { GlobalHeaderBadge } from '../../shared/components/GlobalHeaderBadge';
 
 interface SkillTwinPageProps {
   userProfile: UserProfile | null;
@@ -42,7 +41,6 @@ interface SkillTwinPageProps {
   onNavigateToProfile?: () => void;
   onNavigateToSettings?: () => void;
   onNavigateToHelp?: () => void;
-  onOpenDiagnostics?: () => void;
 }
 
 export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
@@ -54,8 +52,7 @@ export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
   onNavigateToRoadmap,
   onNavigateToProfile,
   onNavigateToSettings,
-  onNavigateToHelp,
-  onOpenDiagnostics
+  onNavigateToHelp
 }) => {
   const userEmail = userProfile?.email || 'layeeba@skilltwin.dev';
   const userId = userProfile?.id;
@@ -93,6 +90,8 @@ export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
   };
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    localStorage.setItem('skilltwin_skilltwin_completed', 'true');
     loadSkillTwinProfile();
   }, [userEmail, userId, targetRole]);
 
@@ -387,21 +386,8 @@ export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
           </div>
         </div>
 
-        {/* Header Badges & Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {onOpenDiagnostics && (
-            <button
-              onClick={onOpenDiagnostics}
-              className="btn btn-outline"
-              style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-            >
-              <Layers size={14} /> Pipeline Status
-            </button>
-          )}
-          <div className="badge badge-purple" style={{ padding: '6px 12px' }}>
-            <Moon size={13} /> Dark Mode
-          </div>
-        </div>
+        {/* Top Right Header Badge */}
+        <GlobalHeaderBadge />
       </header>
 
       {/* Main Dashboard Layout */}
@@ -626,18 +612,46 @@ export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
                     Retry Synthesis
                   </button>
                 </div>
+              ) : (skillTwinData?.skills.length || 0) === 0 ? (
+                <div style={{ padding: '48px 20px', textAlign: 'center' }}>
+                  <div style={{
+                    width: '56px',
+                    height: '56px',
+                    borderRadius: '16px',
+                    background: 'rgba(168, 85, 247, 0.15)',
+                    border: '1px solid rgba(168, 85, 247, 0.35)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 16px',
+                    boxShadow: '0 0 20px rgba(168, 85, 247, 0.25)'
+                  }}>
+                    <FileText size={28} color="#C084FC" />
+                  </div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#F8FAFC', marginBottom: '6px' }}>
+                    Evidence needed
+                  </h3>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', maxWidth: '380px', margin: '0 auto 20px', lineHeight: 1.5 }}>
+                    Add your resume, GitHub profile, or projects to build your SkillTwin.
+                  </p>
+                  {onNavigateToEvidence && (
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={onNavigateToEvidence}
+                      style={{ padding: '8px 20px', fontSize: '0.85rem', fontWeight: 700 }}
+                    >
+                      ← Go to Evidence Collection
+                    </button>
+                  )}
+                </div>
               ) : filteredSkills.length === 0 ? (
                 <div style={{ padding: '40px 16px', textAlign: 'center' }}>
                   <AlertCircle size={32} color="#818CF8" style={{ margin: '0 auto 10px' }} />
                   <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#F8FAFC' }}>No matching skills found</div>
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px', maxWidth: '360px', margin: '4px auto 14px' }}>
-                    {searchQuery ? 'Try clearing your search query or selecting a different category.' : 'No skills extracted yet. Upload evidence on Page 2 to populate your SkillTwin.'}
+                    Try clearing your search query or selecting a different category.
                   </p>
-                  {onNavigateToEvidence && (
-                    <button type="button" className="btn btn-outline" onClick={onNavigateToEvidence} style={{ fontSize: '0.78rem', padding: '6px 14px' }}>
-                      ← Go to Evidence Collection
-                    </button>
-                  )}
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
