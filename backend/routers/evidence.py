@@ -3,6 +3,7 @@ import re
 import uuid
 from datetime import datetime
 from typing import List, Optional, Dict, Any
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.orm import Session
 import httpx
@@ -95,10 +96,19 @@ SKILL_TAXONOMY = {
 }
 
 
+def _normalize_user_key(key: Optional[str]) -> str:
+    """Normalize user keys (case-insensitive for email, trimmed)."""
+    if not key:
+        return "default_user"
+    clean = key.strip()
+    return clean.lower() if "@" in clean else clean
+
+
 def _get_user_evidence_store(key: str) -> Dict[str, Any]:
     """Retrieve or initialize in-memory evidence store for user."""
-    if key not in _in_memory_evidence:
-        _in_memory_evidence[key] = {
+    norm_key = _normalize_user_key(key)
+    if norm_key not in _in_memory_evidence:
+        _in_memory_evidence[norm_key] = {
             "resume": None,
             "github": None,
             "projects": [],
@@ -107,7 +117,7 @@ def _get_user_evidence_store(key: str) -> Dict[str, Any]:
             "certifications": set(),
             "projects_found": set()
         }
-    return _in_memory_evidence[key]
+    return _in_memory_evidence[norm_key]
 
 
 # =========================================================
@@ -155,11 +165,33 @@ def get_industry_roles(db: Session = Depends(get_db)):
 def submit_onboarding(payload: OnboardingCreateRequest, db: Session = Depends(get_db)):
     user_id = str(uuid.uuid4())
     now = datetime.utcnow()
+    normalized_email = payload.email.strip().lower()
+
+    profile_data = {
+        "id": user_id,
+        "name": payload.name.strip(),
+        "email": payload.email.strip(),
+        "education_level": payload.education_level,
+        "degree": payload.degree,
+        "branch": payload.branch,
+        "semester_year": payload.semester_year,
+        "target_role": payload.target_role,
+        "career_interests": payload.career_interests,
+        "study_time_per_day": payload.study_time_per_day,
+        "preferred_learning_style": payload.preferred_learning_style,
+        "preferred_language": payload.preferred_language,
+        "created_at": now,
+        "updated_at": now
+    }
+
+    # Always persist to in-memory store for instant recovery and retrieval
+    _in_memory_users[normalized_email] = profile_data
+    _in_memory_users[payload.email.strip()] = profile_data
 
     try:
-        existing_user = db.query(UserModel).filter(UserModel.email == payload.email).first()
+        existing_user = db.query(UserModel).filter(UserModel.email == payload.email.strip()).first()
         if existing_user:
-            existing_user.name = payload.name
+            existing_user.name = payload.name.strip()
             existing_user.education_level = payload.education_level
             existing_user.degree = payload.degree
             existing_user.branch = payload.branch
@@ -172,26 +204,19 @@ def submit_onboarding(payload: OnboardingCreateRequest, db: Session = Depends(ge
             db.commit()
             db.refresh(existing_user)
 
-            return UserProfileResponse(
-                id=str(existing_user.id),
-                name=existing_user.name,
-                email=existing_user.email,
-                education_level=existing_user.education_level,
-                degree=existing_user.degree,
-                branch=existing_user.branch,
-                semester_year=existing_user.semester_year,
-                target_role=existing_user.target_role,
-                study_time_per_day=existing_user.study_time_per_day,
-                preferred_learning_style=existing_user.preferred_learning_style,
-                preferred_language=existing_user.preferred_language,
-                created_at=existing_user.created_at,
-                updated_at=existing_user.updated_at
-            )
+            profile_data["id"] = str(existing_user.id)
+            profile_data["created_at"] = existing_user.created_at
+            profile_data["updated_at"] = existing_user.updated_at
+            _in_memory_users[normalized_email] = profile_data
+            _in_memory_users[payload.email.strip()] = profile_data
+            _in_memory_users[str(existing_user.id)] = profile_data
+
+            return UserProfileResponse(**profile_data)
 
         new_user = UserModel(
             id=uuid.UUID(user_id),
-            name=payload.name,
-            email=payload.email,
+            name=payload.name.strip(),
+            email=payload.email.strip(),
             education_level=payload.education_level,
             degree=payload.degree,
             branch=payload.branch,
@@ -207,70 +232,64 @@ def submit_onboarding(payload: OnboardingCreateRequest, db: Session = Depends(ge
         db.commit()
         db.refresh(new_user)
 
-        return UserProfileResponse(
-            id=str(new_user.id),
-            name=new_user.name,
-            email=new_user.email,
-            education_level=new_user.education_level,
-            degree=new_user.degree,
-            branch=new_user.branch,
-            semester_year=new_user.semester_year,
-            target_role=new_user.target_role,
-            study_time_per_day=new_user.study_time_per_day,
-            preferred_learning_style=new_user.preferred_learning_style,
-            preferred_language=new_user.preferred_language,
-            created_at=new_user.created_at,
-            updated_at=new_user.updated_at
-        )
+        profile_data["id"] = str(new_user.id)
+        profile_data["created_at"] = new_user.created_at
+        profile_data["updated_at"] = new_user.updated_at
+        _in_memory_users[normalized_email] = profile_data
+        _in_memory_users[payload.email.strip()] = profile_data
+        _in_memory_users[str(new_user.id)] = profile_data
+
+        return UserProfileResponse(**profile_data)
 
     except Exception as e:
         print(f"[Onboarding DB Persistence Notice] Using fallback: {e}")
-        profile_data = {
-            "id": user_id,
-            "name": payload.name,
-            "email": payload.email,
-            "education_level": payload.education_level,
-            "degree": payload.degree,
-            "branch": payload.branch,
-            "semester_year": payload.semester_year,
-            "target_role": payload.target_role,
-            "study_time_per_day": payload.study_time_per_day,
-            "preferred_learning_style": payload.preferred_learning_style,
-            "preferred_language": payload.preferred_language,
-            "created_at": now,
-            "updated_at": now
-        }
-        _in_memory_users[payload.email] = profile_data
+        if "id" in profile_data:
+            _in_memory_users[str(profile_data["id"])] = profile_data
         return UserProfileResponse(**profile_data)
 
 
-@router.get("/onboarding/profile")
+@router.get("/onboarding/profile", response_model=UserProfileResponse)
 def get_user_profile(email: str, db: Session = Depends(get_db)):
+    clean_email = email.strip()
+    normalized_email = clean_email.lower()
+
     try:
-        user = db.query(UserModel).filter(UserModel.email == email).first()
+        user = db.query(UserModel).filter(UserModel.email.ilike(clean_email)).first()
         if user:
-            return UserProfileResponse(
-                id=str(user.id),
-                name=user.name,
-                email=user.email,
-                education_level=user.education_level,
-                degree=user.degree,
-                branch=user.branch,
-                semester_year=user.semester_year,
-                target_role=user.target_role,
-                study_time_per_day=user.study_time_per_day,
-                preferred_learning_style=user.preferred_learning_style,
-                preferred_language=user.preferred_language,
-                created_at=user.created_at,
-                updated_at=user.updated_at
-            )
+            profile_data = {
+                "id": str(user.id),
+                "name": user.name,
+                "email": user.email,
+                "education_level": user.education_level,
+                "degree": user.degree,
+                "branch": user.branch,
+                "semester_year": user.semester_year,
+                "target_role": user.target_role,
+                "study_time_per_day": user.study_time_per_day,
+                "preferred_learning_style": user.preferred_learning_style,
+                "preferred_language": user.preferred_language,
+                "created_at": user.created_at,
+                "updated_at": user.updated_at
+            }
+            _in_memory_users[normalized_email] = profile_data
+            _in_memory_users[clean_email] = profile_data
+            _in_memory_users[str(user.id)] = profile_data
+            return UserProfileResponse(**profile_data)
     except Exception:
         pass
 
-    if email in _in_memory_users:
-        return UserProfileResponse(**_in_memory_users[email])
+    if normalized_email in _in_memory_users:
+        return UserProfileResponse(**_in_memory_users[normalized_email])
+    if clean_email in _in_memory_users:
+        return UserProfileResponse(**_in_memory_users[clean_email])
 
-    raise HTTPException(status_code=404, detail="Student profile not found")
+    raise HTTPException(status_code=404, detail="Student profile not found for this email.")
+
+
+@router.put("/onboarding/profile", response_model=UserProfileResponse)
+def update_user_profile(payload: OnboardingCreateRequest, db: Session = Depends(get_db)):
+    """Update existing profile and ensure persistence across database and memory stores."""
+    return submit_onboarding(payload=payload, db=db)
 
 
 # =========================================================
@@ -294,7 +313,7 @@ async def upload_resume(
 
     filename = file.filename
     lower_name = filename.lower()
-    
+
     # 1. Format validation
     if not (lower_name.endswith('.pdf') or lower_name.endswith('.docx') or lower_name.endswith('.doc') or lower_name.endswith('.txt')):
         raise HTTPException(
@@ -343,7 +362,7 @@ async def upload_resume(
     # 3. AI Evidence Extraction & Context Mapping
     extracted_skills: List[ExtractedSkillItem] = []
     technologies_found: List[str] = []
-    sentences = [s.strip() for s in re.split(r'[\n\.\•\-\|\;\*]+', extracted_text) if len(s.strip()) > 3]
+    sentences = [s.strip() for s in re.split(r'[\n\.\â€¢\-\|\;\*]+', extracted_text) if len(s.strip()) > 3]
 
     for skill_key, info in SKILL_TAXONOMY.items():
         pattern = re.compile(info["regex"], re.IGNORECASE)
@@ -434,12 +453,12 @@ async def upload_resume(
     )
 
     # 4. Save to in-memory store & Database
-    user_key = email or user_id or "default_user"
+    user_key = _normalize_user_key(email or user_id or "default_user")
     store = _get_user_evidence_store(user_key)
-    
+
     # Remove previous resume skills so replacement resume updates cleanly
     store["skills"] = {k: v for k, v in store["skills"].items() if v.evidence_source != "Resume"}
-    
+
     store["resume"] = response_data
     for s in extracted_skills:
         store["skills"][s.canonical_name] = s
@@ -449,6 +468,11 @@ async def upload_resume(
         store["certifications"].add(c)
     for p in projects_found:
         store["projects_found"].add(p)
+
+    # Alias keys so lookup by email or user_id resolves to this exact store
+    if email and user_id:
+        _in_memory_evidence[_normalize_user_key(user_id)] = store
+        _in_memory_evidence[_normalize_user_key(email)] = store
 
     try:
         if user_id:
@@ -494,30 +518,46 @@ async def connect_github(
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             headers = {"User-Agent": "SkillTwin-AI-Engine/1.0", "Accept": "application/vnd.github.v3+json"}
-            url = f"https://api.github.com/users/{username}/repos"
-            res = await client.get(url, headers=headers, params={"sort": "updated", "per_page": 30})
 
-            if res.status_code == 200:
-                repos_data = res.json()
-            elif res.status_code == 404:
+            # Fetch user profile to verify existence and check public_repos count
+            user_url = f"https://api.github.com/users/{username}"
+            user_res = await client.get(user_url, headers=headers)
+
+            if user_res.status_code == 404:
                 raise HTTPException(
                     status_code=404,
                     detail=f"GitHub profile '@{username}' was not found. Please verify the username."
                 )
-            elif res.status_code == 403:
-                # Rate limit exceeded for anonymous GitHub API requests -> fallback to simulated live data for user's profile
-                print(f"[GitHub API Notice] GitHub rate limit hit for {username}. Using verified live repository simulation.")
-                repos_data = [
-                    {"name": f"{username}-portfolio", "description": "Full-Stack Portfolio web application with interactive components", "language": "TypeScript", "topics": ["react", "tailwind", "fastapi"], "stargazers_count": 3, "forks_count": 1, "updated_at": "2026-05-18T10:00:00Z", "html_url": f"https://github.com/{username}/{username}-portfolio"},
-                    {"name": "ecommerce-backend-api", "description": "High-performance REST API with PostgreSQL, Redis, and JWT authentication", "language": "Python", "topics": ["fastapi", "postgresql", "docker", "jwt"], "stargazers_count": 5, "forks_count": 2, "updated_at": "2026-05-15T14:30:00Z", "html_url": f"https://github.com/{username}/ecommerce-backend-api"},
-                    {"name": "ai-task-orchestrator", "description": "Intelligent task planner using LLMs and automated workflows", "language": "Python", "topics": ["python", "llm", "langchain", "react"], "stargazers_count": 8, "forks_count": 3, "updated_at": "2026-05-10T09:15:00Z", "html_url": f"https://github.com/{username}/ai-task-orchestrator"},
-                    {"name": "devops-cloud-infra", "description": "Infrastructure as code with Docker, CI/CD pipelines, and AWS deployment", "language": "HCL", "topics": ["docker", "ci-cd", "aws", "linux"], "stargazers_count": 2, "forks_count": 0, "updated_at": "2026-05-02T16:45:00Z", "html_url": f"https://github.com/{username}/devops-cloud-infra"}
-                ]
-            else:
+            elif user_res.status_code == 403:
                 raise HTTPException(
-                    status_code=res.status_code,
-                    detail=f"Failed to fetch GitHub profile (HTTP {res.status_code})"
+                    status_code=429,
+                    detail="GitHub API rate limit reached. Please wait a moment before trying again."
                 )
+            elif user_res.status_code != 200:
+                raise HTTPException(
+                    status_code=user_res.status_code,
+                    detail=f"Failed to fetch GitHub profile for '@{username}' (HTTP {user_res.status_code})"
+                )
+
+            user_info = user_res.json()
+            public_repos_count = user_info.get("public_repos", 0)
+
+            # If user has public repos, fetch their repositories
+            if public_repos_count > 0:
+                repos_url = f"https://api.github.com/users/{username}/repos"
+                repos_res = await client.get(repos_url, headers=headers, params={"sort": "updated", "per_page": 100})
+                if repos_res.status_code == 200:
+                    repos_data = repos_res.json()
+                elif repos_res.status_code == 403:
+                    raise HTTPException(
+                        status_code=429,
+                        detail="GitHub API rate limit reached while fetching repositories. Please try again shortly."
+                    )
+                else:
+                    repos_data = []
+            else:
+                repos_data = []
+
     except httpx.RequestError as e:
         raise HTTPException(
             status_code=503,
@@ -592,8 +632,10 @@ async def connect_github(
     )
 
     # 3. Store in memory & Database
-    user_key = payload.email or payload.user_id or "default_user"
+    user_key = _normalize_user_key(payload.email or payload.user_id or "default_user")
     store = _get_user_evidence_store(user_key)
+    # Clear out old GitHub skills so changing username refreshes skills cleanly
+    store["skills"] = {k: v for k, v in store["skills"].items() if getattr(v, "evidence_source", None) != "GitHub"}
     store["github"] = response
     for s in unique_skills:
         store["skills"][s.canonical_name] = s
@@ -603,6 +645,10 @@ async def connect_github(
         store["technologies"].add(f.capitalize())
     for r in repos:
         store["projects_found"].add(r.name)
+
+    if payload.email and payload.user_id:
+        _in_memory_evidence[_normalize_user_key(payload.user_id)] = store
+        _in_memory_evidence[_normalize_user_key(payload.email)] = store
 
     try:
         if payload.user_id:
@@ -703,7 +749,7 @@ async def add_project(
     )
 
     # Store in memory & DB
-    user_key = payload.email or payload.user_id or "default_user"
+    user_key = _normalize_user_key(payload.email or payload.user_id or "default_user")
     store = _get_user_evidence_store(user_key)
     store["projects"].append(project_item)
     for s in extracted_skills:
@@ -711,6 +757,10 @@ async def add_project(
     for t in detected_tech:
         store["technologies"].add(t)
     store["projects_found"].add(title)
+
+    if payload.email and payload.user_id:
+        _in_memory_evidence[_normalize_user_key(payload.user_id)] = store
+        _in_memory_evidence[_normalize_user_key(payload.email)] = store
 
     try:
         if payload.user_id:
@@ -747,8 +797,18 @@ def get_evidence_summary(
     Dynamically calculates real aggregated metrics across Resume,
     GitHub, and Projects for the student.
     """
-    user_key = email or user_id or "default_user"
+    user_key = _normalize_user_key(email or user_id or "default_user")
     store = _get_user_evidence_store(user_key)
+
+    # If the direct store has no evidence, check potential candidate aliases
+    if not store.get("resume") and not store.get("github") and len(store.get("projects", [])) == 0:
+        for candidate in [email, user_id, "default_user"]:
+            if candidate:
+                cand_key = _normalize_user_key(candidate)
+                cand_store = _in_memory_evidence.get(cand_key)
+                if cand_store and (cand_store.get("resume") or cand_store.get("github") or len(cand_store.get("projects", [])) > 0):
+                    store = cand_store
+                    break
 
     resume_data = store.get("resume")
     github_data = store.get("github")
@@ -776,7 +836,7 @@ def get_evidence_summary(
     total_skills = len(all_skills)
     total_technologies = len(store["technologies"])
     total_projects = len(store["projects_found"])
-    total_repositories = github_data.total_repositories if github_data else 0
+    total_repositories = len(github_data.repos) if (github_data and hasattr(github_data, "repos") and github_data.repos is not None) else (github_data.total_repositories if github_data else 0)
     total_certifications = len(store["certifications"])
 
     return EvidenceSummaryResponse(
@@ -879,4 +939,107 @@ def finalize_evidence(
         "message": "Structured evidence successfully persisted to Living SkillTwin.",
         "skills_count": len(skills_list),
         "target_stage": "Page 3 - SkillTwin Profile"
+    }
+
+
+class ProfileResetRequest(BaseModel):
+    email: Optional[str] = None
+    user_id: Optional[str] = None
+
+
+@router.post("/reset-profile")
+def reset_user_profile(
+    req: ProfileResetRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Clears all evidence, skill twin, roadmap, verification, and readiness records
+    for a user, resetting their profile to a clean onboarding state while keeping
+    their authentication account (email, name, password_hash) completely intact.
+    """
+    email = req.email.strip().lower() if req.email else None
+    user_id = req.user_id
+
+    # 1. Clear in-memory caches
+    keys_to_clear = []
+    if email:
+        keys_to_clear.append(email)
+    if user_id:
+        keys_to_clear.append(str(user_id))
+
+    for k in keys_to_clear:
+        if k in _in_memory_evidence:
+            del _in_memory_evidence[k]
+        if k in _in_memory_users:
+            u = _in_memory_users[k]
+            u["education_level"] = None
+            u["degree"] = None
+            u["branch"] = None
+            u["semester_year"] = None
+            u["target_role"] = None
+            u["study_time_per_day"] = None
+            u["preferred_learning_style"] = None
+            u["career_interests"] = []
+            u["technical_interests"] = []
+
+    # Clear downstream module caches if present
+    try:
+        from backend.routers.gap_analysis import _in_memory_gap_reports
+        for k in keys_to_clear:
+            _in_memory_gap_reports.pop(k, None)
+    except Exception:
+        pass
+    try:
+        from backend.routers.roadmap import _in_memory_roadmaps
+        for k in keys_to_clear:
+            _in_memory_roadmaps.pop(k, None)
+    except Exception:
+        pass
+    try:
+        from backend.routers.verification import _in_memory_verification_tasks
+        for k in keys_to_clear:
+            _in_memory_verification_tasks.pop(k, None)
+    except Exception:
+        pass
+    try:
+        from backend.routers.readiness import _in_memory_readiness
+        for k in keys_to_clear:
+            _in_memory_readiness.pop(k, None)
+    except Exception:
+        pass
+
+    # 2. Clear Database records if DB is connected
+    try:
+        user_uuid = None
+        user_record = None
+        if user_id:
+            try:
+                user_uuid = uuid.UUID(str(user_id))
+                user_record = db.query(UserModel).filter(UserModel.id == user_uuid).first()
+            except Exception:
+                pass
+        if not user_record and email:
+            user_record = db.query(UserModel).filter(UserModel.email == email).first()
+            if user_record:
+                user_uuid = user_record.id
+
+        if user_record and user_uuid:
+            db.query(EvidenceSourceModel).filter(EvidenceSourceModel.user_id == user_uuid).delete(synchronize_session=False)
+            db.query(SkillTwinModel).filter(SkillTwinModel.user_id == user_uuid).delete(synchronize_session=False)
+            user_record.education_level = None
+            user_record.degree = None
+            user_record.branch = None
+            user_record.semester_year = None
+            user_record.target_role = None
+            user_record.study_time_per_day = None
+            user_record.preferred_learning_style = None
+            user_record.career_interests = []
+            user_record.technical_interests = []
+            db.commit()
+    except Exception as e:
+        print(f"[Reset Profile DB Notice] Warning resetting DB: {e}")
+
+    return {
+        "status": "success",
+        "message": "Profile data and evidence successfully reset. Authentication account remains active."
     }

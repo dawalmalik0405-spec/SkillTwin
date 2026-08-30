@@ -16,14 +16,52 @@ import SettingsPage from './modules/settings/SettingsPage';
 import HelpPage from './modules/help/HelpPage';
 import SkillTwinPage from './modules/skilltwin/SkillTwinPage';
 import TargetRoleMappingPage from './modules/target_role/TargetRoleMappingPage';
+import GapAnalysisPage from './modules/gap_analysis/GapAnalysisPage';
+import RoadmapPage from './modules/roadmap/RoadmapPage';
+import ProjectVerificationPage from './modules/verification/ProjectVerificationPage';
+import SkillTwinUpdatedPage from './modules/skilltwin_updated/SkillTwinUpdatedPage';
+import CareerReadinessPage from './modules/readiness/CareerReadinessPage';
+import LandingPage from './modules/landing/LandingPage';
+import SkillTwinLoadingScreen from './modules/landing/SkillTwinLoadingScreen';
+import AuthModal from './modules/auth/AuthModal';
+
+export type AppView =
+  | 'landing'
+  | 'onboarding'
+  | 'evidence'
+  | 'skilltwin'
+  | 'target_role'
+  | 'gap'
+  | 'roadmap'
+  | 'verification'
+  | 'skilltwin_updated'
+  | 'readiness'
+  | 'profile'
+  | 'settings'
+  | 'help'
+  | 'diagnostics';
 
 export const App: React.FC = () => {
   // Navigation & User Profile State with LocalStorage Persistence
-  const [currentView, setCurrentView] = useState<'onboarding' | 'evidence' | 'skilltwin' | 'target_role' | 'profile' | 'settings' | 'help' | 'diagnostics'>(() => {
+  const [currentView, setCurrentView] = useState<AppView>(() => {
     const saved = localStorage.getItem('skilltwin_current_view');
-    const validViews = ['onboarding', 'evidence', 'skilltwin', 'target_role', 'profile', 'settings', 'help', 'diagnostics'];
-    return validViews.includes(saved || '') ? (saved as any) : 'onboarding';
+    const inAppSession = sessionStorage.getItem('skilltwin_in_app_session') === 'true';
+    if (inAppSession && saved && saved !== 'landing') {
+      const validViews = ['landing', 'onboarding', 'evidence', 'skilltwin', 'target_role', 'gap', 'roadmap', 'verification', 'skilltwin_updated', 'readiness', 'profile', 'settings', 'help', 'diagnostics'];
+      return validViews.includes(saved) ? (saved as AppView) : 'landing';
+    }
+    return 'landing';
   });
+
+  // Initial loading splash screen (approx. 2 seconds)
+  const [showSplash, setShowSplash] = useState<boolean>(true);
+
+  // Authentication State
+  const [authToken, setAuthToken] = useState<string | null>(() => {
+    return apiClient.getToken();
+  });
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState<boolean>(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'signup'>('login');
 
   const [activeProfile, setActiveProfile] = useState<UserProfile | null>(() => {
     const saved = localStorage.getItem('skilltwin_active_profile');
@@ -37,9 +75,19 @@ export const App: React.FC = () => {
     return null;
   });
 
-  // Save view and profile changes
+  const isAuthenticated = Boolean(authToken || (activeProfile && (activeProfile.id || activeProfile.email)));
+
+  // Save view and profile changes & reset scroll position globally
   useEffect(() => {
     localStorage.setItem('skilltwin_current_view', currentView);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+    const root = document.getElementById('root');
+    if (root) root.scrollTop = 0;
+    document.querySelectorAll('main, .dashboard-layout, .container, .app-container').forEach(el => {
+      el.scrollTop = 0;
+    });
   }, [currentView]);
 
   useEffect(() => {
@@ -51,11 +99,130 @@ export const App: React.FC = () => {
   const handleUpdateProfile = (updated: UserProfile) => {
     setActiveProfile(updated);
     localStorage.setItem('skilltwin_active_profile', JSON.stringify(updated));
+    localStorage.setItem('skilltwin_onboarding_completed', 'true');
+    apiClient.updateProfile(updated).catch(err => {
+      console.warn('Backend profile update notice:', err);
+    });
   };
 
-  const handleResetAllData = () => {
-    localStorage.clear();
+  const isOnboardingCompleted = Boolean(
+    (activeProfile && (activeProfile.id || activeProfile.email)) ||
+    localStorage.getItem('skilltwin_onboarding_completed') === 'true'
+  );
+
+  // Track whether user has entered the Evidence Collection page (to lock Onboarding)
+  const [hasEnteredEvidence, setHasEnteredEvidence] = useState<boolean>(() => {
+    return localStorage.getItem('skilltwin_evidence_entered') === 'true';
+  });
+
+  useEffect(() => {
+    if (currentView === 'evidence') {
+      setHasEnteredEvidence(true);
+      localStorage.setItem('skilltwin_evidence_entered', 'true');
+    }
+  }, [currentView]);
+
+  const handleNavigateToOnboarding = () => {
+    sessionStorage.setItem('skilltwin_in_app_session', 'true');
+    if (hasEnteredEvidence || localStorage.getItem('skilltwin_evidence_entered') === 'true') {
+      alert('Onboarding is completed and locked.');
+      if (currentView === 'onboarding') {
+        setCurrentView('evidence');
+      }
+      return;
+    }
+    setCurrentView('onboarding');
+  };
+
+  const handleGetStarted = () => {
+    if (isAuthenticated) {
+      if (hasEnteredEvidence || localStorage.getItem('skilltwin_evidence_entered') === 'true') {
+        sessionStorage.setItem('skilltwin_in_app_session', 'true');
+        setCurrentView('evidence');
+      } else {
+        handleNavigateToOnboarding();
+      }
+    } else {
+      setAuthModalMode('signup');
+      setIsAuthModalOpen(true);
+    }
+  };
+
+  const handleOpenLogin = () => {
+    setAuthModalMode('login');
+    setIsAuthModalOpen(true);
+  };
+
+  const handleAuthSuccess = async (user: UserProfile) => {
+    let mergedProfile: UserProfile = { ...(activeProfile || {}), ...user };
+    if (user.email) {
+      try {
+        const existingProfile = await apiClient.getProfile(user.email);
+        if (existingProfile && (existingProfile.target_role || existingProfile.education_level || existingProfile.degree)) {
+          mergedProfile = { ...existingProfile, ...user };
+          localStorage.setItem('skilltwin_onboarding_completed', 'true');
+        }
+      } catch (e) {
+        console.warn('Profile recovery note:', e);
+      }
+    }
+    setActiveProfile(mergedProfile);
+    localStorage.setItem('skilltwin_active_profile', JSON.stringify(mergedProfile));
+    setAuthToken(apiClient.getToken());
+    setIsAuthModalOpen(false);
+    sessionStorage.setItem('skilltwin_in_app_session', 'true');
+    handleNavigateToOnboarding();
+  };
+
+  const handleLogout = async () => {
+    try {
+      await apiClient.logout();
+    } catch (e) {
+      console.warn('Logout notice:', e);
+    }
+    setAuthToken(null);
     setActiveProfile(null);
+    localStorage.removeItem('skilltwin_auth_token');
+    localStorage.removeItem('skilltwin_auth_user');
+    localStorage.removeItem('skilltwin_active_profile');
+    sessionStorage.removeItem('skilltwin_in_app_session');
+    setCurrentView('landing');
+  };
+
+  const handleDeleteProfileData = async () => {
+    try {
+      await apiClient.resetProfileData(activeProfile?.email, activeProfile?.id);
+    } catch (e) {
+      console.warn('Backend profile reset warning:', e);
+    }
+
+    const pipelineKeys = [
+      'skilltwin_onboarding_completed',
+      'skilltwin_evidence_completed',
+      'skilltwin_evidence_entered',
+      'skilltwin_resume_data',
+      'skilltwin_github_data',
+      'skilltwin_projects_data',
+      'skilltwin_skilltwin_completed',
+      'skilltwin_target_role_completed',
+      'skilltwin_gap_completed',
+      'skilltwin_roadmap_completed',
+      'skilltwin_verification_completed',
+      'skilltwin_skilltwin_updated_completed',
+      'skilltwin_readiness_completed',
+      'skilltwin_active_gap_data',
+      'skilltwin_evidence_session',
+      'skilltwin_active_profile',
+      'skilltwin_current_view'
+    ];
+    pipelineKeys.forEach(k => localStorage.removeItem(k));
+    sessionStorage.removeItem('skilltwin_evidence_session');
+
+    // Retain login account credentials while completely resetting profile and evidence
+    setEvidenceCompleted(false);
+    setHasEnteredEvidence(false);
+    setActiveProfile(prev => prev ? { id: prev.id, name: prev.name, email: prev.email } : null);
+    sessionStorage.setItem('skilltwin_in_app_session', 'true');
     setCurrentView('onboarding');
   };
 
@@ -86,15 +253,144 @@ export const App: React.FC = () => {
   const isDbConnected = healthData?.database?.status === 'connected';
   const isBackendHealthy = healthData?.status === 'ok' || healthData?.status === 'degraded';
 
-  // Render Page 1: Onboarding
+  // Prerequisite & Evidence Tracking
+  const [evidenceCompleted, setEvidenceCompleted] = useState<boolean>(() => {
+    return localStorage.getItem('skilltwin_evidence_completed') === 'true';
+  });
+
+  const hasEvidence = (): boolean => {
+    return evidenceCompleted || localStorage.getItem('skilltwin_evidence_completed') === 'true';
+  };
+
+  // Verify evidence status from backend on mount or profile change
+  useEffect(() => {
+    const savedAuth = apiClient.getUser();
+    const email = activeProfile?.email || savedAuth?.email;
+    if (!email) return;
+    const userId = activeProfile?.id;
+    apiClient.getEvidenceSummary(email, userId).then(summary => {
+      if (summary && (summary.can_continue || summary.total_skills > 0 || summary.resume_data || summary.github_data || (summary.projects_data && summary.projects_data.length > 0))) {
+        setEvidenceCompleted(true);
+        localStorage.setItem('skilltwin_evidence_completed', 'true');
+      } else if (localStorage.getItem('skilltwin_evidence_completed') !== 'true') {
+        setEvidenceCompleted(false);
+      }
+    }).catch(() => {});
+  }, [activeProfile]);
+
+  const isStageAvailable = (stage: string): boolean => {
+    if (stage === 'landing') return true;
+    if (stage === 'onboarding') return true;
+    if (stage === 'evidence') return isOnboardingCompleted;
+
+    const evDone = hasEvidence();
+    if (stage === 'skilltwin') return isOnboardingCompleted && evDone;
+    if (stage === 'target_role') return isOnboardingCompleted && evDone;
+
+    const roadmapCompleted = localStorage.getItem('skilltwin_roadmap_completed') === 'true';
+    const verificationCompleted = localStorage.getItem('skilltwin_verification_completed') === 'true';
+    const updatedCompleted = localStorage.getItem('skilltwin_skilltwin_updated_completed') === 'true';
+
+    if (stage === 'gap') return isOnboardingCompleted && evDone;
+    if (stage === 'roadmap') return isOnboardingCompleted && evDone;
+    if (stage === 'verification') return isOnboardingCompleted && evDone && roadmapCompleted;
+    if (stage === 'skilltwin_updated') return isOnboardingCompleted && evDone && verificationCompleted;
+    if (stage === 'readiness') return isOnboardingCompleted && evDone && updatedCompleted;
+
+    // Informational pages are always available
+    if (['profile', 'settings', 'help', 'diagnostics', 'landing'].includes(stage)) return true;
+    return false;
+  };
+
+  const navigateToStage = (targetStage: any) => {
+    if (targetStage === 'landing') {
+      setCurrentView('landing');
+      return;
+    }
+    if (targetStage === 'onboarding') {
+      handleNavigateToOnboarding();
+      return;
+    }
+
+    const evDone = hasEvidence();
+
+    if (!isStageAvailable(targetStage)) {
+      if (!isOnboardingCompleted) {
+        alert('Please complete Onboarding first.');
+        setCurrentView('onboarding');
+        return;
+      }
+      if (!evDone && ['skilltwin', 'target_role', 'gap', 'roadmap', 'verification', 'skilltwin_updated', 'readiness'].includes(targetStage)) {
+        alert('Evidence needed: Please add and analyze your resume, GitHub profile, or projects on Page 2 first to build your SkillTwin.');
+        setCurrentView('evidence');
+        return;
+      }
+      alert('This stage is locked until prerequisite stages are completed.');
+      return;
+    }
+
+    setCurrentView(targetStage);
+  };
+
+  // Guard currentView against locked pipeline stages
+  useEffect(() => {
+    const evDone = hasEvidence();
+    if (isOnboardingCompleted && !evDone && ['skilltwin', 'target_role', 'gap', 'roadmap', 'verification', 'skilltwin_updated', 'readiness'].includes(currentView)) {
+      setCurrentView('evidence');
+    }
+  }, [isOnboardingCompleted, evidenceCompleted, currentView]);
+
+  // Render Public Landing Page & Authentication Layer
+  if (currentView === 'landing') {
+    return (
+      <>
+        {showSplash && (
+          <SkillTwinLoadingScreen onFinish={() => setShowSplash(false)} durationMs={2000} />
+        )}
+        <LandingPage
+          userProfile={activeProfile}
+          isAuthenticated={isAuthenticated}
+          onGetStarted={handleGetStarted}
+          onOpenLogin={handleOpenLogin}
+          onLogout={handleLogout}
+        />
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          initialMode={authModalMode}
+          onClose={() => setIsAuthModalOpen(false)}
+          onSuccess={handleAuthSuccess}
+        />
+      </>
+    );
+  }
+
+  // Render Page 1: Onboarding (Locked once entered Evidence Collection)
   if (currentView === 'onboarding') {
+    if (hasEnteredEvidence || localStorage.getItem('skilltwin_evidence_entered') === 'true') {
+      return (
+        <EvidenceCollectionPage
+          userProfile={activeProfile}
+          onNavigateToOnboarding={handleNavigateToOnboarding}
+          onNavigateToProfile={() => setCurrentView('profile')}
+          onNavigateToSettings={() => setCurrentView('settings')}
+          onNavigateToHelp={() => setCurrentView('help')}
+          onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+          onNavigateToTargetRole={() => navigateToStage('target_role')}
+          onEvidenceUpdated={(completed) => setEvidenceCompleted(completed)}
+        />
+      );
+    }
     return (
       <OnboardingPage
+        userProfile={activeProfile}
         onOnboardingComplete={(profile) => {
           setActiveProfile(profile);
+          localStorage.setItem('skilltwin_onboarding_completed', 'true');
+          localStorage.setItem('skilltwin_active_profile', JSON.stringify(profile));
+          localStorage.setItem('skilltwin_evidence_entered', 'true');
+          setHasEnteredEvidence(true);
           setCurrentView('evidence');
         }}
-        onOpenDiagnostics={() => setCurrentView('diagnostics')}
       />
     );
   }
@@ -104,13 +400,13 @@ export const App: React.FC = () => {
     return (
       <EvidenceCollectionPage
         userProfile={activeProfile}
-        onNavigateToOnboarding={() => setCurrentView('onboarding')}
+        onNavigateToOnboarding={handleNavigateToOnboarding}
         onNavigateToProfile={() => setCurrentView('profile')}
         onNavigateToSettings={() => setCurrentView('settings')}
         onNavigateToHelp={() => setCurrentView('help')}
-        onNavigateToSkillTwin={() => setCurrentView('skilltwin')}
-        onNavigateToTargetRole={() => setCurrentView('target_role')}
-        onOpenDiagnostics={() => setCurrentView('diagnostics')}
+        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+        onNavigateToTargetRole={() => navigateToStage('target_role')}
+        onEvidenceUpdated={(completed) => setEvidenceCompleted(completed)}
       />
     );
   }
@@ -120,15 +416,14 @@ export const App: React.FC = () => {
     return (
       <SkillTwinPage
         userProfile={activeProfile}
-        onNavigateToOnboarding={() => setCurrentView('onboarding')}
-        onNavigateToEvidence={() => setCurrentView('evidence')}
-        onNavigateToTargetRole={() => setCurrentView('target_role')}
-        onNavigateToGapAnalysis={() => setCurrentView('target_role')}
-        onNavigateToRoadmap={() => alert('Roadmap (Page 6) will follow Gap Analysis.')}
+        onNavigateToOnboarding={handleNavigateToOnboarding}
+        onNavigateToEvidence={() => navigateToStage('evidence')}
+        onNavigateToTargetRole={() => navigateToStage('target_role')}
+        onNavigateToGapAnalysis={() => navigateToStage('gap')}
+        onNavigateToRoadmap={() => navigateToStage('roadmap')}
         onNavigateToProfile={() => setCurrentView('profile')}
         onNavigateToSettings={() => setCurrentView('settings')}
         onNavigateToHelp={() => setCurrentView('help')}
-        onOpenDiagnostics={() => setCurrentView('diagnostics')}
       />
     );
   }
@@ -138,17 +433,118 @@ export const App: React.FC = () => {
     return (
       <TargetRoleMappingPage
         userProfile={activeProfile}
-        onNavigateToOnboarding={() => setCurrentView('onboarding')}
-        onNavigateToEvidence={() => setCurrentView('evidence')}
-        onNavigateToSkillTwin={() => setCurrentView('skilltwin')}
-        onNavigateToGapAnalysis={(roleData) => {
-          alert(`Target Role Benchmark confirmed for ${roleData?.role || 'your target role'}! Gap Analysis (Page 5) will be implemented next.`);
-        }}
-        onNavigateToRoadmap={() => alert('Roadmap (Page 6) follows Gap Analysis.')}
+        onNavigateToOnboarding={handleNavigateToOnboarding}
+        onNavigateToEvidence={() => navigateToStage('evidence')}
+        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+        onNavigateToGapAnalysis={() => navigateToStage('gap')}
+        onNavigateToRoadmap={() => navigateToStage('roadmap')}
         onNavigateToProfile={() => setCurrentView('profile')}
         onNavigateToSettings={() => setCurrentView('settings')}
         onNavigateToHelp={() => setCurrentView('help')}
-        onOpenDiagnostics={() => setCurrentView('diagnostics')}
+      />
+    );
+  }
+
+  // Render Page 5: Skill Gap Analysis
+  if (currentView === 'gap') {
+    return (
+      <GapAnalysisPage
+        userProfile={activeProfile}
+        onNavigateToOnboarding={handleNavigateToOnboarding}
+        onNavigateToEvidence={() => navigateToStage('evidence')}
+        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+        onNavigateToTargetRole={() => navigateToStage('target_role')}
+        onNavigateToGapAnalysis={() => navigateToStage('gap')}
+        onNavigateToRoadmap={(gapData) => {
+          if (gapData) {
+            localStorage.setItem('skilltwin_active_gap_data', JSON.stringify(gapData));
+          }
+          navigateToStage('roadmap');
+        }}
+        onNavigateToProfile={() => setCurrentView('profile')}
+        onNavigateToSettings={() => setCurrentView('settings')}
+        onNavigateToHelp={() => setCurrentView('help')}
+      />
+    );
+  }
+
+  // Render Page 6: Personalized Roadmap
+  if (currentView === 'roadmap') {
+    return (
+      <RoadmapPage
+        userProfile={activeProfile}
+        onNavigateToOnboarding={handleNavigateToOnboarding}
+        onNavigateToEvidence={() => navigateToStage('evidence')}
+        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+        onNavigateToTargetRole={() => navigateToStage('target_role')}
+        onNavigateToGapAnalysis={() => navigateToStage('gap')}
+        onNavigateToRoadmap={() => navigateToStage('roadmap')}
+        onNavigateToVerification={() => navigateToStage('verification')}
+        onNavigateToProfile={() => setCurrentView('profile')}
+        onNavigateToSettings={() => setCurrentView('settings')}
+        onNavigateToHelp={() => setCurrentView('help')}
+      />
+    );
+  }
+
+  // Render Page 7: Project Verification
+  if (currentView === 'verification') {
+    return (
+      <ProjectVerificationPage
+        userProfile={activeProfile}
+        onNavigateToOnboarding={handleNavigateToOnboarding}
+        onNavigateToEvidence={() => navigateToStage('evidence')}
+        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+        onNavigateToTargetRole={() => navigateToStage('target_role')}
+        onNavigateToGapAnalysis={() => navigateToStage('gap')}
+        onNavigateToRoadmap={() => navigateToStage('roadmap')}
+        onNavigateToVerification={() => navigateToStage('verification')}
+        onNavigateToSkillTwinUpdated={() => navigateToStage('skilltwin_updated')}
+        onNavigateToProfile={() => setCurrentView('profile')}
+        onNavigateToSettings={() => setCurrentView('settings')}
+        onNavigateToHelp={() => setCurrentView('help')}
+      />
+    );
+  }
+
+  // Render Page 8: SkillTwin Updated
+  if (currentView === 'skilltwin_updated') {
+    return (
+      <SkillTwinUpdatedPage
+        userProfile={activeProfile}
+        onNavigateToOnboarding={handleNavigateToOnboarding}
+        onNavigateToEvidence={() => navigateToStage('evidence')}
+        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+        onNavigateToTargetRole={() => navigateToStage('target_role')}
+        onNavigateToGapAnalysis={() => navigateToStage('gap')}
+        onNavigateToRoadmap={() => navigateToStage('roadmap')}
+        onNavigateToVerification={() => navigateToStage('verification')}
+        onNavigateToSkillTwinUpdated={() => navigateToStage('skilltwin_updated')}
+        onNavigateToCareerReadiness={() => navigateToStage('readiness')}
+        onNavigateToProfile={() => setCurrentView('profile')}
+        onNavigateToSettings={() => setCurrentView('settings')}
+        onNavigateToHelp={() => setCurrentView('help')}
+      />
+    );
+  }
+
+  // Render Page 9: Career Readiness / Continuous Loop
+  if (currentView === 'readiness') {
+    return (
+      <CareerReadinessPage
+        userProfile={activeProfile}
+        onNavigateToOnboarding={handleNavigateToOnboarding}
+        onNavigateToEvidence={() => navigateToStage('evidence')}
+        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+        onNavigateToTargetRole={() => navigateToStage('target_role')}
+        onNavigateToGapAnalysis={() => navigateToStage('gap')}
+        onNavigateToRoadmap={() => navigateToStage('roadmap')}
+        onNavigateToVerification={() => navigateToStage('verification')}
+        onNavigateToSkillTwinUpdated={() => navigateToStage('skilltwin_updated')}
+        onNavigateToCareerReadiness={() => navigateToStage('readiness')}
+        onNavigateToProfile={() => setCurrentView('profile')}
+        onNavigateToSettings={() => setCurrentView('settings')}
+        onNavigateToHelp={() => setCurrentView('help')}
       />
     );
   }
@@ -159,15 +555,14 @@ export const App: React.FC = () => {
       <ProfilePage
         userProfile={activeProfile}
         onUpdateProfile={handleUpdateProfile}
-        onNavigateToOnboarding={() => setCurrentView('onboarding')}
-        onNavigateToEvidence={() => setCurrentView('evidence')}
-        onNavigateToSkillTwin={() => setCurrentView('skilltwin')}
-        onNavigateToTargetRole={() => setCurrentView('target_role')}
-        onNavigateToGapAnalysis={() => setCurrentView('target_role')}
-        onNavigateToRoadmap={() => alert('Roadmap (Page 6).')}
+        onNavigateToOnboarding={handleNavigateToOnboarding}
+        onNavigateToEvidence={() => navigateToStage('evidence')}
+        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+        onNavigateToTargetRole={() => navigateToStage('target_role')}
+        onNavigateToGapAnalysis={() => navigateToStage('gap')}
+        onNavigateToRoadmap={() => navigateToStage('roadmap')}
         onNavigateToSettings={() => setCurrentView('settings')}
         onNavigateToHelp={() => setCurrentView('help')}
-        onOpenDiagnostics={() => setCurrentView('diagnostics')}
       />
     );
   }
@@ -177,16 +572,16 @@ export const App: React.FC = () => {
     return (
       <SettingsPage
         userProfile={activeProfile}
-        onNavigateToOnboarding={() => setCurrentView('onboarding')}
-        onNavigateToEvidence={() => setCurrentView('evidence')}
-        onNavigateToSkillTwin={() => setCurrentView('skilltwin')}
-        onNavigateToTargetRole={() => setCurrentView('target_role')}
-        onNavigateToGapAnalysis={() => setCurrentView('target_role')}
-        onNavigateToRoadmap={() => alert('Roadmap (Page 6).')}
+        onNavigateToOnboarding={handleNavigateToOnboarding}
+        onNavigateToEvidence={() => navigateToStage('evidence')}
+        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+        onNavigateToTargetRole={() => navigateToStage('target_role')}
+        onNavigateToGapAnalysis={() => navigateToStage('gap')}
+        onNavigateToRoadmap={() => navigateToStage('roadmap')}
         onNavigateToProfile={() => setCurrentView('profile')}
         onNavigateToHelp={() => setCurrentView('help')}
-        onOpenDiagnostics={() => setCurrentView('diagnostics')}
-        onResetAllData={handleResetAllData}
+        onResetAllData={handleDeleteProfileData}
+        onSignOut={handleLogout}
       />
     );
   }
@@ -196,15 +591,14 @@ export const App: React.FC = () => {
     return (
       <HelpPage
         userProfile={activeProfile}
-        onNavigateToOnboarding={() => setCurrentView('onboarding')}
-        onNavigateToEvidence={() => setCurrentView('evidence')}
-        onNavigateToSkillTwin={() => setCurrentView('skilltwin')}
-        onNavigateToTargetRole={() => setCurrentView('target_role')}
-        onNavigateToGapAnalysis={() => setCurrentView('target_role')}
-        onNavigateToRoadmap={() => alert('Roadmap (Page 6).')}
+        onNavigateToOnboarding={handleNavigateToOnboarding}
+        onNavigateToEvidence={() => navigateToStage('evidence')}
+        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+        onNavigateToTargetRole={() => navigateToStage('target_role')}
+        onNavigateToGapAnalysis={() => navigateToStage('gap')}
+        onNavigateToRoadmap={() => navigateToStage('roadmap')}
         onNavigateToProfile={() => setCurrentView('profile')}
         onNavigateToSettings={() => setCurrentView('settings')}
-        onOpenDiagnostics={() => setCurrentView('diagnostics')}
       />
     );
   }

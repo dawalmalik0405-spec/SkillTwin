@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
     study_time_per_day VARCHAR(50),
     preferred_learning_style VARCHAR(50),
     preferred_language VARCHAR(50) DEFAULT 'English',
+    password_hash VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

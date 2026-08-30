@@ -6,13 +6,12 @@ import {
   Mail,
   LifeBuoy,
   CheckCircle2,
-  Layers,
-  Moon,
   MessageSquare,
   Sparkles
 } from 'lucide-react';
 import { UserProfile } from '../../shared/types';
 import PersistentSidebar from '../../shared/components/PersistentSidebar';
+import { GlobalHeaderBadge } from '../../shared/components/GlobalHeaderBadge';
 
 interface HelpPageProps {
   userProfile: UserProfile | null;
@@ -36,8 +35,7 @@ export const HelpPage: React.FC<HelpPageProps> = ({
   onNavigateToGapAnalysis,
   onNavigateToRoadmap,
   onNavigateToProfile,
-  onNavigateToSettings,
-  onOpenDiagnostics
+  onNavigateToSettings
 }) => {
   // Accordion open states
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
@@ -63,28 +61,44 @@ export const HelpPage: React.FC<HelpPageProps> = ({
 
   const faqItems = [
     {
-      question: 'What is SkillTwin?',
-      answer: 'SkillTwin is an Evidence-Based Skill Development Operating System designed to understand your existing skills through real artifacts (resumes, code repositories, live projects), identify concrete industry skill gaps, and generate a personalized learning roadmap.'
+      question: '1. What is SkillTwin?',
+      answer: 'SkillTwin is an evidence-based skill development system designed to understand your existing skills through real artifacts, identify concrete skill gaps against target industry roles, and generate an actionable learning path.'
     },
     {
-      question: 'Why do I need to provide evidence?',
-      answer: 'Because traditional resumes and self-reported skill ratings are unverified. SkillTwin builds your Living Digital Skill Twin based on verifiable proof—such as code repositories, text extracted from genuine experience, and project architectures—so employers and mentors trust your capabilities.'
+      question: '2. Why do I need to provide evidence?',
+      answer: 'Traditional resumes and self-ratings lack objective verification. SkillTwin constructs your Living Digital Skill Twin based on verifiable proof—such as code repositories, text extracted from genuine experience, and project architectures—ensuring your skills are trustworthy.'
     },
     {
-      question: 'What files can I upload for my resume?',
-      answer: 'SkillTwin supports PDF (.pdf), Microsoft Word (.docx, .doc), and plain text (.txt) files up to 10MB in size. Our server-side parser securely extracts skills, education history, projects, and certifications without storing unnecessary personal identifiers.'
+      question: '3. What files can I upload for my resume?',
+      answer: 'SkillTwin supports PDF (.pdf), Microsoft Word (.docx, .doc), and plain text (.txt) files up to 10MB. Our server-side parser securely extracts skills, academic background, projects, and technologies.'
     },
     {
-      question: 'How does GitHub analysis work?',
-      answer: 'When you connect your GitHub username, SkillTwin queries the official GitHub REST API to inspect your public repositories, dominant programming languages, framework topics, repository stars, and commit frequencies to verify hands-on coding proficiency.'
+      question: '4. How does GitHub analysis work?',
+      answer: 'SkillTwin connects to your public GitHub profile to inspect repositories, languages, framework topics, repository stars, and commit frequencies to measure practical, code-backed engineering proficiency.'
     },
     {
-      question: 'Can I edit my profile later?',
-      answer: 'Yes! You can open the Profile section from the persistent sidebar at any time, click "Edit Profile", and update your target role, education details, career interests, or learning preferences. All updates immediately synchronize across the application.'
+      question: '5. How are my skills identified?',
+      answer: 'Skills are identified using semantic analysis across your uploaded resume, GitHub repositories, and registered projects, matching technical evidence against a verified industry skill taxonomy.'
     },
     {
-      question: 'How is my data handled and secured?',
-      answer: 'Your evidence is processed with strict privacy controls. All communications use HTTPS/TLS encryption and repository analysis only accesses publicly available GitHub repositories. You can export or delete your profile data at any time under Settings → Privacy & Data.'
+      question: '6. How is my target role used?',
+      answer: 'Your target role (e.g. Full-Stack Developer, AI/ML Engineer) serves as the industry benchmark. SkillTwin compares your evidence-based skill profile against actual market requirements to reveal where you stand.'
+    },
+    {
+      question: '7. How does Gap Analysis work?',
+      answer: 'Gap Analysis compares your current verified skills against the required capabilities of your selected role, calculating readiness levels, missing competencies, and priority areas for improvement.'
+    },
+    {
+      question: '8. How is my roadmap generated?',
+      answer: 'Based on your specific skill gaps and daily study pace, SkillTwin builds an adaptive, phased curriculum with milestones, curated learning resources, and recommended practical builds.'
+    },
+    {
+      question: '9. Can I edit my profile later?',
+      answer: 'Yes. You can visit the Profile section at any time, click "Edit Profile", and update your target role, degree, career interests, or study habits. All updates immediately persist across the platform.'
+    },
+    {
+      question: '10. How is my data handled and secured?',
+      answer: 'Your data is processed with strict privacy controls using HTTPS/TLS encryption. SkillTwin only reads public GitHub repositories you specify, and you can export or delete your profile data at any time in Settings.'
     }
   ];
 
@@ -127,21 +141,8 @@ export const HelpPage: React.FC<HelpPageProps> = ({
           </div>
         </div>
 
-        {/* Header Badges & Actions */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {onOpenDiagnostics && (
-            <button
-              onClick={onOpenDiagnostics}
-              className="btn btn-outline"
-              style={{ padding: '6px 12px', fontSize: '0.75rem' }}
-            >
-              <Layers size={14} /> Pipeline Status
-            </button>
-          )}
-          <div className="badge badge-purple" style={{ padding: '6px 12px' }}>
-            <Moon size={13} /> Dark Mode
-          </div>
-        </div>
+        {/* Top Right Header Badge */}
+        <GlobalHeaderBadge />
       </header>
 
       {/* Main Dashboard Layout */}
@@ -149,7 +150,6 @@ export const HelpPage: React.FC<HelpPageProps> = ({
         {/* Left Persistent Dashboard Sidebar */}
         <PersistentSidebar
           userProfile={userProfile}
-          activeStep={2}
           activeView="help"
           onNavigateToOnboarding={onNavigateToOnboarding}
           onNavigateToEvidence={onNavigateToEvidence}
@@ -177,7 +177,7 @@ export const HelpPage: React.FC<HelpPageProps> = ({
             </p>
           </div>
 
-          {/* Section 1: How SkillTwin Works (5 Step Workflow) */}
+          {/* Section 1: How SkillTwin Works (9-Stage Journey) */}
           <div className="glass-panel" style={{ padding: '24px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
               <div style={{ padding: '6px', background: 'rgba(168, 85, 247, 0.15)', borderRadius: '8px', color: '#C084FC' }}>
@@ -185,68 +185,107 @@ export const HelpPage: React.FC<HelpPageProps> = ({
               </div>
               <div>
                 <h2 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#FFFFFF' }}>How SkillTwin Works</h2>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>The 5-stage evidence-based development pipeline</p>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>The 9-stage evidence-based career development pipeline</p>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px' }}>
               {/* Step 1 */}
               <div style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <span style={{ fontWeight: 800, color: '#34D399', fontSize: '0.82rem' }}>01 • Onboarding</span>
-                  <span className="badge badge-analyzed" style={{ fontSize: '0.65rem' }}>✓</span>
                 </div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>Profile Setup</div>
                 <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                  Tell SkillTwin about yourself, academic background, target industry role, and study pace.
+                  Provide your basic profile, academic background, target industry role, and study pace.
                 </p>
               </div>
 
               {/* Step 2 */}
-              <div style={{ padding: '16px', background: 'rgba(99, 102, 241, 0.1)', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.3)' }}>
+              <div style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <span style={{ fontWeight: 800, color: '#C084FC', fontSize: '0.82rem' }}>02 • Evidence</span>
-                  <span className="nav-badge-pill" style={{ fontSize: '0.65rem' }}>Active</span>
                 </div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>Evidence Collection</div>
                 <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                  Provide verifiable proof via resume parsing, public GitHub repo analytics, and project demos.
+                  Provide verifiable evidence such as resume, GitHub profile/repositories, and projects.
                 </p>
               </div>
 
               {/* Step 3 */}
               <div style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.82rem' }}>03 • Synthesis</span>
-                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Next</span>
+                  <span style={{ fontWeight: 800, color: '#818CF8', fontSize: '0.82rem' }}>03 • SkillTwin</span>
                 </div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>Living SkillTwin</div>
                 <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                  Evidence is mapped into canonical skills with confidence scores and verifiable context citations.
+                  Your evidence is mapped into a comprehensive, evidence-based skill profile with confidence ratings.
                 </p>
               </div>
 
               {/* Step 4 */}
               <div style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.82rem' }}>04 • Analysis</span>
-                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Phase 4</span>
+                  <span style={{ fontWeight: 800, color: '#38BDF8', fontSize: '0.82rem' }}>04 • Target Role</span>
                 </div>
-                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>Gap Analysis</div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>Target Career Direction</div>
                 <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                  Compare your evidence against live industry requirements for your target role to discover deficits.
+                  Define the target role and industry you are actively preparing for to establish clear benchmarks.
                 </p>
               </div>
 
               {/* Step 5 */}
               <div style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontWeight: 800, color: 'var(--text-muted)', fontSize: '0.82rem' }}>05 • Roadmap</span>
-                  <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Phase 5</span>
+                  <span style={{ fontWeight: 800, color: '#F59E0B', fontSize: '0.82rem' }}>05 • Gap Analysis</span>
+                </div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>Skill Gap Analysis</div>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  Current evidence-based skills are compared against target role requirements to identify skill gaps.
+                </p>
+              </div>
+
+              {/* Step 6 */}
+              <div style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontWeight: 800, color: '#EC4899', fontSize: '0.82rem' }}>06 • Roadmap</span>
                 </div>
                 <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>Adaptive Roadmap</div>
                 <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                  Generate an actionable, phased curriculum with project milestones to bridge your skill gaps.
+                  The system creates an actionable, phased learning roadmap based on your identified gaps and pace.
+                </p>
+              </div>
+
+              {/* Step 7 */}
+              <div style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontWeight: 800, color: '#34D399', fontSize: '0.82rem' }}>07 • Verification</span>
+                </div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>Project Verification</div>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  Practical project evidence is verified and assessed against concrete implementation criteria.
+                </p>
+              </div>
+
+              {/* Step 8 */}
+              <div style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontWeight: 800, color: '#C084FC', fontSize: '0.82rem' }}>08 • SkillTwin Updated</span>
+                </div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>Updated SkillTwin</div>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  Verified and developed skills from completed projects are reflected back into your Living SkillTwin.
+                </p>
+              </div>
+
+              {/* Step 9 */}
+              <div style={{ padding: '16px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontWeight: 800, color: '#38BDF8', fontSize: '0.82rem' }}>09 • Career Readiness</span>
+                </div>
+                <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>Career Readiness</div>
+                <p style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  The system presents your overall readiness, verified proof portfolio, and continuous growth loop.
                 </p>
               </div>
             </div>

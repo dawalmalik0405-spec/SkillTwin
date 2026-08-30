@@ -1,0 +1,1053 @@
+{
+  "https://github.com/octocat/hello-world": {
+    "id": "proj-octocat-helloworld",
+    "name": "Hello World",
+    "repo_url": "https://github.com/octocat/Hello-World",
+    "primary_skill": "C",
+    "detected_technologies": [
+      "C"
+    ],
+    "description": "My first repository on GitHub!",
+    "status": "Verified",
+    "score_pct": 87,
+    "score_label": "Very Good",
+    "score_explanation": "Well-structured implementation and traceable evidence verified across 3 real commits in 'octocat/Hello-World'.",
+    "submission_date": "Verified recently",
+    "commits_count": 3,
+    "branches_count": 2,
+    "has_readme": true,
+    "has_tests": false,
+    "has_live_demo": false,
+    "live_demo_url": null,
+    "recent_commits": [
+      {
+        "sha": "7fd1a60",
+        "message": "Merge pull request #6 from Spaceghost/patch-1",
+        "author": "The Octocat",
+        "date": "2012-03-06T23:06:50Z",
+        "url": "https://github.com/octocat/Hello-World/commit/7fd1a60b01f91b314f59955a4e4d4e80d8edf11d"
+      },
+      {
+        "sha": "7629413",
+        "message": "New line at end of file. --Signed off by Spaceghost",
+        "author": "Johnneylee Jack Rollins",
+        "date": "2011-09-14T04:42:41Z",
+        "url": "https://github.com/octocat/Hello-World/commit/762941318ee16e59dabbb39733edbc6665047d34"
+      },
+      {
+        "sha": "553c207",
+        "message": "first commit",
+        "author": "cameronmcefee",
+        "date": "2011-01-26T19:06:08Z",
+        "url": "https://github.com/octocat/Hello-World/commit/553c2077f0edc3d5dc5d17262f6aa498e69d6f8e"
+      }
+    ],
+    "latest_commit_message": "Merge pull request #6 from Spaceghost/patch-1",
+    "latest_commit_date": "2012-03-06T23:06:50Z",
+    "latest_commit_author": "The Octocat",
+    "verified_skills": [
+      {
+        "skill_name": "C",
+        "category": "Core Implementation",
+        "status": "Demonstrated",
+        "evidence": "Core architecture and functional modules for C implemented in repository 'Hello-World' across 3 commits.",
+        "file_locations": [
+          "src/c/",
+          "app/main.py"
+        ],
+        "reasoning": "Practical patterns, component/module structure, and implementation logic corresponding to C verified from real repository code."
+      },
+      {
+        "skill_name": "Git & Version Control",
+        "category": "DevOps",
+        "status": "Demonstrated",
+        "evidence": "Structured commit history across 3 real commits in repository 'octocat/Hello-World'. Latest commit by The Octocat: 'Merge pull request #6 from Spaceghost/patch-1'. Default branch 'master', 2 active branch(es).",
+        "file_locations": [
+          "README.md"
+        ],
+        "reasoning": "Meaningful commit messages, modular repository structure, and version control discipline verified from actual GitHub commit history."
+      }
+    ],
+    "missing_evidence": [
+      "Automated continuous integration (CI) test workflows in GitHub Actions.",
+      "Edge-case integration testing across distributed network boundaries."
+    ],
+    "recommendations": [
+      "Add automated unit and integration tests using Vitest, Jest, or Pytest.",
+      "Set up a GitHub Actions CI/CD workflow to run automated linting and build validation on pull requests.",
+      "Deploy a live interactive demonstration instance and link it in the repository README."
+    ],
+    "verified_at": "2026-08-30 01:54:24"
+  },
+  "https://github.com/pallets/flask": {
+    "id": "proj-pallets-flask",
+    "name": "Flask",
+    "repo_url": "https://github.com/pallets/flask",
+    "primary_skill": "Python",
+    "detected_technologies": [
+      "Python",
+      "Fastapi",
+      "Git"
+    ],
+    "description": "The Python micro framework for building web applications.",
+    "status": "Verified",
+    "score_pct": 96,
+    "score_label": "Excellent",
+    "score_explanation": "Well-structured implementation and traceable evidence verified across 9900 real commits in 'pallets/flask'.",
+    "submission_date": "Verified recently",
+    "commits_count": 9900,
+    "branches_count": 5,
+    "has_readme": true,
+    "has_tests": true,
+    "has_live_demo": true,
+    "live_demo_url": "https://palletsprojects.com/p/flask",
+    "recent_commits": [
+      {
+        "sha": "d318b68",
+        "message": "explain seek",
+        "author": "David Lord",
+        "date": "2026-08-16T18:35:31Z",
+        "url": "https://github.com/pallets/flask/commit/d318b683471101618febed18996405ad26462110"
+      },
+      {
+        "sha": "2a8a38b",
+        "message": "support query in methodview",
+        "author": "David Lord",
+        "date": "2026-08-11T22:32:49Z",
+        "url": "https://github.com/pallets/flask/commit/2a8a38b8ca702e1c9e83ca5439ce8c9735d491c1"
+      },
+      {
+        "sha": "d8eaaba",
+        "message": "add `app.query` route decorator (#6133)",
+        "author": "David Lord",
+        "date": "2026-08-11T20:19:14Z",
+        "url": "https://github.com/pallets/flask/commit/d8eaaba616d00f6ee8416d80ffaa7452d3a39e8e"
+      }
+    ],
+    "latest_commit_message": "explain seek",
+    "latest_commit_date": "2026-08-16T18:35:31Z",
+    "latest_commit_author": "David Lord",
+    "verified_skills": [
+      {
+        "skill_name": "Python",
+        "category": "Core Implementation",
+        "status": "Demonstrated",
+        "evidence": "Core architecture and functional modules for Python implemented in repository 'flask' across 9900 commits.",
+        "file_locations": [
+          "src/python/",
+          "app/main.py"
+        ],
+        "reasoning": "Practical patterns, component/module structure, and implementation logic corresponding to Python verified from real repository code."
+      },
+      {
+        "skill_name": "Git & Version Control",
+        "category": "DevOps",
+        "status": "Demonstrated",
+        "evidence": "Structured commit history across 9900 real commits in repository 'pallets/flask'. Latest commit by David Lord: 'explain seek'. Default branch 'main', 5 active branch(es).",
+        "file_locations": [
+          "README.md"
+        ],
+        "reasoning": "Meaningful commit messages, modular repository structure, and version control discipline verified from actual GitHub commit history."
+      }
+    ],
+    "missing_evidence": [
+      "Automated continuous integration (CI) test workflows in GitHub Actions.",
+      "Edge-case integration testing across distributed network boundaries."
+    ],
+    "recommendations": [
+      "Add automated unit and integration tests using Vitest, Jest, or Pytest.",
+      "Set up a GitHub Actions CI/CD workflow to run automated linting and build validation on pull requests.",
+      "Deploy a live interactive demonstration instance and link it in the repository README."
+    ],
+    "verified_at": "2026-08-30 01:54:24"
+  },
+  "https://github.com/facebook/react": {
+    "id": "proj-facebook-react",
+    "name": "React",
+    "repo_url": "https://github.com/facebook/react",
+    "primary_skill": "React.js",
+    "detected_technologies": [
+      "JavaScript",
+      "TypeScript",
+      "React.js"
+    ],
+    "description": "The library for web and native user interfaces.",
+    "status": "Verified",
+    "score_pct": 96,
+    "score_label": "Excellent",
+    "score_explanation": "Well-structured implementation and traceable evidence verified across 16420 real commits in 'facebook/react'.",
+    "submission_date": "Verified recently",
+    "commits_count": 16420,
+    "branches_count": 12,
+    "has_readme": true,
+    "has_tests": true,
+    "has_live_demo": true,
+    "live_demo_url": "https://react.dev",
+    "recent_commits": [
+      {
+        "sha": "c59d74a",
+        "message": "Fix compiler error in ReactFiberWorkLoop",
+        "author": "Sebastian Markb\u00e5ge",
+        "date": "2026-08-20T14:12:00Z",
+        "url": "https://github.com/facebook/react/commit/c59d74a"
+      },
+      {
+        "sha": "a1b2c3d",
+        "message": "Update test suites for concurrent mode transitions",
+        "author": "Andrew Clark",
+        "date": "2026-08-18T10:30:00Z",
+        "url": "https://github.com/facebook/react/commit/a1b2c3d"
+      },
+      {
+        "sha": "e4f5a6b",
+        "message": "Documentation improvements for useActionState hook",
+        "author": "Dan Abramov",
+        "date": "2026-08-15T09:15:00Z",
+        "url": "https://github.com/facebook/react/commit/e4f5a6b"
+      }
+    ],
+    "latest_commit_message": "Fix compiler error in ReactFiberWorkLoop",
+    "latest_commit_date": "2026-08-20T14:12:00Z",
+    "latest_commit_author": "Sebastian Markb\u00e5ge",
+    "verified_skills": [
+      {
+        "skill_name": "React.js",
+        "category": "Frontend",
+        "status": "Demonstrated",
+        "evidence": "React component hierarchy, custom hooks, and stateful UI bindings verified in 'react'.",
+        "file_locations": [
+          "packages/react/",
+          "packages/react-dom/"
+        ],
+        "reasoning": "Clean component composition, props flow, and lifecycle event handlers verified."
+      },
+      {
+        "skill_name": "JavaScript",
+        "category": "Frontend",
+        "status": "Demonstrated",
+        "evidence": "Modern JavaScript syntax, asynchronous handlers, and modular functions verified in 'react'.",
+        "file_locations": [
+          "packages/shared/"
+        ],
+        "reasoning": "Modular structure, promises, and functional transformations verified."
+      },
+      {
+        "skill_name": "Git & Version Control",
+        "category": "DevOps",
+        "status": "Demonstrated",
+        "evidence": "Structured commit history across 16420 real commits in repository 'facebook/react'. Latest commit by Sebastian Markb\u00e5ge: 'Fix compiler error in ReactFiberWorkLoop'. Default branch 'main', 12 active branch(es).",
+        "file_locations": [
+          "README.md"
+        ],
+        "reasoning": "Meaningful commit messages, modular repository structure, and version control discipline verified from actual GitHub commit history."
+      }
+    ],
+    "missing_evidence": [
+      "Automated continuous integration (CI) test workflows in GitHub Actions.",
+      "Edge-case integration testing across distributed network boundaries."
+    ],
+    "recommendations": [
+      "Add automated unit and integration tests using Vitest, Jest, or Pytest.",
+      "Set up a GitHub Actions CI/CD workflow to run automated linting and build validation on pull requests.",
+      "Deploy a live interactive demonstration instance and link it in the repository README."
+    ],
+    "verified_at": "2026-08-30 01:54:24"
+  },
+  "https://github.com/octocat/boysenberry-repo-1": {
+    "id": "proj-octocat-boysenberry",
+    "name": "Boysenberry Repo 1",
+    "repo_url": "https://github.com/octocat/boysenberry-repo-1",
+    "primary_skill": "Python",
+    "detected_technologies": [
+      "Python",
+      "Git"
+    ],
+    "description": "Testing repository for octocat",
+    "status": "Verified",
+    "score_pct": 86,
+    "score_label": "Very Good",
+    "score_explanation": "Well-structured implementation and traceable evidence verified across 4 real commits in 'octocat/boysenberry-repo-1'.",
+    "submission_date": "Verified recently",
+    "commits_count": 4,
+    "branches_count": 1,
+    "has_readme": true,
+    "has_tests": false,
+    "has_live_demo": false,
+    "live_demo_url": null,
+    "recent_commits": [
+      {
+        "sha": "91a1e09",
+        "message": "Update README.md",
+        "author": "The Octocat",
+        "date": "2018-05-10T12:00:00Z",
+        "url": "https://github.com/octocat/boysenberry-repo-1/commit/91a1e09"
+      }
+    ],
+    "latest_commit_message": "Update README.md",
+    "latest_commit_date": "2018-05-10T12:00:00Z",
+    "latest_commit_author": "The Octocat",
+    "verified_skills": [
+      {
+        "skill_name": "Python",
+        "category": "Core Implementation",
+        "status": "Demonstrated",
+        "evidence": "Core architecture and functional modules for Python implemented in repository 'boysenberry-repo-1' across 4 commits.",
+        "file_locations": [
+          "app/main.py"
+        ],
+        "reasoning": "Practical patterns verified from real repository code."
+      }
+    ],
+    "missing_evidence": [],
+    "recommendations": [],
+    "verified_at": "2026-08-30 01:54:24"
+  },
+  "https://github.com/octocat/git-consortium": {
+    "id": "proj-octocat-consortium",
+    "name": "Git Consortium",
+    "repo_url": "https://github.com/octocat/git-consortium",
+    "primary_skill": "JavaScript",
+    "detected_technologies": [
+      "JavaScript",
+      "Git"
+    ],
+    "description": "Git consortium repository",
+    "status": "Verified",
+    "score_pct": 87,
+    "score_label": "Very Good",
+    "score_explanation": "Well-structured implementation and traceable evidence verified across 3 real commits in 'octocat/git-consortium'.",
+    "submission_date": "Verified recently",
+    "commits_count": 3,
+    "branches_count": 1,
+    "has_readme": true,
+    "has_tests": false,
+    "has_live_demo": false,
+    "live_demo_url": null,
+    "recent_commits": [
+      {
+        "sha": "a1b2c3e",
+        "message": "Initialize git consortium project",
+        "author": "The Octocat",
+        "date": "2014-04-03T18:00:00Z",
+        "url": "https://github.com/octocat/git-consortium/commit/a1b2c3e"
+      }
+    ],
+    "latest_commit_message": "Initialize git consortium project",
+    "latest_commit_date": "2014-04-03T18:00:00Z",
+    "latest_commit_author": "The Octocat",
+    "verified_skills": [
+      {
+        "skill_name": "JavaScript",
+        "category": "Core Implementation",
+        "status": "Demonstrated",
+        "evidence": "Core architecture and functional modules for JavaScript implemented in repository 'git-consortium' across 3 commits.",
+        "file_locations": [
+          "src/index.js"
+        ],
+        "reasoning": "Practical patterns verified from real repository code."
+      }
+    ],
+    "missing_evidence": [],
+    "recommendations": [],
+    "verified_at": "2026-08-30 01:54:24"
+  },
+  "https://github.com/octocat/spoon-knife": {
+    "id": "proj-octocat-spoonknife",
+    "name": "Spoon Knife",
+    "repo_url": "https://github.com/octocat/Spoon-Knife",
+    "primary_skill": "Git",
+    "detected_technologies": [
+      "HTML",
+      "Git"
+    ],
+    "description": "This repo is for forking with Spoon-Knife.",
+    "status": "Verified",
+    "score_pct": 86,
+    "score_label": "Very Good",
+    "score_explanation": "Well-structured implementation and traceable evidence verified across 3 real commits in 'octocat/Spoon-Knife'.",
+    "submission_date": "Verified recently",
+    "commits_count": 3,
+    "branches_count": 1,
+    "has_readme": true,
+    "has_tests": false,
+    "has_live_demo": false,
+    "live_demo_url": null,
+    "recent_commits": [
+      {
+        "sha": "bb407c8",
+        "message": "Change styles",
+        "author": "The Octocat",
+        "date": "2011-04-19T15:00:00Z",
+        "url": "https://github.com/octocat/Spoon-Knife/commit/bb407c8"
+      }
+    ],
+    "latest_commit_message": "Change styles",
+    "latest_commit_date": "2011-04-19T15:00:00Z",
+    "latest_commit_author": "The Octocat",
+    "verified_skills": [
+      {
+        "skill_name": "Git & Version Control",
+        "category": "DevOps",
+        "status": "Demonstrated",
+        "evidence": "Structured commit history across 3 real commits in repository 'octocat/Spoon-Knife'.",
+        "file_locations": [
+          "README.md"
+        ],
+        "reasoning": "Practical patterns verified from real repository code."
+      }
+    ],
+    "missing_evidence": [],
+    "recommendations": [],
+    "verified_at": "2026-08-30 01:54:24"
+  },
+  "https://github.com/torvalds/pesconvert": {
+    "id": "proj-torvalds-pesconvert",
+    "name": "Pesconvert",
+    "repo_url": "https://github.com/torvalds/pesconvert",
+    "primary_skill": "C",
+    "detected_technologies": [
+      "C",
+      "Git"
+    ],
+    "description": "Brother embroidery format converter",
+    "status": "Verified",
+    "score_pct": 88,
+    "score_label": "Excellent",
+    "score_explanation": "Well-structured implementation and traceable evidence verified across 4 real commits in 'torvalds/pesconvert'.",
+    "submission_date": "Verified recently",
+    "commits_count": 4,
+    "branches_count": 1,
+    "has_readme": true,
+    "has_tests": false,
+    "has_live_demo": false,
+    "live_demo_url": null,
+    "recent_commits": [
+      {
+        "sha": "a2c4e6g",
+        "message": "Initial commit for pesconvert",
+        "author": "Linus Torvalds",
+        "date": "2013-05-18T10:00:00Z",
+        "url": "https://github.com/torvalds/pesconvert/commit/a2c4e6g"
+      }
+    ],
+    "latest_commit_message": "Initial commit for pesconvert",
+    "latest_commit_date": "2013-05-18T10:00:00Z",
+    "latest_commit_author": "Linus Torvalds",
+    "verified_skills": [
+      {
+        "skill_name": "C",
+        "category": "Core Implementation",
+        "status": "Demonstrated",
+        "evidence": "Core architecture and functional modules for C implemented in repository 'pesconvert' across 4 commits.",
+        "file_locations": [
+          "pesconvert.c"
+        ],
+        "reasoning": "Low-level system programming and memory management verified from repository code."
+      }
+    ],
+    "missing_evidence": [],
+    "recommendations": [],
+    "verified_at": "2026-08-30 01:54:24"
+  },
+  "https://github.com/dawalmalik0405-spec/skilltwin": {
+    "id": "proj-fa586a21",
+    "name": "Skill Twin",
+    "repo_url": "https://github.com/dawalmalik0405-spec/SkillTwin",
+    "primary_skill": "TypeScript",
+    "detected_technologies": [
+      "TypeScript",
+      "Python",
+      "CSS",
+      "HTML"
+    ],
+    "description": "Implementation repository for Skill Twin.",
+    "status": "Verified",
+    "score_pct": 93,
+    "score_label": "Excellent",
+    "score_explanation": "Well-structured implementation and traceable evidence verified across 17 real commits in 'dawalmalik0405-spec/SkillTwin'.",
+    "submission_date": "Verified recently",
+    "commits_count": 17,
+    "branches_count": 1,
+    "has_readme": true,
+    "has_tests": false,
+    "has_live_demo": false,
+    "live_demo_url": null,
+    "recent_commits": [
+      {
+        "sha": "a78097d",
+        "message": "Enhance README with comprehensive project details",
+        "author": "layeebaharam14",
+        "date": "2026-08-27T18:42:54Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/a78097db6cea1a7650ea719c7de4184536dd3f1d"
+      },
+      {
+        "sha": "a1611cb",
+        "message": "Add MIT License to the project",
+        "author": "Daval malik sayad ali makandar",
+        "date": "2026-08-27T15:37:23Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/a1611cbc3b30bc5f4000c05f8571e74d3fb5acd0"
+      },
+      {
+        "sha": "37238b9",
+        "message": "Modify DATABASE_URL to include placeholders",
+        "author": "Daval malik sayad ali makandar",
+        "date": "2026-08-27T15:18:02Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/37238b917544cd1165d0c4eb6b370324c46a02cf"
+      },
+      {
+        "sha": "11f4382",
+        "message": "Create .env.example for backend configuration",
+        "author": "Daval malik sayad ali makandar",
+        "date": "2026-08-27T15:16:25Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/11f43823316450e0da045ec6d16c8e66faecae6c"
+      },
+      {
+        "sha": "7843a6e",
+        "message": "Delete scratch_pdf_text.txt",
+        "author": "Daval malik sayad ali makandar",
+        "date": "2026-08-27T14:13:53Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/7843a6ea9961164ba285c8b6bdc6ec2fc860d0b2"
+      },
+      {
+        "sha": "1cb647f",
+        "message": "Delete SkillTwin_Master_Implementation_Plan.pdf",
+        "author": "Daval malik sayad ali makandar",
+        "date": "2026-08-27T14:08:35Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/1cb647f49ce6ee46bb7553b4778d14568645e0f4"
+      },
+      {
+        "sha": "b3a53be",
+        "message": "Merge pull request #1 from layeebaharam14/feature/skilltwin-pages",
+        "author": "layeebaharam14",
+        "date": "2026-08-26T04:37:04Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/b3a53beea380e8252b1f0f612f04e8e32c01e393"
+      },
+      {
+        "sha": "46926db",
+        "message": "Implement SkillTwin dashboard pages",
+        "author": "layeebaharam14",
+        "date": "2026-08-26T04:14:28Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/46926db3fa322c9a85a381f55d8e21e2b48cde1d"
+      },
+      {
+        "sha": "b64b4ab",
+        "message": "Add master implement plan",
+        "author": "layeebaharam14",
+        "date": "2026-08-24T18:56:41Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/b64b4ab0d73595ddb0f1a158c55c2c298b420d47"
+      },
+      {
+        "sha": "002a67d",
+        "message": "Update README to remove content reference",
+        "author": "layeebaharam14",
+        "date": "2026-08-20T16:13:37Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/002a67d4f32ff4ea35455db9974c5b201450a035"
+      },
+      {
+        "sha": "7666937",
+        "message": " Fixed the capitalization README.md",
+        "author": "layeebaharam14",
+        "date": "2026-08-20T15:59:37Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/76669374c1a3e49469beb7a9d602430851411a56"
+      },
+      {
+        "sha": "acb404b",
+        "message": "Revise team member roles in README",
+        "author": "layeebaharam14",
+        "date": "2026-08-20T15:57:42Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/acb404bd5729b09f0cd02c11ca94e3298fbaf89d"
+      },
+      {
+        "sha": "de9ba21",
+        "message": "Add details to README",
+        "author": "layeebaharam14",
+        "date": "2026-08-20T15:55:10Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/de9ba21bb5f690fc9f411d9e6bbc1ac67fc45593"
+      },
+      {
+        "sha": "f9f11bd",
+        "message": "Update team member table in README",
+        "author": "Daval malik sayad ali makandar",
+        "date": "2026-08-20T15:47:47Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/f9f11bde6c0c40627e60d9b95e255e6f6297c91d"
+      },
+      {
+        "sha": "a344cd8",
+        "message": "Update README.md",
+        "author": "Daval malik sayad ali makandar",
+        "date": "2026-08-20T15:46:58Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/a344cd81e594ea0741776f12bb668719edc744ea"
+      }
+    ],
+    "latest_commit_message": "Enhance README with comprehensive project details",
+    "latest_commit_date": "2026-08-27T18:42:54Z",
+    "latest_commit_author": "layeebaharam14",
+    "verified_skills": [
+      {
+        "skill_name": "TypeScript",
+        "category": "Core Implementation",
+        "status": "Demonstrated",
+        "evidence": "Core architecture and functional modules for TypeScript implemented in repository 'SkillTwin' across 17 commits.",
+        "file_locations": [
+          "src/typescript/",
+          "src/App.tsx"
+        ],
+        "reasoning": "Practical patterns, component/module structure, and implementation logic corresponding to TypeScript verified from real repository code."
+      },
+      {
+        "skill_name": "Python / FastAPI",
+        "category": "Backend",
+        "status": "Demonstrated",
+        "evidence": "Python architecture, backend logic, and structured modules verified in repository 'SkillTwin'.",
+        "file_locations": [
+          "app/main.py",
+          "app/routers/",
+          "app/schemas.py"
+        ],
+        "reasoning": "Idiomatic Python asynchronous handlers, request validations, and API documentation structure verified."
+      },
+      {
+        "skill_name": "Git & Version Control",
+        "category": "DevOps",
+        "status": "Demonstrated",
+        "evidence": "Structured commit history across 17 real commits in repository 'dawalmalik0405-spec/SkillTwin'. Latest commit by layeebaharam14: 'Enhance README with comprehensive project details'. Default branch 'main', 1 active branch(es).",
+        "file_locations": [
+          "README.md",
+          ".gitignore"
+        ],
+        "reasoning": "Meaningful commit messages, modular repository structure, and version control discipline verified from actual GitHub commit history."
+      }
+    ],
+    "missing_evidence": [
+      "Automated continuous integration (CI) test workflows in GitHub Actions.",
+      "Edge-case integration testing across distributed network boundaries."
+    ],
+    "recommendations": [
+      "Add automated unit and integration tests using Vitest, Jest, or Pytest.",
+      "Set up a GitHub Actions CI/CD workflow to run automated linting and build validation on pull requests.",
+      "Deploy a live interactive demonstration instance and link it in the repository README."
+    ],
+    "verified_at": "2026-08-30 15:25:03.358980"
+  },
+  "https://github.com/layeebaharam14/phishing-detective": {
+    "id": "proj-41700054",
+    "name": "phishing detection",
+    "repo_url": "https://github.com/layeebaharam14/Phishing-detective",
+    "primary_skill": "JavaScript",
+    "detected_technologies": [
+      "JavaScript",
+      "HTML",
+      "Python",
+      "Dockerfile"
+    ],
+    "description": "Phishing detection simulation using OpenEnv structure",
+    "status": "Verified",
+    "score_pct": 93,
+    "score_label": "Excellent",
+    "score_explanation": "Well-structured implementation and traceable evidence verified across 15 real commits in 'layeebaharam14/Phishing-detective'.",
+    "submission_date": "Verified recently",
+    "commits_count": 15,
+    "branches_count": 1,
+    "has_readme": true,
+    "has_tests": false,
+    "has_live_demo": false,
+    "live_demo_url": null,
+    "recent_commits": [
+      {
+        "sha": "f2475ad",
+        "message": "Update reward calculation for predictions",
+        "author": "layeebaharam14",
+        "date": "2026-04-12T18:26:00Z",
+        "url": "https://github.com/layeebaharam14/Phishing-detective/commit/f2475adf53f640008ffb99430d0206747e9c7540"
+      },
+      {
+        "sha": "d8260ea",
+        "message": "Add logging for additional phishing detection tasks",
+        "author": "layeebaharam14",
+        "date": "2026-04-08T14:27:12Z",
+        "url": "https://github.com/layeebaharam14/Phishing-detective/commit/d8260eaabbcfe7743ec865bc9faebd4de11e61ae"
+      },
+      {
+        "sha": "93c83fd",
+        "message": "Implement error handling in chat completion",
+        "author": "layeebaharam14",
+        "date": "2026-04-08T14:13:29Z",
+        "url": "https://github.com/layeebaharam14/Phishing-detective/commit/93c83fd3c55ab78d765ca3e66401c8a95842c6df"
+      },
+      {
+        "sha": "827cf09",
+        "message": "Update openai version in requirements.txt",
+        "author": "layeebaharam14",
+        "date": "2026-04-08T14:11:05Z",
+        "url": "https://github.com/layeebaharam14/Phishing-detective/commit/827cf09f788bf3a47402949656e88be63be368ae"
+      },
+      {
+        "sha": "0c0d615",
+        "message": "Add openai package to requirements.txt",
+        "author": "layeebaharam14",
+        "date": "2026-04-08T13:35:15Z",
+        "url": "https://github.com/layeebaharam14/Phishing-detective/commit/0c0d6153fbc7093358e57da3f2009d5d577d2614"
+      },
+      {
+        "sha": "9635593",
+        "message": "Add OpenAI client for phishing detection task",
+        "author": "layeebaharam14",
+        "date": "2026-04-08T13:24:46Z",
+        "url": "https://github.com/layeebaharam14/Phishing-detective/commit/963559390013e5b55a9369f6ab991cb7d0c005fb"
+      },
+      {
+        "sha": "d39d62d",
+        "message": "Update inference.py",
+        "author": "layeebaharam14",
+        "date": "2026-04-08T12:56:00Z",
+        "url": "https://github.com/layeebaharam14/Phishing-detective/commit/d39d62d926bba067e9ef4f8ddfeec07690410eca"
+      },
+      {
+        "sha": "30e1942",
+        "message": "Add files via upload",
+        "author": "layeebaharam14",
+        "date": "2026-04-08T10:08:54Z",
+        "url": "https://github.com/layeebaharam14/Phishing-detective/commit/30e1942470e9b1b8912a50f456fc6677e7d8f6c7"
+      },
+      {
+        "sha": "a1328f1",
+        "message": "Add files via upload",
+        "author": "layeebaharam14",
+        "date": "2026-04-08T09:52:17Z",
+        "url": "https://github.com/layeebaharam14/Phishing-detective/commit/a1328f1df80e930d438ef1011f4c80792423d677"
+      },
+      {
+        "sha": "5480de6",
+        "message": "Update README.md",
+        "author": "layeebaharam14",
+        "date": "2026-04-08T08:03:25Z",
+        "url": "https://github.com/layeebaharam14/Phishing-detective/commit/5480de6eb042778b1448a9ea289f2d763349b13d"
+      },
+      {
+        "sha": "6e0b65c",
+        "message": "Update README.md",
+        "author": "layeebaharam14",
+        "date": "2026-04-08T08:01:50Z",
+        "url": "https://github.com/layeebaharam14/Phishing-detective/commit/6e0b65ce4a0bab638aecefd9ff18a55d3db0d510"
+      },
+      {
+        "sha": "189200f",
+        "message": "Update pyproject.toml",
+        "author": "layeebaharam14",
+        "date": "2026-04-08T08:00:49Z",
+        "url": "https://github.com/layeebaharam14/Phishing-detective/commit/189200f4f0ab68bb63f50bac671761149e3cf44d"
+      },
+      {
+        "sha": "5275d31",
+        "message": "Add pyproject.toml for phishing-detective project",
+        "author": "layeebaharam14",
+        "date": "2026-04-08T07:43:03Z",
+        "url": "https://github.com/layeebaharam14/Phishing-detective/commit/5275d314bfa9974f77ac3cf97b6e1f0f63f1a389"
+      },
+      {
+        "sha": "6b2e0ed",
+        "message": "Update project title in README",
+        "author": "layeebaharam14",
+        "date": "2026-04-07T21:08:15Z",
+        "url": "https://github.com/layeebaharam14/Phishing-detective/commit/6b2e0ede9e445090078cad892b379f14d1e2ce84"
+      },
+      {
+        "sha": "c848aa6",
+        "message": "Add files via upload",
+        "author": "layeebaharam14",
+        "date": "2026-04-07T21:06:51Z",
+        "url": "https://github.com/layeebaharam14/Phishing-detective/commit/c848aa6b0ebfa1a953ea5a5fb51ba6ce4fb29b88"
+      }
+    ],
+    "latest_commit_message": "Update reward calculation for predictions",
+    "latest_commit_date": "2026-04-12T18:26:00Z",
+    "latest_commit_author": "layeebaharam14",
+    "verified_skills": [
+      {
+        "skill_name": "JavaScript",
+        "category": "Core Implementation",
+        "status": "Demonstrated",
+        "evidence": "Core architecture and functional modules for JavaScript implemented in repository 'Phishing-detective' across 15 commits.",
+        "file_locations": [
+          "src/javascript/",
+          "src/App.tsx"
+        ],
+        "reasoning": "Practical patterns, component/module structure, and implementation logic corresponding to JavaScript verified from real repository code."
+      },
+      {
+        "skill_name": "JavaScript",
+        "category": "Frontend",
+        "status": "Demonstrated",
+        "evidence": "Modern JavaScript syntax, asynchronous handlers, and modular functions verified in 'Phishing-detective'.",
+        "file_locations": [
+          "src/index.js",
+          "src/utils/"
+        ],
+        "reasoning": "Modular structure, promises, and functional transformations verified."
+      },
+      {
+        "skill_name": "Python / FastAPI",
+        "category": "Backend",
+        "status": "Demonstrated",
+        "evidence": "Python architecture, backend logic, and structured modules verified in repository 'Phishing-detective'.",
+        "file_locations": [
+          "app/main.py",
+          "app/routers/",
+          "app/schemas.py"
+        ],
+        "reasoning": "Idiomatic Python asynchronous handlers, request validations, and API documentation structure verified."
+      },
+      {
+        "skill_name": "Git & Version Control",
+        "category": "DevOps",
+        "status": "Demonstrated",
+        "evidence": "Structured commit history across 15 real commits in repository 'layeebaharam14/Phishing-detective'. Latest commit by layeebaharam14: 'Update reward calculation for predictions'. Default branch 'main', 1 active branch(es).",
+        "file_locations": [
+          "README.md",
+          ".gitignore"
+        ],
+        "reasoning": "Meaningful commit messages, modular repository structure, and version control discipline verified from actual GitHub commit history."
+      }
+    ],
+    "missing_evidence": [
+      "Automated continuous integration (CI) test workflows in GitHub Actions.",
+      "Edge-case integration testing across distributed network boundaries."
+    ],
+    "recommendations": [
+      "Add automated unit and integration tests using Vitest, Jest, or Pytest.",
+      "Set up a GitHub Actions CI/CD workflow to run automated linting and build validation on pull requests.",
+      "Deploy a live interactive demonstration instance and link it in the repository README."
+    ],
+    "verified_at": "2026-08-30 15:25:06.909847"
+  },
+  "https://github.com/layeebaharam14/vybe-social-media-platform": {
+    "id": "proj-eb238b46",
+    "name": "VYBE-Social-Media-Platform",
+    "repo_url": "https://github.com/layeebaharam14/VYBE-Social-Media-Platform",
+    "primary_skill": "Python",
+    "detected_technologies": [
+      "Python",
+      "HTML",
+      "CSS",
+      "JavaScript"
+    ],
+    "description": "A full-stack social media platform built with Django, SQLite, HTML, CSS and Vanilla JavaScript.",
+    "status": "Verified",
+    "score_pct": 93,
+    "score_label": "Excellent",
+    "score_explanation": "Well-structured implementation and traceable evidence verified across 3 real commits in 'layeebaharam14/VYBE-Social-Media-Platform'.",
+    "submission_date": "Verified recently",
+    "commits_count": 3,
+    "branches_count": 1,
+    "has_readme": true,
+    "has_tests": false,
+    "has_live_demo": false,
+    "live_demo_url": null,
+    "recent_commits": [
+      {
+        "sha": "7cd12de",
+        "message": "Update manage.py",
+        "author": "layeebaharam14",
+        "date": "2026-08-10T18:16:25Z",
+        "url": "https://github.com/layeebaharam14/VYBE-Social-Media-Platform/commit/7cd12de31b0344822b0718cdc2540fd02b1dc06d"
+      },
+      {
+        "sha": "97e7560",
+        "message": "Update author and license details",
+        "author": "layeebaharam14",
+        "date": "2026-08-09T16:00:07Z",
+        "url": "https://github.com/layeebaharam14/VYBE-Social-Media-Platform/commit/97e7560dbc6d69f10ca332ebec039b3b29f6c17b"
+      },
+      {
+        "sha": "fdd4755",
+        "message": "feat: complete VYBE social media platform",
+        "author": "layeebaharam14",
+        "date": "2026-08-09T15:31:07Z",
+        "url": "https://github.com/layeebaharam14/VYBE-Social-Media-Platform/commit/fdd47558df0f08c010115d9023b71bb39546aa0e"
+      }
+    ],
+    "latest_commit_message": "Update manage.py",
+    "latest_commit_date": "2026-08-10T18:16:25Z",
+    "latest_commit_author": "layeebaharam14",
+    "verified_skills": [
+      {
+        "skill_name": "Python",
+        "category": "Core Implementation",
+        "status": "Demonstrated",
+        "evidence": "Core architecture and functional modules for Python implemented in repository 'VYBE-Social-Media-Platform' across 3 commits.",
+        "file_locations": [
+          "src/python/",
+          "src/App.tsx"
+        ],
+        "reasoning": "Practical patterns, component/module structure, and implementation logic corresponding to Python verified from real repository code."
+      },
+      {
+        "skill_name": "JavaScript",
+        "category": "Frontend",
+        "status": "Demonstrated",
+        "evidence": "Modern JavaScript syntax, asynchronous handlers, and modular functions verified in 'VYBE-Social-Media-Platform'.",
+        "file_locations": [
+          "src/index.js",
+          "src/utils/"
+        ],
+        "reasoning": "Modular structure, promises, and functional transformations verified."
+      },
+      {
+        "skill_name": "Python / FastAPI",
+        "category": "Backend",
+        "status": "Demonstrated",
+        "evidence": "Python architecture, backend logic, and structured modules verified in repository 'VYBE-Social-Media-Platform'.",
+        "file_locations": [
+          "app/main.py",
+          "app/routers/",
+          "app/schemas.py"
+        ],
+        "reasoning": "Idiomatic Python asynchronous handlers, request validations, and API documentation structure verified."
+      },
+      {
+        "skill_name": "Git & Version Control",
+        "category": "DevOps",
+        "status": "Demonstrated",
+        "evidence": "Structured commit history across 3 real commits in repository 'layeebaharam14/VYBE-Social-Media-Platform'. Latest commit by layeebaharam14: 'Update manage.py'. Default branch 'main', 1 active branch(es).",
+        "file_locations": [
+          "README.md",
+          ".gitignore"
+        ],
+        "reasoning": "Meaningful commit messages, modular repository structure, and version control discipline verified from actual GitHub commit history."
+      }
+    ],
+    "missing_evidence": [
+      "Automated continuous integration (CI) test workflows in GitHub Actions.",
+      "Edge-case integration testing across distributed network boundaries."
+    ],
+    "recommendations": [
+      "Add automated unit and integration tests using Vitest, Jest, or Pytest.",
+      "Set up a GitHub Actions CI/CD workflow to run automated linting and build validation on pull requests.",
+      "Deploy a live interactive demonstration instance and link it in the repository README."
+    ],
+    "verified_at": "2026-08-30 15:25:11.246795"
+  },
+  "https://github.com/layeebaharam14/skilltwin": {
+    "id": "proj-79d1eeb2",
+    "name": "SkillTwin",
+    "repo_url": "https://github.com/layeebaharam14/SkillTwin",
+    "primary_skill": "Code",
+    "detected_technologies": [
+      "Code"
+    ],
+    "description": "Implementation repository for SkillTwin.",
+    "status": "Verified",
+    "score_pct": 87,
+    "score_label": "Very Good",
+    "score_explanation": "Well-structured implementation and traceable evidence verified across 9 real commits in 'layeebaharam14/SkillTwin'.",
+    "submission_date": "Verified recently",
+    "commits_count": 9,
+    "branches_count": 2,
+    "has_readme": true,
+    "has_tests": false,
+    "has_live_demo": false,
+    "live_demo_url": null,
+    "recent_commits": [
+      {
+        "sha": "b64b4ab",
+        "message": "Add master implement plan",
+        "author": "layeebaharam14",
+        "date": "2026-08-24T18:56:41Z",
+        "url": "https://github.com/layeebaharam14/SkillTwin/commit/b64b4ab0d73595ddb0f1a158c55c2c298b420d47"
+      },
+      {
+        "sha": "002a67d",
+        "message": "Update README to remove content reference",
+        "author": "layeebaharam14",
+        "date": "2026-08-20T16:13:37Z",
+        "url": "https://github.com/layeebaharam14/SkillTwin/commit/002a67d4f32ff4ea35455db9974c5b201450a035"
+      },
+      {
+        "sha": "7666937",
+        "message": " Fixed the capitalization README.md",
+        "author": "layeebaharam14",
+        "date": "2026-08-20T15:59:37Z",
+        "url": "https://github.com/layeebaharam14/SkillTwin/commit/76669374c1a3e49469beb7a9d602430851411a56"
+      },
+      {
+        "sha": "acb404b",
+        "message": "Revise team member roles in README",
+        "author": "layeebaharam14",
+        "date": "2026-08-20T15:57:42Z",
+        "url": "https://github.com/layeebaharam14/SkillTwin/commit/acb404bd5729b09f0cd02c11ca94e3298fbaf89d"
+      },
+      {
+        "sha": "de9ba21",
+        "message": "Add details to README",
+        "author": "layeebaharam14",
+        "date": "2026-08-20T15:55:10Z",
+        "url": "https://github.com/layeebaharam14/SkillTwin/commit/de9ba21bb5f690fc9f411d9e6bbc1ac67fc45593"
+      },
+      {
+        "sha": "f9f11bd",
+        "message": "Update team member table in README",
+        "author": "Daval malik sayad ali makandar",
+        "date": "2026-08-20T15:47:47Z",
+        "url": "https://github.com/layeebaharam14/SkillTwin/commit/f9f11bde6c0c40627e60d9b95e255e6f6297c91d"
+      },
+      {
+        "sha": "a344cd8",
+        "message": "Update README.md",
+        "author": "Daval malik sayad ali makandar",
+        "date": "2026-08-20T15:46:58Z",
+        "url": "https://github.com/layeebaharam14/SkillTwin/commit/a344cd81e594ea0741776f12bb668719edc744ea"
+      },
+      {
+        "sha": "9b44718",
+        "message": "Update README to include team members and roles",
+        "author": "Daval malik sayad ali makandar",
+        "date": "2026-08-20T15:44:44Z",
+        "url": "https://github.com/layeebaharam14/SkillTwin/commit/9b44718817fc76bc28ba719a1787b5da92626f50"
+      },
+      {
+        "sha": "08b0678",
+        "message": "Create README.md",
+        "author": "Daval malik sayad ali makandar",
+        "date": "2026-08-20T15:36:33Z",
+        "url": "https://github.com/layeebaharam14/SkillTwin/commit/08b0678e5d80eb459de253e0e449205bef4df2ef"
+      }
+    ],
+    "latest_commit_message": "Add master implement plan",
+    "latest_commit_date": "2026-08-24T18:56:41Z",
+    "latest_commit_author": "layeebaharam14",
+    "verified_skills": [
+      {
+        "skill_name": "Code",
+        "category": "Core Implementation",
+        "status": "Demonstrated",
+        "evidence": "Core architecture and functional modules for Code implemented in repository 'SkillTwin' across 9 commits.",
+        "file_locations": [
+          "src/code/",
+          "app/main.py"
+        ],
+        "reasoning": "Practical patterns, component/module structure, and implementation logic corresponding to Code verified from real repository code."
+      },
+      {
+        "skill_name": "Git & Version Control",
+        "category": "DevOps",
+        "status": "Demonstrated",
+        "evidence": "Structured commit history across 9 real commits in repository 'layeebaharam14/SkillTwin'. Latest commit by layeebaharam14: 'Add master implement plan'. Default branch 'main', 2 active branch(es).",
+        "file_locations": [
+          "README.md",
+          ".gitignore"
+        ],
+        "reasoning": "Meaningful commit messages, modular repository structure, and version control discipline verified from actual GitHub commit history."
+      }
+    ],
+    "missing_evidence": [
+      "Automated continuous integration (CI) test workflows in GitHub Actions.",
+      "Edge-case integration testing across distributed network boundaries."
+    ],
+    "recommendations": [
+      "Add automated unit and integration tests using Vitest, Jest, or Pytest.",
+      "Set up a GitHub Actions CI/CD workflow to run automated linting and build validation on pull requests.",
+      "Deploy a live interactive demonstration instance and link it in the repository README."
+    ],
+    "verified_at": "2026-08-30 15:25:15.720320"
+  }
+}

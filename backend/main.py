@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from backend.database import check_db_connection, init_db
 from backend.shared.llm_client import llm_client
 from backend.shared.models import HealthCheckResponse, SystemInfoResponse
-from backend.routers import evidence, roadmap, skilltwin, target_role
+from backend.routers import evidence, roadmap, skilltwin, target_role, gap_analysis, verification, skilltwin_update, readiness, auth
 
 
 @asynccontextmanager
@@ -37,10 +37,15 @@ app.add_middleware(
 )
 
 # Register Feature Routers
+app.include_router(auth.router)
 app.include_router(evidence.router)
 app.include_router(roadmap.router)
 app.include_router(skilltwin.router)
 app.include_router(target_role.router)
+app.include_router(gap_analysis.router)
+app.include_router(verification.router)
+app.include_router(skilltwin_update.router)
+app.include_router(readiness.router)
 
 
 @app.get("/", response_model=SystemInfoResponse, tags=["System"])
