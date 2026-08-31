@@ -1,0 +1,34 @@
+# Never ship secrets or local state into the image.
+.env
+.env.local
+.env.*.local
+*.env
+
+# Host build output and dependencies — both stages produce their own.
+frontend/node_modules
+frontend/dist
+node_modules
+
+# Python local state. `**/` is required: a bare `.venv` only matches the context
+# root, and this repo has a 73 MB backend/.venv that would otherwise be copied
+# into the image by `COPY backend/ backend/`.
+**/.venv
+**/venv
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
+.coverage
+htmlcov
+
+# VCS, editors, docs, local scratch
+.git
+.gitignore
+.github
+.idea
+.vscode
+scratch
+*.md
+!README.md
+*.pdf
+docker-compose.yml
+LICENSE
