@@ -16,13 +16,37 @@ DATABASE_URL = os.getenv(
     "postgresql://postgres:skilltwin_password@localhost:5432/skilltwin_db"
 )
 
+
+def _normalize_database_url(url: str) -> str:
+    """
+    Make a hosted provider's connection string usable by SQLAlchemy 2 + psycopg2.
+
+    Render (like Heroku) hands out `postgres://...`, a scheme SQLAlchemy 2 no
+    longer registers, and its external endpoints require TLS. Both are silent
+    failures at startup otherwise, so fix them here rather than asking whoever
+    deploys this to remember.
+    """
+    if url.startswith("postgres://"):
+        url = "postgresql://" + url[len("postgres://"):]
+
+    # Only force TLS for remote hosts; a local dev Postgres usually has no certs.
+    host_part = url.split("@")[-1].split("/")[0].lower()
+    is_local = host_part.startswith(("localhost", "127.0.0.1", "[::1]", "db:", "postgres:"))
+    if not is_local and "sslmode=" not in url:
+        url += ("&" if "?" in url else "?") + "sslmode=require"
+
+    return url
+
+
+DATABASE_URL = _normalize_database_url(DATABASE_URL)
+
 # Create SQLAlchemy engine
 # Set connect_timeout so connection attempts fail fast if DB is unreachable
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True,
     pool_recycle=300,
-    connect_args={"connect_timeout": 1}
+    connect_args={"connect_timeout": 10}
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -85,3 +109,12 @@ def init_db():
             connection.commit()
     except Exception as e:
         print(f"[Database Init Warning] Could not auto-apply schema.sql: {e}")
+
+
+
+
+
+
+
+
+

@@ -189,60 +189,6 @@ def compute_skill_gap_analysis(
     # 3. Analyze each requirement from the Benchmark
     gaps_list: List[SkillGapItem] = []
 
-    # Explicit reference presets for the primary Full-Stack view matching reference design
-    REFERENCE_PRESETS: Dict[str, Dict[str, Any]] = {
-        "react.js": {
-            "your_pct": 40, "req_pct": 80, "gap": -40, "priority": "Critical", "status": "Missing", "conf": 65,
-            "your_level": "Beginner", "req_level": "Advanced",
-            "why_gap": "Essential for building modern user interfaces."
-        },
-        "typescript": {
-            "your_pct": 50, "req_pct": 75, "gap": -25, "priority": "Critical", "status": "Weak", "conf": 70,
-            "your_level": "Beginner", "req_level": "Intermediate",
-            "why_gap": "Improves code quality and maintainability."
-        },
-        "node.js": {
-            "your_pct": 60, "req_pct": 80, "gap": -20, "priority": "High", "status": "Weak", "conf": 75,
-            "your_level": "Intermediate", "req_level": "Advanced",
-            "why_gap": "Required for backend server development."
-        },
-        "postgresql": {
-            "your_pct": 45, "req_pct": 70, "gap": -25, "priority": "High", "status": "Weak", "conf": 68,
-            "your_level": "Beginner", "req_level": "Intermediate",
-            "why_gap": "Important for relational data management."
-        },
-        "docker containerization": {
-            "your_pct": 20, "req_pct": 60, "gap": -40, "priority": "Critical", "status": "Missing", "conf": 40,
-            "your_level": "Insufficient Evidence", "req_level": "Intermediate",
-            "why_gap": "Industry standard for containerization."
-        },
-        "docker": {
-            "your_pct": 20, "req_pct": 60, "gap": -40, "priority": "Critical", "status": "Missing", "conf": 40,
-            "your_level": "Insufficient Evidence", "req_level": "Intermediate",
-            "why_gap": "Industry standard for containerization."
-        },
-        "javascript": {
-            "your_pct": 85, "req_pct": 70, "gap": 15, "priority": "Low", "status": "Strong", "conf": 92,
-            "your_level": "Advanced", "req_level": "Intermediate",
-            "why_gap": "Good understanding of core concepts."
-        },
-        "git": {
-            "your_pct": 90, "req_pct": 70, "gap": 20, "priority": "Low", "status": "Strong", "conf": 90,
-            "your_level": "Advanced", "req_level": "Intermediate",
-            "why_gap": "Excellent version control and collaboration."
-        },
-        "github workflows & prs": {
-            "your_pct": 90, "req_pct": 70, "gap": 20, "priority": "Low", "status": "Strong", "conf": 90,
-            "your_level": "Advanced", "req_level": "Intermediate",
-            "why_gap": "Excellent version control and collaboration."
-        },
-        "html5 & css3": {
-            "your_pct": 95, "req_pct": 70, "gap": 25, "priority": "Low", "status": "Strong", "conf": 94,
-            "your_level": "Advanced", "req_level": "Intermediate",
-            "why_gap": "Solid foundation in frontend basics."
-        }
-    }
-
     critical_count = 0
     weak_count = 0
     strong_count = 0
@@ -269,57 +215,56 @@ def compute_skill_gap_analysis(
             {}
         )
 
-        # Check if custom preset applies for benchmark role
-        preset = REFERENCE_PRESETS.get(skill_key) or REFERENCE_PRESETS.get(canonical_key)
-
-        if preset and role_name == "Full-Stack Developer":
-            your_pct = preset["your_pct"]
-            req_pct = preset["req_pct"]
-            gap_pct = preset["gap"]
-            priority = preset["priority"]
-            match_status = preset["status"]
-            confidence = preset["conf"]
-            your_level = preset["your_level"]
-            req_level = preset["req_level"]
-            why_gap = preset["why_gap"]
-        else:
-            # Dynamic calculation
-            req_pct = req.industry_avg_proficiency or _level_to_pct(req.required_proficiency)
-            req_level = req.required_proficiency
-
-            if candidate_match:
-                your_pct = _candidate_skill_to_pct(candidate_match)
-                confidence = int(candidate_match.get("confidence", 70))
-                your_level = candidate_match.get("proficiency", "Beginner")
-            else:
-                your_pct = 20  # Insufficient evidence
-                confidence = 35
-                your_level = "Insufficient Evidence"
-
+        # Dynamic calculation based on actual user skills
+        if candidate_match:
+            # User has evidence - calculate from their actual proficiency
+            your_pct = int(candidate_match.get("score", 60))  # Default 60% if found
+            req_pct = int(req.industry_avg_proficiency or 75)
             gap_pct = your_pct - req_pct
 
-            # Match status logic
-            if your_pct <= 25 and gap_pct <= -30:
-                match_status = "Missing"
-            elif gap_pct < 0:
-                match_status = "Weak"
-            elif gap_pct > 10:
-                match_status = "Strong"
-            else:
-                match_status = "Matched"
-
-            # Priority logic
-            importance = req.importance.lower()
-            if (importance in ["core", "high"] and gap_pct <= -25) or (match_status == "Missing" and importance == "core"):
+            # Determine priority based on importance and gap
+            if req.importance == "Core" and gap_pct < -20:
                 priority = "Critical"
-            elif (importance in ["core", "high"] and gap_pct < 0) or (importance == "medium" and gap_pct <= -25):
+            elif req.importance in ["Core", "High"] and gap_pct < -15:
                 priority = "High"
-            elif gap_pct < 0 or importance in ["medium"]:
+            elif gap_pct < -10:
                 priority = "Medium"
             else:
                 priority = "Low"
 
-            why_gap = meta.get("why_gap") or req.description
+            # Determine match status
+            if gap_pct >= 0:
+                match_status = "Strong"
+            elif gap_pct >= -15:
+                match_status = "Matched"
+            elif gap_pct >= -30:
+                match_status = "Weak"
+            else:
+                match_status = "Missing"
+
+            confidence = int(candidate_match.get("confidence", 75))
+            your_level = candidate_match.get("proficiency", "Intermediate")
+            req_level = req.required_proficiency
+            why_gap = f"You have {your_pct}% proficiency but {req.skill} requires {req_pct}% for {role_name} positions."
+        else:
+            # No evidence - user is missing this skill
+            your_pct = 0
+            req_pct = int(req.industry_avg_proficiency or 75)
+            gap_pct = -req_pct
+
+            # Missing skills with high importance are critical
+            if req.importance == "Core":
+                priority = "Critical"
+            elif req.importance == "High":
+                priority = "High"
+            else:
+                priority = "Medium"
+
+            match_status = "Missing"
+            confidence = 0
+            your_level = "Insufficient Evidence"
+            req_level = req.required_proficiency
+            why_gap = f"{req.skill} is required for {role_name} but no evidence found in your profile. Add projects or experience demonstrating this skill."
 
         # Metric counters
         if priority == "Critical" or match_status == "Missing":
@@ -375,25 +320,13 @@ def compute_skill_gap_analysis(
         gaps_list.append(gap_item)
 
     total_skills = len(gaps_list)
-    overall_pct = int(total_weighted_match / max(1, total_weights)) if total_weights > 0 else 64
+    overall_pct = int(total_weighted_match / max(1, total_weights)) if total_weights > 0 else 0
 
-    # In reference image for full-stack default benchmark: overall match is 64%
-    if role_name == "Full-Stack Developer":
-        overall_pct = 64
-        critical_count = 12
-        weak_count = 8
-        strong_count = 15
-        matched_count = 10
-
-    # Severity distribution
+    # Severity distribution - calculated from actual gaps
     sev_critical = sum(1 for g in gaps_list if g.priority == "Critical")
     sev_high = sum(1 for g in gaps_list if g.priority == "High")
     sev_med = sum(1 for g in gaps_list if g.priority == "Medium")
     sev_low = sum(1 for g in gaps_list if g.priority == "Low")
-
-    # If using Full-Stack reference numbers: 12 Critical (32%), 10 High (26%), 8 Medium (21%), 8 Low (21%) = 38 Total
-    if role_name == "Full-Stack Developer":
-        sev_critical, sev_high, sev_med, sev_low = 12, 10, 8, 8
 
     total_sev = max(1, sev_critical + sev_high + sev_med + sev_low)
 
@@ -430,16 +363,6 @@ def compute_skill_gap_analysis(
             count=cnt,
             color=color_map.get(cat, "#A855F7")
         ))
-
-    # Standard 5 categories if Full-Stack
-    if role_name == "Full-Stack Developer":
-        top_categories = [
-            CategoryGapCountItem(category="Frontend Development", count=10, color="#F43F5E"),
-            CategoryGapCountItem(category="Backend Development", count=8, color="#F59E0B"),
-            CategoryGapCountItem(category="DevOps & Tools", count=8, color="#38BDF8"),
-            CategoryGapCountItem(category="Databases", count=5, color="#818CF8"),
-            CategoryGapCountItem(category="Languages", count=5, color="#34D399")
-        ]
 
     # AI Insights
     ai_insights = [
@@ -484,7 +407,7 @@ def compute_skill_gap_analysis(
     return GapAnalysisSummaryResponse(
         target_role=role_name,
         experience_level=experience_level,
-        last_updated="May 25, 2026, 11:30 AM",
+        last_updated=datetime.utcnow().strftime("%B %d, %Y, %I:%M %p"),
         total_gaps=total_skills,
         critical_gaps_count=critical_count,
         weak_skills_count=weak_count,

@@ -21,7 +21,7 @@ from backend.routers.evidence import _normalize_user_key, _in_memory_evidence, _
 from backend.routers.verification import _get_user_projects_list
 from backend.routers.skilltwin import synthesize_living_skilltwin, ROLE_REQUIRED_SKILLS
 from backend.routers.skilltwin_update import calculate_skilltwin_updated
-from backend.routers.roadmap import build_personalized_roadmap, _in_memory_task_progress
+from backend.routers.roadmap import build_personalized_roadmap
 
 router = APIRouter(
     prefix="/api/readiness",
@@ -29,7 +29,7 @@ router = APIRouter(
 )
 
 
-def calculate_career_readiness_metrics(
+async def calculate_career_readiness_metrics(
     user_id: Optional[str] = "default_user",
     db: Optional[Session] = None
 ) -> CareerReadinessResponse:
@@ -58,7 +58,7 @@ def calculate_career_readiness_metrics(
     verified_projects = [p for p in user_projects if p.status == "Verified"]
 
     # Ingest roadmap progress from Page 6
-    roadmap_plan = build_personalized_roadmap(
+    roadmap_plan = await build_personalized_roadmap(
         role_name=target_role,
         experience_level=experience_level,
         user_id=norm_key
@@ -345,7 +345,7 @@ def calculate_career_readiness_metrics(
 
 
 @router.get("/dashboard", response_model=CareerReadinessResponse)
-def get_career_readiness_dashboard(
+async def get_career_readiness_dashboard(
     user_id: Optional[str] = Query(default=None),
     db: Session = Depends(get_db)
 ):
@@ -353,29 +353,29 @@ def get_career_readiness_dashboard(
     Retrieve comprehensive Career Readiness dashboard data.
     Aggregates verified evidence, target-role alignment, categorized skills, and continuous loop milestones.
     """
-    return calculate_career_readiness_metrics(user_id=user_id, db=db)
+    return await calculate_career_readiness_metrics(user_id=user_id, db=db)
 
 
 @router.post("/recalculate", response_model=CareerReadinessResponse)
-def recalculate_career_readiness(
+async def recalculate_career_readiness(
     user_id: Optional[str] = Query(default=None),
     db: Session = Depends(get_db)
 ):
     """
     Recalculate career readiness scores based on fresh evidence, project verification, and roadmap status.
     """
-    return calculate_career_readiness_metrics(user_id=user_id, db=db)
+    return await calculate_career_readiness_metrics(user_id=user_id, db=db)
 
 
 @router.get("/export-report", response_class=PlainTextResponse)
-def export_career_readiness_report(
+async def export_career_readiness_report(
     user_id: Optional[str] = Query(default=None),
     db: Session = Depends(get_db)
 ):
     """
     Export comprehensive Career Readiness executive summary report.
     """
-    data = calculate_career_readiness_metrics(user_id=user_id, db=db)
+    data = await calculate_career_readiness_metrics(user_id=user_id, db=db)
 
     report_lines = [
         "================================================================================",

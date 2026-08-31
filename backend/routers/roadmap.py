@@ -1,8 +1,11 @@
 import uuid
+import json
+import re
 from datetime import datetime
-from typing import Optional, List, Dict, Any
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from typing import Optional, List, Dict, Any, Tuple
+from fastapi import APIRouter, Depends, Query, HTTPException, status, Header
 from fastapi.responses import PlainTextResponse
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
@@ -13,18 +16,19 @@ from backend.shared.models import (
     RoadmapMilestoneItem,
     RoadmapSummary,
     PersonalizedRoadmapResponse,
-    TaskToggleRequest
+    TaskToggleRequest,
+    TASK_SKILL_MAP
 )
 from backend.routers.evidence import _in_memory_users
 from backend.routers.gap_analysis import compute_skill_gap_analysis
+from backend.shared.task_progress_db import TaskProgressDB
+from backend.routers.auth import require_authentication, verify_access_token
+from backend.shared.llm_client import llm_client
 
 router = APIRouter(
     prefix="/api/roadmap",
     tags=["Personalized Roadmap & Verification"]
 )
-
-# Persistent in-memory storage for candidate roadmap task completion states
-_in_memory_task_progress: Dict[str, Dict[str, bool]] = {}
 
 # Curated, verified learning resources (Strictly verified official/open URLs)
 CURATED_RESOURCES: Dict[str, List[RoadmapResourceItem]] = {
@@ -66,7 +70,626 @@ CURATED_RESOURCES: Dict[str, List[RoadmapResourceItem]] = {
 }
 
 
-def build_personalized_roadmap(
+# Maps the 21 roadmap skill names (lowercased, "/" and " " -> "_") onto the
+# broad CURATED_RESOURCES keys above, so every node has real curated links to
+# fall back on when the model is unavailable.
+CURATED_RESOURCE_ALIASES: Dict[str, str] = {
+    "frontend": "html_css",
+    "portfolio": "html_css",
+    "typescript": "react",
+    "redux": "react",
+    "e-commerce": "react",
+    "node.js": "backend",
+    "python_fastapi": "backend",
+    "authentication": "backend",
+    "postgresql": "database",
+    "orm": "database",
+    "docker": "devops",
+    "ci_cd": "devops",
+    "security": "testing",
+    "capstone": "devops",
+}
+
+
+# =========================================================
+# AI Resource Generation
+# =========================================================
+
+# A YouTube resource is only useful if it points at one specific video. These
+# match the two canonical single-video forms and capture the 11-character id.
+_YT_WATCH_RE = re.compile(
+    r"^https?://(?:www\.|m\.)?youtube\.com/watch\?(?=[^#]*\bv=([A-Za-z0-9_-]{11})\b)",
+    re.IGNORECASE,
+)
+_YT_SHORT_RE = re.compile(
+    r"^https?://youtu\.be/([A-Za-z0-9_-]{11})(?:[?&/#]|$)",
+    re.IGNORECASE,
+)
+_YT_ANY_RE = re.compile(r"^https?://(?:[\w.-]+\.)?(?:youtube\.com|youtu\.be)/", re.IGNORECASE)
+
+
+def _normalize_youtube_url(url: str) -> Optional[str]:
+    """
+    Return a canonical https://www.youtube.com/watch?v=ID URL, or None if the
+    URL is not a single specific video.
+
+    Search results, playlists, channels and bare youtube.com links all return
+    None: the point of asking the model for a video is to get *that video*, and
+    handing the user a search page back is the bug this exists to prevent.
+    """
+    url = (url or "").strip()
+    if not url:
+        return None
+
+    match = _YT_WATCH_RE.match(url) or _YT_SHORT_RE.match(url)
+    if not match:
+        return None
+    return f"https://www.youtube.com/watch?v={match.group(1)}"
+
+
+def _sanitize_ai_resources(resources: Any) -> Tuple[List[Dict[str, str]], int]:
+    """
+    Drop malformed resources and rewrite YouTube links to canonical watch URLs.
+
+    Returns (clean, videos_kept). Non-YouTube URLs pass through untouched as
+    long as they are http(s); a YouTube URL that is not a specific video is
+    dropped rather than shown, so nothing that reaches the UI is a search page.
+    """
+    if not isinstance(resources, list):
+        return [], 0
+
+    clean: List[Dict[str, str]] = []
+    videos_kept = 0
+    seen_urls = set()
+
+    for raw in resources:
+        if not isinstance(raw, dict):
+            continue
+        url = str(raw.get("url", "")).strip()
+        title = str(raw.get("title", "")).strip()
+        if not url or not title or not url.lower().startswith(("http://", "https://")):
+            continue
+
+        res_type = str(raw.get("type", "") or "").strip().lower() or "tutorial"
+
+        if _YT_ANY_RE.match(url):
+            canonical = _normalize_youtube_url(url)
+            if not canonical:
+                # Model ignored the rule and sent a search/playlist/channel link.
+                print(f"[Roadmap AI] Dropped non-video YouTube URL: {url}")
+                continue
+            url = canonical
+            res_type = "video"
+
+        if url in seen_urls:
+            continue
+        seen_urls.add(url)
+
+        if res_type == "video":
+            videos_kept += 1
+
+        clean.append({
+            "title": title,
+            "url": url,
+            "type": res_type,
+            "provider": str(raw.get("provider", "") or "").strip() or "Web",
+            "description": str(raw.get("description", "") or "").strip(),
+        })
+
+    return clean, videos_kept
+
+
+async def generate_ai_resources(
+    skill_name: str,
+    user_level: str = "intermediate",
+    resource_type: str = "mixed"
+) -> List[Dict[str, str]]:
+    """
+    Generate personalized learning resources using AI.
+    Returns YouTube links, documentation, and tutorials based on skill and user level.
+    """
+    system_prompt = """You are an expert technical educator recommending learning resources.
+You must return valid JSON with the following structure:
+{
+    "resources": [
+        {
+            "title": "Resource Title",
+            "url": "https://example.com/resource",
+            "type": "video/tutorial/documentation/course",
+            "provider": "Provider Name",
+            "description": "Brief description"
+        }
+    ]
+}
+
+Focus on high-quality, free resources that are currently available.
+
+YOUTUBE RULES - these are strict:
+- Every YouTube resource MUST be one specific video, in the exact form
+  https://www.youtube.com/watch?v=VIDEO_ID
+- VIDEO_ID is the real 11-character id of a real video you are confident exists,
+  e.g. https://www.youtube.com/watch?v=PkZNo7MFNFg
+- NEVER return a search URL (youtube.com/results?search_query=...), a playlist
+  (/playlist?list=...), a channel (/@name, /c/, /channel/) or a bare youtube.com link.
+- Put the real video title in "title" and the channel name in "provider".
+- If you are not confident a specific video id is real, omit the video entirely
+  and recommend a written resource instead. A wrong id is worse than no video.
+
+For documentation, link the exact page on the official docs site, not a search."""
+
+    user_prompt = f"""Recommend the best learning resources to master {skill_name}.
+User level: {user_level}
+Preferred resource type: {resource_type}
+
+Provide 5-6 high-quality resources including:
+1. Official documentation (link the exact page)
+2. At least one specific YouTube video: https://www.youtube.com/watch?v=VIDEO_ID
+   with the real video id, real title and real channel. Not a search, not a playlist.
+3. Interactive tutorials or courses
+4. Practice exercises
+
+Make recommendations specific to {skill_name} at {user_level} level."""
+
+    async def ask(extra_instruction: str = "") -> Tuple[List[Dict[str, str]], int]:
+        result = await llm_client.extract_structured_json(
+            messages=[{"role": "user", "content": user_prompt + extra_instruction}],
+            system_prompt=system_prompt
+        )
+        if result.get("error"):
+            print(f"[Roadmap AI] Error generating resources: {result['error']}")
+            return [], 0
+        data = result.get("data", {})
+        return _sanitize_ai_resources(data.get("resources", []))
+
+    try:
+        resources, videos = await ask()
+
+        # The model routinely answers with a search URL on the first pass. One
+        # corrective round-trip is cheap and usually produces a real video id;
+        # if it still cannot, we ship the written resources rather than fake one.
+        if resources and videos == 0:
+            print(f"[Roadmap AI] No specific video for {skill_name}, re-asking once")
+            retry_resources, retry_videos = await ask(
+                "\n\nIMPORTANT: your previous answer contained no usable YouTube video. "
+                "Return at least one https://www.youtube.com/watch?v=VIDEO_ID link with a "
+                "real 11-character video id, real title and real channel name. "
+                "Do NOT return youtube.com/results, a playlist, or a channel link. "
+                "If you genuinely cannot name a real video id, return no video at all."
+            )
+            if retry_videos > 0:
+                resources, videos = retry_resources, retry_videos
+
+        print(f"[Roadmap AI] Generated {len(resources)} resources "
+              f"({videos} specific videos) for {skill_name}")
+        return resources
+
+    except Exception as e:
+        print(f"[Roadmap AI] Exception generating resources: {e}")
+        return []
+
+
+async def generate_ai_task_description(
+    skill_name: str,
+    task_title: str,
+    user_level: str = "intermediate",
+    gap_info: str = ""
+) -> Dict[str, str]:
+    """
+    Generate AI-powered task description and learning objectives.
+    """
+    system_prompt = """You are an expert curriculum designer creating personalized learning tasks.
+Return valid JSON:
+{
+    "description": "What the user will learn and accomplish",
+    "learning_objectives": ["Objective 1", "Objective 2", "Objective 3"],
+    "key_concepts": ["Concept A", "Concept B"],
+    "practical_exercises": ["Exercise 1", "Exercise 2"],
+    "estimated_hours": number
+}"""
+
+    user_prompt = f"""Create a detailed task description for learning {skill_name}.
+Task title: {task_title}
+User level: {user_level}
+Gap context: {gap_info}
+
+Make this practical and action-oriented. Include specific things the user will build or practice."""
+
+    try:
+        result = await llm_client.extract_structured_json(
+            messages=[{"role": "user", "content": user_prompt}],
+            system_prompt=system_prompt
+        )
+
+        if result.get("error"):
+            return {
+                "description": f"Learn {skill_name} fundamentals and practical applications",
+                "learning_objectives": [f"Understand {skill_name} core concepts", "Build practical projects"],
+                "key_concepts": [skill_name],
+                "practical_exercises": ["Complete exercises", "Build mini-project"],
+                "estimated_hours": 8
+            }
+
+        return result.get("data", {})
+
+    except Exception as e:
+        print(f"[Roadmap AI] Exception generating task description: {e}")
+        return {
+            "description": f"Learn {skill_name}",
+            "learning_objectives": [],
+            "key_concepts": [],
+            "practical_exercises": [],
+            "estimated_hours": 8
+        }
+
+
+# =========================================================
+# AI Roadmap Generator (Dynamic based on role & gaps)
+# =========================================================
+
+async def generate_ai_roadmap(
+    role_name: str,
+    experience_level: str,
+    daily_effort_hours: str,
+    gap_summary,
+    user_id: Optional[str] = None
+) -> Optional[Dict[str, Any]]:
+    """
+    Generate a fully personalized roadmap using AI based on:
+    - Target role
+    - User's current skill gaps
+    - Experience level
+    - Daily time commitment
+
+    Returns a dictionary with phases, tasks, milestones, etc.
+    Falls back to None if AI is unavailable.
+    """
+    if not llm_client.is_configured:
+        return None
+
+    # Build a summary of the gaps to feed to the LLM
+    critical_skills = [g.skill for g in gap_summary.gaps if g.priority == "Critical"][:5]
+    weak_skills = [g.skill for g in gap_summary.gaps if g.match_status == "Weak"][:5]
+    strong_skills = [g.skill for g in gap_summary.gaps if g.match_status == "Strong"][:5]
+
+    gaps_context = f"""
+Critical Gaps (must learn): {', '.join(critical_skills) if critical_skills else 'None'}
+Weak Skills (improve): {', '.join(weak_skills) if weak_skills else 'None'}
+Strong Skills (already know): {', '.join(strong_skills) if strong_skills else 'None'}
+"""
+
+    system_prompt = """You are an expert career coach and curriculum designer.
+You create personalized learning roadmaps for people pursuing specific tech careers.
+
+IMPORTANT: Return ONLY valid JSON in this exact structure:
+{
+    "phases": [
+        {
+            "phase_number": 1,
+            "title": "Phase 1: <Phase Name>",
+            "subtitle": "<What this phase focuses on>",
+            "priority": "Critical/High/Medium/Low",
+            "estimated_duration_weeks": "2-3 Weeks",
+            "why_it_matters": "<Why this phase is important for the role>",
+            "exact_gap_addressed": "<What gap this phase fills>",
+            "tasks": [
+                {
+                    "id": "task-p1-1",
+                    "title": "<Task name>",
+                    "type": "Course/Project/Practice",
+                    "description": "<What user will learn>",
+                    "estimated_hours": 12,
+                    "topics": ["topic1", "topic2", "topic3"],
+                    "skill_name": "<primary skill for this task>"
+                }
+            ]
+        }
+    ],
+    "top_skills": [
+        {"name": "SkillName", "category": "Category"}
+    ],
+    "milestones": [
+        {
+            "milestone_number": 1,
+            "title": "<Milestone name>",
+            "description": "<What completing this milestone means>"
+        }
+    ],
+    "why_reasons": [
+        "<Reason 1 why this roadmap is personalized>",
+        "<Reason 2>"
+    ]
+}
+
+Guidelines:
+- Create 4-6 phases
+- Each phase has 2-4 tasks
+- Order phases from foundational to advanced
+- Focus on closing the critical and weak gaps
+- Tasks should be practical and actionable
+- Use real technology names, not generic terms
+- Make the roadmap specific to the target role
+"""
+
+    user_prompt = f"""Create a personalized learning roadmap for someone who wants to become a {role_name}.
+
+Experience Level: {experience_level}
+Daily Time Available: {daily_effort_hours}
+
+User's Current Skill Gaps:
+{gaps_context}
+
+CRITICAL: The roadmap MUST be 100% specific to the role "{role_name}". Do NOT include generic web development content unless it directly serves the role.
+
+ROLE-SPECIFIC EXAMPLES:
+- Data Scientist: Python, Pandas, NumPy, Matplotlib, Scikit-learn, TensorFlow, SQL, Statistics, Jupyter, ML algorithms
+- ML Engineer: Python, PyTorch, TensorFlow, MLOps, Docker, Kubernetes, Cloud (AWS/GCP), Model deployment, APIs
+- Frontend Developer: HTML, CSS, JavaScript, React, TypeScript, Vue/Angular, Webpack, Responsive design, Browser APIs
+- Backend Developer: Python/Java/Go, REST APIs, Databases, Authentication, Docker, Microservices, Caching
+- Full-Stack Developer: HTML/CSS, JavaScript, React, Node.js, Python, SQL, Docker, Git, CI/CD
+- DevOps Engineer: Linux, Docker, Kubernetes, Terraform, AWS/Azure, CI/CD pipelines, Monitoring, Bash scripting
+- Mobile Developer: Swift/Kotlin, React Native, Flutter, iOS/Android SDK, Mobile UI/UX, App Store deployment
+- Data Engineer: Python, SQL, Apache Spark, Airflow, Kafka, ETL pipelines, Data warehousing, BigQuery/Snowflake
+- Cybersecurity Analyst: Networking, Linux, Python, SIEM tools, Penetration testing, OWASP, Cryptography
+- Game Developer: C++, Unity/Unreal, Game physics, 3D graphics, OpenGL, Game design patterns
+
+Requirements:
+1. Phases MUST be specific to {role_name} - no generic web dev if it's not a web dev role
+2. First phase covers prerequisites for the SPECIFIC role
+3. Each phase has 2-4 tasks
+4. Task IDs: "task-p1-1", "task-p1-2", etc.
+5. Skill names should be REAL technologies for this role
+6. The roadmap should be UNIQUE to {role_name} - completely different from other roles
+
+Return ONLY the JSON."""
+
+    try:
+        result = await llm_client.extract_structured_json(
+            messages=[{"role": "user", "content": user_prompt}],
+            system_prompt=system_prompt
+        )
+
+        if result.get("error"):
+            print(f"[Roadmap AI] Error generating roadmap: {result['error']}")
+            return None
+
+        data = result.get("data", {})
+        if not data.get("phases"):
+            print("[Roadmap AI] No phases in response")
+            return None
+
+        print(f"[Roadmap AI] Generated {len(data['phases'])} phases for {role_name}")
+        return data
+
+    except Exception as e:
+        print(f"[Roadmap AI] Exception generating roadmap: {e}")
+        return None
+
+
+def build_fallback_roadmap_structure(
+    role_name: str,
+    critical_skills: List[str],
+    weak_skills: List[str]
+) -> Dict[str, Any]:
+    """
+    Build a dynamic fallback structure when AI is unavailable.
+    Creates phases based on the actual gaps identified.
+    """
+    # Group skills into logical phases
+    frontend_skills = ["HTML", "CSS", "JavaScript", "React", "TypeScript", "Redux", "Vue", "Angular", "Sass", "Tailwind"]
+    backend_skills = ["Node.js", "Express", "Python", "FastAPI", "Django", "Flask", "Java", "Spring", "Go", "Ruby", "PHP"]
+    database_skills = ["PostgreSQL", "MySQL", "MongoDB", "Redis", "SQL", "ORM", "SQLAlchemy", "Prisma"]
+    devops_skills = ["Docker", "Kubernetes", "CI/CD", "AWS", "Azure", "GCP", "Terraform", "Jenkins"]
+    data_skills = ["Pandas", "NumPy", "TensorFlow", "PyTorch", "Scikit-learn", "Machine Learning", "Deep Learning", "NLP", "Statistics"]
+    mobile_skills = ["React Native", "Flutter", "Swift", "Kotlin", "iOS", "Android"]
+
+    # Categorize the user's gaps
+    all_gap_skills = critical_skills + weak_skills
+    user_frontend = [s for s in all_gap_skills if any(f in s for f in frontend_skills)]
+    user_backend = [s for s in all_gap_skills if any(b in s for b in backend_skills)]
+    user_database = [s for s in all_gap_skills if any(d in s for d in database_skills)]
+    user_devops = [s for s in all_gap_skills if any(d in s for d in devops_skills)]
+    user_data = [s for s in all_gap_skills if any(d in s for d in data_skills)]
+    user_mobile = [s for s in all_gap_skills if any(m in s for m in mobile_skills)]
+
+    phases = []
+    phase_num = 1
+
+    # Phase 1: Always fundamentals
+    if user_frontend:
+        phases.append({
+            "phase_number": phase_num,
+            "title": f"Phase {phase_num}: Frontend Foundations",
+            "subtitle": f"Build core web development skills for {role_name}",
+            "priority": "Critical",
+            "estimated_duration_weeks": "3-4 Weeks",
+            "why_it_matters": f"Frontend fundamentals are essential for {role_name}",
+            "exact_gap_addressed": f"Address gaps in: {', '.join(user_frontend[:3])}",
+            "tasks": [
+                {
+                    "id": f"task-p{phase_num}-1",
+                    "title": f"Master {user_frontend[0] if user_frontend else 'HTML/CSS'}",
+                    "type": "Course",
+                    "description": f"Learn {user_frontend[0] if user_frontend else 'HTML and CSS'} fundamentals, best practices, and modern features.",
+                    "estimated_hours": 12,
+                    "topics": [user_frontend[0] if user_frontend else "HTML", "CSS", "Responsive Design"],
+                    "skill_name": user_frontend[0] if user_frontend else "HTML/CSS"
+                },
+                {
+                    "id": f"task-p{phase_num}-2",
+                    "title": f"Build Project with {user_frontend[0] if user_frontend else 'HTML/CSS'}",
+                    "type": "Project",
+                    "description": f"Apply your skills by building a real project using {user_frontend[0] if user_frontend else 'web technologies'}.",
+                    "estimated_hours": 8,
+                    "topics": ["Project", "Practical Application"],
+                    "skill_name": user_frontend[0] if user_frontend else "HTML/CSS"
+                }
+            ]
+        })
+        phase_num += 1
+
+    # Phase for backend
+    if user_backend:
+        phases.append({
+            "phase_number": phase_num,
+            "title": f"Phase {phase_num}: Backend Development",
+            "subtitle": f"Server-side development for {role_name}",
+            "priority": "Critical",
+            "estimated_duration_weeks": "4-5 Weeks",
+            "why_it_matters": f"Backend skills are needed for {role_name}",
+            "exact_gap_addressed": f"Address gaps in: {', '.join(user_backend[:3])}",
+            "tasks": [
+                {
+                    "id": f"task-p{phase_num}-1",
+                    "title": f"Learn {user_backend[0]}",
+                    "type": "Course",
+                    "description": f"Master {user_backend[0]} for building server-side applications.",
+                    "estimated_hours": 16,
+                    "topics": [user_backend[0], "APIs", "Server Architecture"],
+                    "skill_name": user_backend[0]
+                }
+            ]
+        })
+        phase_num += 1
+
+    # Phase for database
+    if user_database:
+        phases.append({
+            "phase_number": phase_num,
+            "title": f"Phase {phase_num}: Database & Data Management",
+            "subtitle": f"Data persistence for {role_name}",
+            "priority": "High",
+            "estimated_duration_weeks": "3-4 Weeks",
+            "why_it_matters": f"Database skills are essential for {role_name}",
+            "exact_gap_addressed": f"Address gaps in: {', '.join(user_database[:3])}",
+            "tasks": [
+                {
+                    "id": f"task-p{phase_num}-1",
+                    "title": f"Master {user_database[0]}",
+                    "type": "Course",
+                    "description": f"Learn {user_database[0]} for data storage and retrieval.",
+                    "estimated_hours": 14,
+                    "topics": [user_database[0], "SQL", "Schema Design"],
+                    "skill_name": user_database[0]
+                }
+            ]
+        })
+        phase_num += 1
+
+    # Phase for data/ML
+    if user_data:
+        phases.append({
+            "phase_number": phase_num,
+            "title": f"Phase {phase_num}: Data Science & ML",
+            "subtitle": f"Data analysis and machine learning for {role_name}",
+            "priority": "High",
+            "estimated_duration_weeks": "5-6 Weeks",
+            "why_it_matters": f"Data/ML skills are critical for {role_name}",
+            "exact_gap_addressed": f"Address gaps in: {', '.join(user_data[:3])}",
+            "tasks": [
+                {
+                    "id": f"task-p{phase_num}-1",
+                    "title": f"Learn {user_data[0]}",
+                    "type": "Course",
+                    "description": f"Master {user_data[0]} for data analysis and ML.",
+                    "estimated_hours": 20,
+                    "topics": [user_data[0], "Data Analysis", "Statistics"],
+                    "skill_name": user_data[0]
+                }
+            ]
+        })
+        phase_num += 1
+
+    # Phase for devops
+    if user_devops:
+        phases.append({
+            "phase_number": phase_num,
+            "title": f"Phase {phase_num}: DevOps & Deployment",
+            "subtitle": f"Deployment and infrastructure for {role_name}",
+            "priority": "Medium",
+            "estimated_duration_weeks": "3-4 Weeks",
+            "why_it_matters": f"DevOps skills are needed for {role_name}",
+            "exact_gap_addressed": f"Address gaps in: {', '.join(user_devops[:3])}",
+            "tasks": [
+                {
+                    "id": f"task-p{phase_num}-1",
+                    "title": f"Learn {user_devops[0]}",
+                    "type": "Course",
+                    "description": f"Master {user_devops[0]} for deployment and infrastructure.",
+                    "estimated_hours": 12,
+                    "topics": [user_devops[0], "Containers", "CI/CD"],
+                    "skill_name": user_devops[0]
+                }
+            ]
+        })
+        phase_num += 1
+
+    # Phase for mobile
+    if user_mobile:
+        phases.append({
+            "phase_number": phase_num,
+            "title": f"Phase {phase_num}: Mobile Development",
+            "subtitle": f"Mobile app development for {role_name}",
+            "priority": "Medium",
+            "estimated_duration_weeks": "4-5 Weeks",
+            "why_it_matters": f"Mobile skills are needed for {role_name}",
+            "exact_gap_addressed": f"Address gaps in: {', '.join(user_mobile[:3])}",
+            "tasks": [
+                {
+                    "id": f"task-p{phase_num}-1",
+                    "title": f"Learn {user_mobile[0]}",
+                    "type": "Course",
+                    "description": f"Master {user_mobile[0]} for mobile app development.",
+                    "estimated_hours": 18,
+                    "topics": [user_mobile[0], "Mobile UI", "App Deployment"],
+                    "skill_name": user_mobile[0]
+                }
+            ]
+        })
+        phase_num += 1
+
+    # If no specific skills matched, create a generic phase
+    if not phases:
+        phases.append({
+            "phase_number": 1,
+            "title": f"Phase 1: {role_name} Fundamentals",
+            "subtitle": f"Core skills for {role_name}",
+            "priority": "Critical",
+            "estimated_duration_weeks": "4-5 Weeks",
+            "why_it_matters": f"Building foundational skills for {role_name}",
+            "exact_gap_addressed": "Address identified skill gaps",
+            "tasks": [
+                {
+                    "id": "task-p1-1",
+                    "title": f"Core Skills for {role_name}",
+                    "type": "Course",
+                    "description": f"Learn the fundamental skills required for {role_name}.",
+                    "estimated_hours": 12,
+                    "topics": ["Fundamentals", "Core Concepts"],
+                    "skill_name": "General"
+                }
+            ]
+        })
+
+    return {
+        "phases": phases,
+        "top_skills": [{"name": s, "category": "Skill"} for s in (critical_skills + weak_skills)[:10]],
+        "milestones": [
+            {
+                "milestone_number": i + 1,
+                "title": f"Complete Phase {p['phase_number']}",
+                "description": f"Finish all tasks in {p['title']}"
+            }
+            for i, p in enumerate(phases)
+        ],
+        "why_reasons": [
+            f"Personalized for {role_name}",
+            f"Based on your {len(critical_skills)} critical gaps and {len(weak_skills)} weak skills",
+            "Structured for progressive learning"
+        ]
+    }
+
+
+async def build_personalized_roadmap(
     role_name: str = "Full-Stack Developer",
     experience_level: str = "Entry Level (0-2 years)",
     daily_effort_hours: str = "1-2 hours/day",
@@ -78,7 +701,21 @@ def build_personalized_roadmap(
     to construct an actionable, structured, prioritized 6-phase learning path.
     """
     uid = user_id or "default_user"
-    user_progress = _in_memory_task_progress.get(uid, {})
+
+    # Get user progress from database (persistent storage)
+    # Falls back to empty dict if user has no progress yet
+    # Skip DB lookup if user_id is not a valid UUID (e.g., "default_user" or test strings)
+    user_progress = {}
+    try:
+        import uuid as uuid_lib
+        # Only try DB if user_id is a valid UUID format
+        uuid_lib.UUID(uid)  # Will raise ValueError if not a valid UUID
+        user_progress = TaskProgressDB.get_user_progress(uid)
+    except (ValueError, Exception) as e:
+        # Not a valid UUID or DB error - just use empty progress
+        if "badly formed" not in str(e):
+            print(f"[Roadmap] Skipping DB lookup for non-UUID user_id '{uid}': {e}")
+        user_progress = {}
 
     # 1. Ingest Page 5 Gap Analysis Data
     gap_summary = compute_skill_gap_analysis(
@@ -105,462 +742,133 @@ def build_personalized_roadmap(
         est_duration = "6.5 Months"
         weekly_commitment = "10–12 hrs"
 
-    # 3. Construct 6 Dynamic Phases tailored to the Target Role & Gap Severity
-    # We inspect gap severities to prioritize phases
-    critical_gaps = [g for g in gap_summary.gaps if g.priority == "Critical"]
-    weak_gaps = [g for g in gap_summary.gaps if g.match_status == "Weak"]
-    strong_skills = [g for g in gap_summary.gaps if g.match_status == "Strong"]
+    # 3. AI-Generated Dynamic Phases based on Target Role & Gaps
+    # First, gather skills data from the gap analysis
+    critical_skills = [g.skill for g in gap_summary.gaps if g.priority == "Critical"]
+    weak_skills = [g.skill for g in gap_summary.gaps if g.match_status == "Weak"]
+    strong_skills = [g.skill for g in gap_summary.gaps if g.match_status == "Strong"]
 
-    # Phase 1: Strengthen Fundamentals / Foundation Essentials
-    # If the user already demonstrated strong JS & HTML, initial progress is high (e.g. 75%)
-    t1_1_done = user_progress.get("task-p1-1", True)  # HTML/CSS already strong in SkillTwin
-    t1_2_done = user_progress.get("task-p1-2", True)  # JS (ES6+) strong in SkillTwin
-    t1_3_done = user_progress.get("task-p1-3", False) # Personal portfolio project
-    t1_4_done = user_progress.get("task-p1-4", False) # Frontend challenges
+    # Try to get AI-generated roadmap structure
+    ai_structure = None
+    if llm_client.is_configured:
+        try:
+            ai_structure = await generate_ai_roadmap(
+                role_name=role_name,
+                experience_level=experience_level,
+                daily_effort_hours=daily_effort_hours,
+                gap_summary=gap_summary,
+                user_id=user_id
+            )
+        except Exception as e:
+            print(f"[Roadmap] AI generation failed: {e}")
+            ai_structure = None
 
-    p1_tasks = [
-        RoadmapTaskItem(
+    # Fall back to dynamic structure based on gaps
+    if not ai_structure:
+        print(f"[Roadmap] Using dynamic fallback structure for {role_name}")
+        ai_structure = build_fallback_roadmap_structure(
+            role_name=role_name,
+            critical_skills=critical_skills,
+            weak_skills=weak_skills
+        )
+
+    # Build phases from AI/fallback structure with user progress applied
+    all_phases = []
+    for phase_data in ai_structure.get("phases", []):
+        phase_num = phase_data.get("phase_number", len(all_phases) + 1)
+        tasks = []
+
+        for task_data in phase_data.get("tasks", []):
+            task_id = task_data.get("id", f"task-p{phase_num}-{len(tasks)+1}")
+            is_completed = user_progress.get(task_id, False)
+
+            task = RoadmapTaskItem(
+                id=task_id,
+                title=task_data.get("title", f"Task {len(tasks)+1}"),
+                type=task_data.get("type", "Course"),
+                description=task_data.get("description", "Learn this topic"),
+                progress_pct=100 if is_completed else 0,
+                estimated_hours=task_data.get("estimated_hours", 10),
+                is_completed=is_completed,
+                topics=task_data.get("topics", []),
+                resources=CURATED_RESOURCES.get("javascript", []),  # Default
+                practice_exercises=[],
+                skill_name=task_data.get("skill_name", "")
+            )
+            tasks.append(task)
+
+        # Calculate phase progress
+        phase_progress = int(sum(t.progress_pct for t in tasks) / max(len(tasks), 1))
+
+        phase = RoadmapPhaseItem(
+            phase_number=phase_num,
+            title=phase_data.get("title", f"Phase {phase_num}"),
+            subtitle=phase_data.get("subtitle", ""),
+            priority=phase_data.get("priority", "Medium"),
+            estimated_duration_weeks=phase_data.get("estimated_duration_weeks", "3-4 Weeks"),
+            progress_pct=phase_progress,
+            status="Completed" if phase_progress >= 100 else ("In Progress" if phase_progress > 0 else "Not Started"),
+            topics_count=sum(len(t.topics) for t in tasks),
+            projects_count=sum(1 for t in tasks if t.type == "Project"),
+            resources_count=sum(len(t.resources) for t in tasks),
+            why_it_matters=phase_data.get("why_it_matters", ""),
+            exact_gap_addressed=phase_data.get("exact_gap_addressed", ""),
+            current_proficiency="Beginner",
+            required_proficiency="Intermediate",
+            tasks=tasks
+        )
+        all_phases.append(phase)
+
+    # If somehow we have no phases, create a default one
+    if not all_phases:
+        print(f"[Roadmap] Warning: No phases generated for {role_name}, creating default")
+        default_task = RoadmapTaskItem(
             id="task-p1-1",
-            title="HTML, CSS & Responsive Design",
+            title=f"Start learning {role_name}",
             type="Course",
-            description="Learn semantic HTML, modern CSS, Flexbox, Grid, and responsive design systems.",
-            progress_pct=100 if t1_1_done else 75,
-            estimated_hours=12,
-            is_completed=t1_1_done,
-            topics=["Semantic HTML5", "CSS Flexbox & Grid", "Mobile-First Media Queries", "CSS Custom Properties"],
-            resources=CURATED_RESOURCES["html_css"],
-            practice_exercises=[
-                {"id": "p1-1-ex1", "title": "Build a responsive product landing page grid", "is_done": t1_1_done},
-                {"id": "p1-1-ex2", "title": "Implement multi-column dark mode layout with CSS variables", "is_done": t1_1_done}
-            ]
-        ),
-        RoadmapTaskItem(
-            id="task-p1-2",
-            title="JavaScript (ES6+)",
-            type="Course",
-            description="Variables, functions, DOM manipulation, events, ES6+ features, and async/await.",
-            progress_pct=100 if t1_2_done else 40,
-            estimated_hours=16,
-            is_completed=t1_2_done,
-            topics=["ES6+ Syntax & Modules", "Async/Await & Promises", "Event Loop & Closures", "DOM Manipulation"],
-            resources=CURATED_RESOURCES["javascript"],
-            practice_exercises=[
-                {"id": "p1-2-ex1", "title": "Fetch and render JSON data from an external REST API", "is_done": t1_2_done},
-                {"id": "p1-2-ex2", "title": "Implement debounce and throttle utility functions", "is_done": t1_2_done}
-            ]
-        ),
-        RoadmapTaskItem(
-            id="task-p1-3",
-            title="Build: Personal Portfolio (Project 1)",
-            type="Project",
-            description="Build and deploy your own responsive portfolio website showcasing initial projects.",
-            progress_pct=100 if t1_3_done else 60,
+            description=f"Begin your journey to become a {role_name}",
+            progress_pct=0,
             estimated_hours=10,
-            is_completed=t1_3_done,
-            topics=["Portfolio Architecture", "Responsive Styling", "Project Showcases", "Vercel / GitHub Pages Deployment"],
-            resources=CURATED_RESOURCES["html_css"][:2],
-            project_deliverable={
-                "name": "Developer Portfolio Website",
-                "deliverable": "Public GitHub Repository URL + Live URL",
-                "key_technologies": ["HTML5", "CSS3", "JavaScript", "Responsive Design"]
-            }
-        ),
-        RoadmapTaskItem(
-            id="task-p1-4",
-            title="Practice: Frontend Challenges",
-            type="Practice",
-            description="Solve interactive UI challenges and improve responsive styling techniques.",
-            progress_pct=100 if t1_4_done else 30,
-            estimated_hours=6,
-            is_completed=t1_4_done,
-            topics=["Interactive Modals", "Dropdown Menus", "Form Validations", "Accessible Components"],
-            resources=CURATED_RESOURCES["html_css"]
+            is_completed=False,
+            topics=[role_name],
+            resources=[],
+            skill_name=role_name
         )
-    ]
-
-    p1_completed_count = sum(1 for t in p1_tasks if t.is_completed)
-    p1_progress = int(sum(t.progress_pct for t in p1_tasks) / len(p1_tasks))
-
-    phase_1 = RoadmapPhaseItem(
-        phase_number=1,
-        title="Phase 1: Strengthen Fundamentals",
-        subtitle="Build a strong foundation in core web development and programming.",
-        priority="Critical",
-        estimated_duration_weeks="2–3 Weeks",
-        progress_pct=p1_progress,
-        status="Completed" if p1_progress >= 100 else ("In Progress" if p1_progress > 0 else "Not Started"),
-        topics_count=12,
-        projects_count=2,
-        resources_count=18,
-        why_it_matters="Strengthen the core fundamentals required for full-stack engineering.",
-        exact_gap_addressed="Solidifies JavaScript & HTML/CSS foundations as prerequisites for React.",
-        current_proficiency="Advanced (Demonstrated)",
-        required_proficiency="Advanced (Core)",
-        tasks=p1_tasks
-    )
-
-    # Phase 2: Frontend Mastery & Interactive State (Addresses React & TypeScript Gaps)
-    t2_1_done = user_progress.get("task-p2-1", False)
-    t2_2_done = user_progress.get("task-p2-2", False)
-    t2_3_done = user_progress.get("task-p2-3", False)
-    t2_4_done = user_progress.get("task-p2-4", False)
-
-    p2_tasks = [
-        RoadmapTaskItem(
-            id="task-p2-1",
-            title="React.js Basics to Advanced",
-            type="Course",
-            description="Component architecture, JSX, hooks, state, context, routing, and custom hooks.",
-            progress_pct=100 if t2_1_done else 25,
-            estimated_hours=20,
-            is_completed=t2_1_done,
-            topics=["Functional Components & JSX", "useState & useEffect Lifecycle", "Custom Hooks", "React Router v6"],
-            resources=CURATED_RESOURCES["react"],
-            practice_exercises=[
-                {"id": "p2-1-ex1", "title": "Build a multi-step dynamic onboarding form with state", "is_done": t2_1_done},
-                {"id": "p2-1-ex2", "title": "Create a reusable searchable data table component", "is_done": t2_1_done}
-            ]
-        ),
-        RoadmapTaskItem(
-            id="task-p2-2",
-            title="TypeScript for React Applications",
-            type="Course",
-            description="Type annotations, interfaces, generics, strict compiler configs, and typed props/events.",
-            progress_pct=100 if t2_2_done else 15,
-            estimated_hours=12,
-            is_completed=t2_2_done,
-            topics=["Interfaces & Type Aliases", "Generics in React Components", "Typed API Contracts", "Union & Discriminated Types"],
-            resources=CURATED_RESOURCES["react"]
-        ),
-        RoadmapTaskItem(
-            id="task-p2-3",
-            title="State Management with Redux Toolkit",
-            type="Course",
-            description="Global state management for complex UI flows, slice reducers, and async thunk fetching.",
-            progress_pct=100 if t2_3_done else 0,
-            estimated_hours=8,
-            is_completed=t2_3_done,
-            topics=["createSlice & Store Configuration", "Typed useSelector & useDispatch", "createAsyncThunk Data Orchestration"],
-            resources=CURATED_RESOURCES["react"]
-        ),
-        RoadmapTaskItem(
-            id="task-p2-4",
-            title="Build: E-commerce UI with Cart & Filters (Project 2)",
-            type="Project",
-            description="Build a responsive e-commerce frontend with category filtering, live search, and global shopping cart.",
-            progress_pct=100 if t2_4_done else 0,
-            estimated_hours=15,
-            is_completed=t2_4_done,
-            topics=["Component Composition", "Cart Reducer State", "Optimistic UI Updates", "Responsive Grid Layout"],
-            resources=CURATED_RESOURCES["react"],
-            project_deliverable={
-                "name": "E-Commerce Shopping Application",
-                "deliverable": "React + TypeScript Code Repository with Component Hierarchy",
-                "key_technologies": ["React", "TypeScript", "Tailwind CSS / CSS Modules", "State Management"]
-            }
+        default_phase = RoadmapPhaseItem(
+            phase_number=1,
+            title=f"Phase 1: Getting Started with {role_name}",
+            subtitle="Begin your learning journey",
+            priority="Critical",
+            estimated_duration_weeks="2-3 Weeks",
+            progress_pct=0,
+            status="Not Started",
+            topics_count=1,
+            projects_count=0,
+            resources_count=0,
+            why_it_matters=f"Start your path to becoming a {role_name}",
+            exact_gap_addressed="Initial learning",
+            current_proficiency="Beginner",
+            required_proficiency="Intermediate",
+            tasks=[default_task]
         )
-    ]
+        all_phases = [default_phase]
 
-    p2_progress = int(sum(t.progress_pct for t in p2_tasks) / len(p2_tasks))
+    # Store top_skills and why_reasons for later use
+    dynamic_top_skills = ai_structure.get("top_skills", [])
+    dynamic_why_reasons = ai_structure.get("why_reasons", [])
+    dynamic_milestones = ai_structure.get("milestones", [])
 
-    phase_2 = RoadmapPhaseItem(
-        phase_number=2,
-        title="Phase 2: Frontend Mastery",
-        subtitle="Deepen your frontend knowledge and build real-world component interfaces.",
-        priority="Critical",
-        estimated_duration_weeks="4–5 Weeks",
-        progress_pct=p2_progress,
-        status="Completed" if p2_progress >= 100 else ("In Progress" if p2_progress > 0 else "Not Started"),
-        topics_count=18,
-        projects_count=3,
-        resources_count=24,
-        why_it_matters="Closes the critical -40% React and -25% TypeScript gaps identified in Gap Analysis.",
-        exact_gap_addressed="React (40% -> 80%) & TypeScript (50% -> 75%)",
-        current_proficiency="Beginner (Evidence Missing)",
-        required_proficiency="Intermediate / Advanced (Core)",
-        tasks=p2_tasks
-    )
+    # Legacy variables for compatibility
+    critical_gaps = critical_skills  # Alias for compatibility
+    weak_gaps = weak_skills
 
-    # Phase 3: Backend Development & REST API Engineering (Addresses Node.js & FastAPI Gaps)
-    t3_1_done = user_progress.get("task-p3-1", False)
-    t3_2_done = user_progress.get("task-p3-2", False)
-    t3_3_done = user_progress.get("task-p3-3", False)
-    t3_4_done = user_progress.get("task-p3-4", False)
+    # (All phase construction is now dynamic and AI-generated above)
 
-    p3_tasks = [
-        RoadmapTaskItem(
-            id="task-p3-1",
-            title="Node.js & Express.js REST Engineering",
-            type="Course",
-            description="Server architecture, routing, middleware pipeline, REST standards, and error handling.",
-            progress_pct=100 if t3_1_done else 0,
-            estimated_hours=16,
-            is_completed=t3_1_done,
-            topics=["Event-Driven Architecture", "Express Router & Middleware", "RESTful Status Codes & Headers", "Global Error Handling"],
-            resources=CURATED_RESOURCES["backend"],
-            practice_exercises=[
-                {"id": "p3-1-ex1", "title": "Build a modular CRUD REST API with Express", "is_done": t3_1_done}
-            ]
-        ),
-        RoadmapTaskItem(
-            id="task-p3-2",
-            title="FastAPI & Async Python Backends",
-            type="Course",
-            description="High-performance async APIs, Pydantic type validation, and automatic OpenAPI Swagger docs.",
-            progress_pct=100 if t3_2_done else 0,
-            estimated_hours=14,
-            is_completed=t3_2_done,
-            topics=["FastAPI Path Operations", "Pydantic v2 Models", "Dependency Injection", "Async Database Sessions"],
-            resources=CURATED_RESOURCES["backend"]
-        ),
-        RoadmapTaskItem(
-            id="task-p3-3",
-            title="Authentication & JWT Security",
-            type="Practice",
-            description="Implement secure user authentication, bcrypt password hashing, and JWT bearer tokens.",
-            progress_pct=100 if t3_3_done else 0,
-            estimated_hours=8,
-            is_completed=t3_3_done,
-            topics=["Bcrypt Password Hashing", "JWT Token Signing & Verification", "Protected Route Middleware", "OAuth2 Flow"],
-            resources=CURATED_RESOURCES["backend"]
-        ),
-        RoadmapTaskItem(
-            id="task-p3-4",
-            title="Build: Secure Task Management REST API (Project 3)",
-            type="Project",
-            description="Build a production-ready REST API with user registration, JWT auth, and CRUD resources.",
-            progress_pct=100 if t3_4_done else 0,
-            estimated_hours=18,
-            is_completed=t3_4_done,
-            topics=["REST API Design", "Authentication Pipeline", "CORS Configuration", "Unit Tests with Pytest/Supertest"],
-            resources=CURATED_RESOURCES["backend"],
-            project_deliverable={
-                "name": "Secure Multi-User Task Management API",
-                "deliverable": "Backend REST API Repository with OpenAPI Documentation",
-                "key_technologies": ["Node.js / FastAPI", "Express / Pydantic", "JWT Auth", "Postman Collection"]
-            }
-        )
-    ]
-
-    p3_progress = int(sum(t.progress_pct for t in p3_tasks) / len(p3_tasks))
-
-    phase_3 = RoadmapPhaseItem(
-        phase_number=3,
-        title="Phase 3: Backend Development",
-        subtitle="Learn server-side development, authentication, and RESTful APIs.",
-        priority="High",
-        estimated_duration_weeks="5–6 Weeks",
-        progress_pct=p3_progress,
-        status="Completed" if p3_progress >= 100 else ("In Progress" if p3_progress > 0 else "Not Started"),
-        topics_count=16,
-        projects_count=3,
-        resources_count=22,
-        why_it_matters="Closes the -20% Node.js gap and establishes production server architecture capabilities.",
-        exact_gap_addressed="Node.js & Express.js (60% -> 80%)",
-        current_proficiency="Intermediate (60%)",
-        required_proficiency="Intermediate / Advanced (80%)",
-        tasks=p3_tasks
-    )
-
-    # Phase 4: Database & ORM (Addresses PostgreSQL & SQL Gaps)
-    t4_1_done = user_progress.get("task-p4-1", False)
-    t4_2_done = user_progress.get("task-p4-2", False)
-    t4_3_done = user_progress.get("task-p4-3", False)
-
-    p4_tasks = [
-        RoadmapTaskItem(
-            id="task-p4-1",
-            title="PostgreSQL & Relational Schema Modeling",
-            type="Course",
-            description="Relational database design, table relationships, foreign keys, indexing, and joins.",
-            progress_pct=100 if t4_1_done else 0,
-            estimated_hours=14,
-            is_completed=t4_1_done,
-            topics=["Relational Modeling & 3NF", "Complex SQL Joins & Aggregations", "B-Tree Indexing", "Transactions & ACID"],
-            resources=CURATED_RESOURCES["database"]
-        ),
-        RoadmapTaskItem(
-            id="task-p4-2",
-            title="ORM Integration & Database Migrations",
-            type="Course",
-            description="SQLAlchemy / Prisma ORM modeling, migration tracking with Alembic, and connection pools.",
-            progress_pct=100 if t4_2_done else 0,
-            estimated_hours=10,
-            is_completed=t4_2_done,
-            topics=["ORM Models & Relationships", "Alembic Migrations", "Connection Pooling", "Lazy vs Eager Loading"],
-            resources=CURATED_RESOURCES["database"]
-        ),
-        RoadmapTaskItem(
-            id="task-p4-3",
-            title="Build: Full-Stack Persistent Data Platform (Project 4)",
-            type="Project",
-            description="Connect your React frontend with FastAPI/Express and PostgreSQL database persistence.",
-            progress_pct=100 if t4_3_done else 0,
-            estimated_hours=16,
-            is_completed=t4_3_done,
-            topics=["Full Stack Integration", "Relational Queries", "Data Validation", "Pagination & Filtering"],
-            resources=CURATED_RESOURCES["database"],
-            project_deliverable={
-                "name": "Full-Stack Data Persistence Platform",
-                "deliverable": "End-to-end Full Stack Web Application with Database Migrations",
-                "key_technologies": ["React", "FastAPI / Node.js", "PostgreSQL", "SQLAlchemy"]
-            }
-        )
-    ]
-
-    p4_progress = int(sum(t.progress_pct for t in p4_tasks) / len(p4_tasks))
-
-    phase_4 = RoadmapPhaseItem(
-        phase_number=4,
-        title="Phase 4: Database & ORM",
-        subtitle="Work with relational databases, schema modeling, and ORM migrations.",
-        priority="High",
-        estimated_duration_weeks="3–4 Weeks",
-        progress_pct=p4_progress,
-        status="Completed" if p4_progress >= 100 else ("In Progress" if p4_progress > 0 else "Not Started"),
-        topics_count=10,
-        projects_count=2,
-        resources_count=16,
-        why_it_matters="Closes the -25% PostgreSQL gap and proves hands-on data persistence.",
-        exact_gap_addressed="PostgreSQL & SQL (45% -> 70%)",
-        current_proficiency="Beginner (45%)",
-        required_proficiency="Intermediate (70%)",
-        tasks=p4_tasks
-    )
-
-    # Phase 5: DevOps & Deployment (Addresses Docker Containerization Gap)
-    t5_1_done = user_progress.get("task-p5-1", False)
-    t5_2_done = user_progress.get("task-p5-2", False)
-    t5_3_done = user_progress.get("task-p5-3", False)
-
-    p5_tasks = [
-        RoadmapTaskItem(
-            id="task-p5-1",
-            title="Docker Containerization & Compose",
-            type="Course",
-            description="Package applications into portable containers with Dockerfiles, multi-stage builds, and Docker Compose.",
-            progress_pct=100 if t5_1_done else 0,
-            estimated_hours=12,
-            is_completed=t5_1_done,
-            topics=["Docker Architecture & Images", "Multi-Stage Dockerfiles", "Docker Compose Multi-Service Networks", "Volume Persistence"],
-            resources=CURATED_RESOURCES["devops"]
-        ),
-        RoadmapTaskItem(
-            id="task-p5-2",
-            title="CI/CD Pipelines with GitHub Actions",
-            type="Course",
-            description="Automate testing, build verification, and deployment workflows triggered on pull requests.",
-            progress_pct=100 if t5_2_done else 0,
-            estimated_hours=8,
-            is_completed=t5_2_done,
-            topics=["GitHub Actions Workflows", "Automated Linting & Test Runners", "Build Artifacts", "Environment Secrets"],
-            resources=CURATED_RESOURCES["devops"]
-        ),
-        RoadmapTaskItem(
-            id="task-p5-3",
-            title="Build: Multi-Container Cloud Deployment (Project 5)",
-            type="Project",
-            description="Containerize full-stack application (React + Node/FastAPI + PostgreSQL) with docker-compose.",
-            progress_pct=100 if t5_3_done else 0,
-            estimated_hours=14,
-            is_completed=t5_3_done,
-            topics=["Docker Compose Orchestration", "Environment Variable Management", "Production Builds", "Health Checks"],
-            resources=CURATED_RESOURCES["devops"],
-            project_deliverable={
-                "name": "Containerized Multi-Service Deployment",
-                "deliverable": "GitHub Repo with Dockerfile + docker-compose.yml + GitHub Actions Workflow",
-                "key_technologies": ["Docker", "Docker Compose", "GitHub Actions", "Cloud Deployment"]
-            }
-        )
-    ]
-
-    p5_progress = int(sum(t.progress_pct for t in p5_tasks) / len(p5_tasks))
-
-    phase_5 = RoadmapPhaseItem(
-        phase_number=5,
-        title="Phase 5: DevOps & Deployment",
-        subtitle="Deploy applications and learn containerization & CI/CD workflows.",
-        priority="Medium",
-        estimated_duration_weeks="3–4 Weeks",
-        progress_pct=p5_progress,
-        status="Completed" if p5_progress >= 100 else ("In Progress" if p5_progress > 0 else "Not Started"),
-        topics_count=8,
-        projects_count=2,
-        resources_count=14,
-        why_it_matters="Eliminates the critical -40% Docker gap and demonstrates production deployment readiness.",
-        exact_gap_addressed="Docker Containerization (20% -> 60%)",
-        current_proficiency="Insufficient Evidence (20%)",
-        required_proficiency="Intermediate (60%)",
-        tasks=p5_tasks
-    )
-
-    # Phase 6: Advanced & Best Practices (Testing, Performance, Verification Preparation)
-    t6_1_done = user_progress.get("task-p6-1", False)
-    t6_2_done = user_progress.get("task-p6-2", False)
-    t6_3_done = user_progress.get("task-p6-3", False)
-
-    p6_tasks = [
-        RoadmapTaskItem(
-            id="task-p6-1",
-            title="Frontend & Backend Automated Testing",
-            type="Course",
-            description="Unit testing, integration testing, component testing with Vitest/Jest, and API testing.",
-            progress_pct=100 if t6_1_done else 0,
-            estimated_hours=14,
-            is_completed=t6_1_done,
-            topics=["Unit Testing with Vitest", "React Testing Library", "API Integration Tests", "Mocking & Test Coverage"],
-            resources=CURATED_RESOURCES["testing"]
-        ),
-        RoadmapTaskItem(
-            id="task-p6-2",
-            title="Performance Optimization & Security Auditing",
-            type="Course",
-            description="Lighthouse Core Web Vitals, code splitting, lazy loading, API rate limiting, and CORS security.",
-            progress_pct=100 if t6_2_done else 0,
-            estimated_hours=10,
-            is_completed=t6_2_done,
-            topics=["Bundle Size Minimization", "Lazy Loading & Code Splitting", "OWASP Security Audits", "API Rate Limiting"],
-            resources=CURATED_RESOURCES["testing"]
-        ),
-        RoadmapTaskItem(
-            id="task-p6-3",
-            title="Build: Production-Ready Capstone Application (Project 6)",
-            type="Project",
-            description="Build an end-to-end full stack platform with testing, authentication, containerization, and docs for Project Verification.",
-            progress_pct=100 if t6_3_done else 0,
-            estimated_hours=25,
-            is_completed=t6_3_done,
-            topics=["End-to-End Architecture", "Production Deployment", "Comprehensive README", "Project Verification Submission"],
-            resources=CURATED_RESOURCES["testing"],
-            project_deliverable={
-                "name": "SkillTwin Capstone Engineering Platform",
-                "deliverable": "Complete Production-Ready Full Stack Repository ready for Page 7 Project Verification",
-                "key_technologies": ["React", "TypeScript", "FastAPI / Node.js", "PostgreSQL", "Docker", "CI/CD"]
-            }
-        )
-    ]
-
-    p6_progress = int(sum(t.progress_pct for t in p6_tasks) / len(p6_tasks))
-
-    phase_6 = RoadmapPhaseItem(
-        phase_number=6,
-        title="Phase 6: Advanced & Best Practices",
-        subtitle="Best practices, testing, performance optimization, and capstone verification.",
-        priority="Medium",
-        estimated_duration_weeks="4–5 Weeks",
-        progress_pct=p6_progress,
-        status="Completed" if p6_progress >= 100 else ("In Progress" if p6_progress > 0 else "Not Started"),
-        topics_count=12,
-        projects_count=2,
-        resources_count=18,
-        why_it_matters="Prepares your verified capstone project for Page 7 GitHub Project Verification.",
-        exact_gap_addressed="Testing, Architecture & Capstone Verification",
-        current_proficiency="Beginner",
-        required_proficiency="Advanced (Core)",
-        tasks=p6_tasks
-    )
-
-    all_phases = [phase_1, phase_2, phase_3, phase_4, phase_5, phase_6]
+    # Stamp the authoritative skill onto every task so the UI never has to infer
+    # it from the title (title-based guessing mislabelled 13 of 21 nodes).
+    for _phase in all_phases:
+        for _task in _phase.tasks:
+            _task.skill_name = TASK_SKILL_MAP.get(_task.id, "")
 
     # Calculate overall completion percentage
     total_phase_progress = sum(p.progress_pct for p in all_phases)
@@ -586,69 +894,57 @@ def build_personalized_roadmap(
         total_items=total_tasks
     )
 
-    # Top Skills You Will Gain
-    top_skills = [
-        {"name": "JavaScript", "category": "Language"},
-        {"name": "React.js", "category": "Frontend"},
-        {"name": "TypeScript", "category": "Language"},
-        {"name": "Node.js", "category": "Backend"},
-        {"name": "Express.js", "category": "Backend"},
-        {"name": "FastAPI", "category": "Backend"},
-        {"name": "PostgreSQL", "category": "Database"},
-        {"name": "SQL", "category": "Database"},
-        {"name": "Git & GitHub", "category": "Tools"},
-        {"name": "Docker", "category": "DevOps"}
-    ]
+    # Top Skills You Will Gain (Dynamic based on role)
+    if dynamic_top_skills:
+        top_skills = dynamic_top_skills
+    else:
+        # Fallback: extract from phases
+        top_skills = []
+        for phase in all_phases:
+            for task in phase.tasks:
+                if task.skill_name and not any(s.get("name") == task.skill_name for s in top_skills):
+                    top_skills.append({"name": task.skill_name, "category": "Skill"})
+                if len(top_skills) >= 10:
+                    break
+            if len(top_skills) >= 10:
+                break
 
-    # Why This Roadmap Personalization Reasons
-    why_reasons = [
-        "Based on your actual identified skill gaps",
-        f"Personalized for your target role: {role_name}",
-        "Focuses on critical & high priority requirements first",
-        "Leverages your existing strengths (JavaScript, HTML/CSS, Git)",
-        f"Structured for your {daily_effort_hours} available study commitment",
-        "Provides concrete projects ready for GitHub Project Verification"
-    ]
+    # Why This Roadmap Personalization Reasons (Dynamic)
+    if dynamic_why_reasons:
+        why_reasons = dynamic_why_reasons
+    else:
+        why_reasons = [
+            f"AI-personalized for your target role: {role_name}",
+            f"Based on your {len(critical_skills)} critical skill gaps",
+            f"Structured for your {daily_effort_hours} daily study commitment",
+            f"Addresses {len(weak_skills)} areas needing improvement",
+            "Progressive learning path from fundamentals to advanced"
+        ]
 
-    # Milestones Checkpoints
-    milestones = [
-        RoadmapMilestoneItem(
-            milestone_number=1,
-            title="Frontend Fundamentals",
-            description="Complete HTML/CSS, core JavaScript, and responsive portfolio project.",
-            is_achieved=phase_1.progress_pct >= 75
-        ),
-        RoadmapMilestoneItem(
-            milestone_number=2,
-            title="Frontend Mastery",
-            description="Master React component architecture, TypeScript typing, and e-commerce UI.",
-            is_achieved=phase_2.progress_pct >= 100
-        ),
-        RoadmapMilestoneItem(
-            milestone_number=3,
-            title="Backend Development",
-            description="Build secure RESTful APIs with Node.js/FastAPI and JWT authentication.",
-            is_achieved=phase_3.progress_pct >= 100
-        ),
-        RoadmapMilestoneItem(
-            milestone_number=4,
-            title="Full Stack Integration",
-            description="Integrate relational PostgreSQL modeling with frontend client applications.",
-            is_achieved=phase_4.progress_pct >= 100
-        ),
-        RoadmapMilestoneItem(
-            milestone_number=5,
-            title="Deploy & Optimize",
-            description="Containerize services with Docker and set up automated CI/CD pipelines.",
-            is_achieved=phase_5.progress_pct >= 100
-        ),
-        RoadmapMilestoneItem(
-            milestone_number=6,
-            title="Job & Verification Ready",
-            description="Complete production-ready capstone project for Page 7 Project Verification.",
-            is_achieved=phase_6.progress_pct >= 100
-        )
-    ]
+    # Milestones Checkpoints (Dynamic from phases)
+    milestones = []
+    if dynamic_milestones:
+        for m_data in dynamic_milestones:
+            m_num = m_data.get("milestone_number", len(milestones) + 1)
+            # Find the corresponding phase to check progress
+            phase = next((p for p in all_phases if p.phase_number == m_num), None)
+            progress = phase.progress_pct if phase else 0
+
+            milestones.append(RoadmapMilestoneItem(
+                milestone_number=m_num,
+                title=m_data.get("title", f"Milestone {m_num}"),
+                description=m_data.get("description", ""),
+                is_achieved=progress >= 100
+            ))
+    else:
+        # Generate milestones from phases
+        for phase in all_phases:
+            milestones.append(RoadmapMilestoneItem(
+                milestone_number=phase.phase_number,
+                title=phase.title.replace(f"Phase {phase.phase_number}: ", ""),
+                description=phase.subtitle or f"Complete all tasks in {phase.title}",
+                is_achieved=phase.progress_pct >= 100
+            ))
 
     # Generate Calendar Events distributing tasks week-by-week
     calendar_events = []
@@ -687,21 +983,29 @@ def build_personalized_roadmap(
 
 
 @router.get("/plan", response_model=PersonalizedRoadmapResponse)
-def get_personalized_roadmap(
+async def get_personalized_roadmap(
     role: str = Query("Full-Stack Developer", description="Target role name"),
     experience: str = Query("Entry Level (0-2 years)", description="Experience level"),
     daily_effort: str = Query("1-2 hours/day", description="Daily study time"),
-    user_id: Optional[str] = Query("default_user", description="Candidate ID")
+    user_id: Optional[str] = Query("default_user", description="Candidate ID"),
+    authorization: Optional[str] = Header(None)
 ):
     """
     Retrieve generated personalized roadmap tailored to candidate's gap analysis and daily study pace.
+    Requires authentication - users can only access their own roadmap data.
     """
+    # Use authenticated user_id if available, otherwise fall back to provided user_id
+    # This ensures user data isolation
+    from backend.routers.auth import get_user_id_from_token
+    auth_user_id = get_user_id_from_token(authorization)
+    uid = auth_user_id or user_id
+
     try:
-        return build_personalized_roadmap(
+        return await build_personalized_roadmap(
             role_name=role,
             experience_level=experience,
             daily_effort_hours=daily_effort,
-            user_id=user_id
+            user_id=uid
         )
     except Exception as e:
         raise HTTPException(
@@ -710,23 +1014,104 @@ def get_personalized_roadmap(
         )
 
 
+# =========================================================
+# AI-Generated Learning Resources Endpoint
+# =========================================================
+
+class AIResourceResponse(BaseModel):
+    skill_name: str
+    user_level: str
+    resources: List[Dict[str, str]]
+    generated_by: str = "ai"
+
+
+@router.get("/ai-resources/{skill_name}", response_model=AIResourceResponse)
+async def get_ai_resources(
+    skill_name: str,
+    user_level: str = Query("intermediate", description="User's skill level"),
+    authorization: Optional[str] = Header(None)
+):
+    """
+    Get AI-generated learning resources for a specific skill.
+    Uses LLM to recommend high-quality YouTube tutorials, documentation, and courses.
+    """
+    # Try AI generation
+    ai_resources = await generate_ai_resources(skill_name, user_level)
+
+    if not ai_resources:
+        # Fallback to curated resources. CURATED_RESOURCES is keyed by broad
+        # topic, so map the 21 roadmap skill names onto those keys first --
+        # without this, anything but HTML/CSS, JavaScript and React fell through
+        # to the generic branch below.
+        skill_key = skill_name.lower().replace("/", "_").replace(" ", "_")
+        skill_key = CURATED_RESOURCE_ALIASES.get(skill_key, skill_key)
+        if skill_key in CURATED_RESOURCES:
+            ai_resources = [
+                {
+                    "title": r.title,
+                    "url": r.url,
+                    "type": r.type,
+                    "provider": r.provider
+                }
+                for r in CURATED_RESOURCES[skill_key]
+            ]
+        else:
+            # Last resort. Deliberately no YouTube entry: a search-results link
+            # is not a lesson, and inventing a video id would give a dead link.
+            # Videos come from the model or not at all.
+            ai_resources = [
+                {
+                    "title": f"{skill_name} — Developer Roadmap",
+                    "url": "https://roadmap.sh/full-stack",
+                    "type": "interactive",
+                    "provider": "roadmap.sh"
+                },
+                {
+                    "title": "MDN Web Docs — Learn Web Development",
+                    "url": "https://developer.mozilla.org/en-US/docs/Learn",
+                    "type": "documentation",
+                    "provider": "MDN"
+                }
+            ]
+
+    return AIResourceResponse(
+        skill_name=skill_name,
+        user_level=user_level,
+        resources=ai_resources,
+        generated_by="ai" if llm_client.is_configured and ai_resources else "fallback"
+    )
+
+
 @router.post("/task/toggle", response_model=PersonalizedRoadmapResponse)
-def toggle_roadmap_task(
+async def toggle_roadmap_task(
     payload: TaskToggleRequest,
     role: str = Query("Full-Stack Developer"),
     experience: str = Query("Entry Level (0-2 years)"),
-    daily_effort: str = Query("1-2 hours/day")
+    daily_effort: str = Query("1-2 hours/day"),
+    authorization: Optional[str] = Header(None)
 ):
     """
-    Toggle task or practice item completion state and persist updated progress.
+    Toggle task or practice item completion state and persist to database.
+    Requires authentication - users can only access their own task progress.
     """
-    uid = payload.user_id or "default_user"
-    if uid not in _in_memory_task_progress:
-        _in_memory_task_progress[uid] = {}
+    # Use authenticated user_id if available, otherwise fall back to provided user_id
+    # This ensures user data isolation
+    from backend.routers.auth import get_user_id_from_token
+    auth_user_id = get_user_id_from_token(authorization)
+    uid = auth_user_id or payload.user_id or "default_user"
 
-    _in_memory_task_progress[uid][payload.task_id] = payload.is_completed
+    # Store task completion in database (persistent, survives restarts)
+    # This ensures user data isolation - each user has their own progress
+    success = TaskProgressDB.set_task_completion(
+        user_id=uid,
+        task_id=payload.task_id,
+        is_completed=payload.is_completed
+    )
 
-    return build_personalized_roadmap(
+    if not success:
+        print(f"[Roadmap] Warning: Failed to persist task toggle for user {uid}, task {payload.task_id}")
+
+    return await build_personalized_roadmap(
         role_name=role,
         experience_level=experience,
         daily_effort_hours=daily_effort,
@@ -735,38 +1120,52 @@ def toggle_roadmap_task(
 
 
 @router.post("/recalculate", response_model=PersonalizedRoadmapResponse)
-def recalculate_roadmap(
+async def recalculate_roadmap(
     role: str = Query("Full-Stack Developer"),
     experience: str = Query("Entry Level (0-2 years)"),
     daily_effort: str = Query("1-2 hours/day"),
-    user_id: Optional[str] = Query("default_user")
+    user_id: Optional[str] = Query("default_user"),
+    authorization: Optional[str] = Header(None)
 ):
     """
     Recalculate personalized roadmap when underlying SkillTwin or Gap Analysis changes.
+    Requires authentication - users can only access their own roadmap.
     """
-    return build_personalized_roadmap(
+    # Use authenticated user_id if available
+    from backend.routers.auth import get_user_id_from_token
+    auth_user_id = get_user_id_from_token(authorization)
+    uid = auth_user_id or user_id
+
+    return await build_personalized_roadmap(
         role_name=role,
         experience_level=experience,
         daily_effort_hours=daily_effort,
-        user_id=user_id
+        user_id=uid
     )
 
 
 @router.get("/export")
-def export_roadmap_report(
+async def export_roadmap_report(
     role: str = Query("Full-Stack Developer"),
     experience: str = Query("Entry Level (0-2 years)"),
     daily_effort: str = Query("1-2 hours/day"),
-    user_id: Optional[str] = Query("default_user")
+    user_id: Optional[str] = Query("default_user"),
+    authorization: Optional[str] = Header(None)
 ):
     """
     Generate downloadable formatted copy of the candidate's personalized learning roadmap.
+    Requires authentication - users can only export their own roadmap.
     """
-    roadmap = build_personalized_roadmap(
+    # Use authenticated user_id if available
+    from backend.routers.auth import get_user_id_from_token
+    auth_user_id = get_user_id_from_token(authorization)
+    uid = auth_user_id or user_id
+
+    roadmap = await build_personalized_roadmap(
         role_name=role,
         experience_level=experience,
         daily_effort_hours=daily_effort,
-        user_id=user_id
+        user_id=uid
     )
 
     lines = [

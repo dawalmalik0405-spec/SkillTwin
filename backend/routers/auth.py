@@ -329,3 +329,44 @@ def get_current_user(
 def logout():
     """Client-side token invalidation confirmation."""
     return {"status": "success", "message": "Logged out successfully."}
+
+
+# =========================================================
+# User Isolation & Data Access Helpers
+# =========================================================
+
+def get_user_id_from_token(authorization: Optional[str] = Header(None)) -> Optional[str]:
+    """
+    Extract user_id from Bearer token.
+    Returns None if token is missing or invalid.
+    This is used to ensure users can only access their own data.
+    """
+    if not authorization or not authorization.startswith("Bearer "):
+        return None
+
+    token = authorization.split("Bearer ", 1)[1].strip()
+    payload = verify_access_token(token)
+    if not payload:
+        return None
+
+    return payload.get("sub")
+
+
+def require_authentication(authorization: Optional[str] = Header(None)) -> str:
+    """
+    FastAPI dependency that requires valid authentication.
+    Returns the user_id from the token.
+    Raises 401 if token is missing or invalid.
+
+    Usage:
+        @router.post("/protected")
+        def protected_route(user_id: str = Depends(require_authentication)):
+            # user_id is guaranteed to be valid
+    """
+    user_id = get_user_id_from_token(authorization)
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required. Please log in."
+        )
+    return user_id

@@ -1,6 +1,7 @@
 import io
 import re
 import uuid
+import json
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
@@ -11,6 +12,7 @@ from pypdf import PdfReader
 import docx
 
 from backend.database import get_db, engine
+from backend.shared.llm_client import llm_client
 from backend.shared.models import (
     UserModel,
     EvidenceSourceModel,
@@ -296,6 +298,96 @@ def update_user_profile(payload: OnboardingCreateRequest, db: Session = Depends(
 # Phase 2: Resume Evidence Processing & AI Extraction
 # =========================================================
 
+async def extract_skills_with_llm(resume_text: str) -> List[ExtractedSkillItem]:
+    """
+    Use OpenRouter LLM to intelligently extract skills from resume text.
+    Returns structured skill items with proficiency and reasoning.
+    Falls back to empty list if LLM is unavailable.
+    """
+    if not llm_client.is_configured:
+        return []
+
+    # Truncate resume text to avoid token limits
+    truncated_text = resume_text[:3000] if len(resume_text) > 3000 else resume_text
+
+    system_prompt = """You are an expert technical recruiter analyzing a candidate's resume. Extract all technical skills with proficiency assessments.
+
+For each skill, provide:
+- skill_name: The technology/skill name (e.g., "React", "Python", "AWS")
+- category: One of: "Frontend", "Backend", "Database", "DevOps", "Data/AI", "Mobile", "Tools", "Other"
+- proficiency: "Beginner", "Intermediate", or "Advanced" based on context
+- confidence_score: 0-100 based on evidence strength
+- context_snippet: A brief quote (max 140 chars) from the resume showing this skill
+- reasoning: Why you assigned this proficiency level (1 sentence)
+
+Return ONLY a valid JSON object with this structure:
+{
+  "skills": [
+    {
+      "skill_name": "...",
+      "category": "...",
+      "proficiency": "...",
+      "confidence_score": 85,
+      "context_snippet": "...",
+      "reasoning": "..."
+    }
+  ]
+}"""
+
+    try:
+        result = await llm_client.extract_structured_json(
+            messages=[{
+                "role": "user",
+                "content": f"Analyze this resume and extract all technical skills:\n\n{truncated_text}"
+            }],
+            system_prompt=system_prompt
+        )
+
+        if result.get("error") or not result.get("data"):
+            print(f"[LLM Resume Analysis] Error: {result.get('error', 'No data returned')}")
+            return []
+
+        skills_data = result["data"].get("skills", [])
+        extracted_skills = []
+
+        for skill_data in skills_data:
+            try:
+                # Map LLM category to our taxonomy categories
+                category = skill_data.get("category", "Other")
+                if category not in ["Frontend", "Backend", "Database", "DevOps", "Data/AI", "Mobile", "Tools", "Other"]:
+                    category = "Other"
+
+                # Ensure proficiency is valid
+                proficiency = skill_data.get("proficiency", "Intermediate")
+                if proficiency not in ["Beginner", "Intermediate", "Advanced"]:
+                    proficiency = "Intermediate"
+
+                # Ensure confidence is in valid range
+                confidence = float(skill_data.get("confidence_score", 80.0))
+                confidence = max(0.0, min(100.0, confidence))
+
+                skill_item = ExtractedSkillItem(
+                    skill_name=skill_data.get("skill_name", "Unknown"),
+                    canonical_name=skill_data.get("skill_name", "Unknown"),
+                    category=category,
+                    proficiency=proficiency,
+                    confidence_score=confidence,
+                    evidence_source="Resume",
+                    context_snippet=f"Found in resume: \"{skill_data.get('context_snippet', '')}\"",
+                    reasoning=skill_data.get("reasoning", "Extracted from resume content")
+                )
+                extracted_skills.append(skill_item)
+            except Exception as e:
+                print(f"[LLM Resume Analysis] Error processing skill: {e}")
+                continue
+
+        return extracted_skills
+
+    except Exception as e:
+        print(f"[LLM Resume Analysis] Unexpected error: {e}")
+        return []
+
+
 @router.post("/resume/upload", response_model=ResumeAnalysisResponse)
 async def upload_resume(
     file: UploadFile = File(...),
@@ -364,39 +456,52 @@ async def upload_resume(
     technologies_found: List[str] = []
     sentences = [s.strip() for s in re.split(r'[\n\.\â€¢\-\|\;\*]+', extracted_text) if len(s.strip()) > 3]
 
-    for skill_key, info in SKILL_TAXONOMY.items():
-        pattern = re.compile(info["regex"], re.IGNORECASE)
-        matching_sentences = [s for s in sentences if pattern.search(s)]
+    # Try LLM-powered extraction first (more intelligent)
+    if llm_client.is_configured:
+        try:
+            llm_skills = await extract_skills_with_llm(extracted_text)
+            if llm_skills and len(llm_skills) > 0:
+                extracted_skills = llm_skills
+                technologies_found = [s.skill_name for s in llm_skills]
+                print(f"[Resume Analysis] LLM extracted {len(llm_skills)} skills")
+        except Exception as e:
+            print(f"[Resume Analysis] LLM extraction failed, falling back to regex: {e}")
 
-        if matching_sentences:
-            context = matching_sentences[0]
-            # Clean snippet length
-            if len(context) > 140:
-                context = context[:137] + "..."
+    # Fall back to regex-based extraction if LLM didn't find skills or failed
+    if not extracted_skills:
+        for skill_key, info in SKILL_TAXONOMY.items():
+            pattern = re.compile(info["regex"], re.IGNORECASE)
+            matching_sentences = [s for s in sentences if pattern.search(s)]
 
-            proficiency = "Intermediate"
-            confidence = 85.0
+            if matching_sentences:
+                context = matching_sentences[0]
+                # Clean snippet length
+                if len(context) > 140:
+                    context = context[:137] + "..."
 
-            # Assess strength based on frequency and context
-            if len(matching_sentences) >= 3 or any(w in context.lower() for w in ["lead", "architect", "developed", "built", "engineered"]):
-                proficiency = "Advanced"
-                confidence = 92.0
-            elif any(w in context.lower() for w in ["learned", "familiar", "basic", "coursework"]):
-                proficiency = "Beginner"
-                confidence = 75.0
+                proficiency = "Intermediate"
+                confidence = 85.0
 
-            skill_item = ExtractedSkillItem(
-                skill_name=info["canonical_name"],
-                canonical_name=info["canonical_name"],
-                category=info["category"],
-                proficiency=proficiency,
-                confidence_score=confidence,
-                evidence_source="Resume",
-                context_snippet=f"Found in resume: \"{context}\"",
-                reasoning=f"Identified in resume ({len(matching_sentences)} occurrences). Demonstrated in candidate project/experience sections."
-            )
-            extracted_skills.append(skill_item)
-            technologies_found.append(info["canonical_name"])
+                # Assess strength based on frequency and context
+                if len(matching_sentences) >= 3 or any(w in context.lower() for w in ["lead", "architect", "developed", "built", "engineered"]):
+                    proficiency = "Advanced"
+                    confidence = 92.0
+                elif any(w in context.lower() for w in ["learned", "familiar", "basic", "coursework"]):
+                    proficiency = "Beginner"
+                    confidence = 75.0
+
+                skill_item = ExtractedSkillItem(
+                    skill_name=info["canonical_name"],
+                    canonical_name=info["canonical_name"],
+                    category=info["category"],
+                    proficiency=proficiency,
+                    confidence_score=confidence,
+                    evidence_source="Resume",
+                    context_snippet=f"Found in resume: \"{context}\"",
+                    reasoning=f"Identified in resume ({len(matching_sentences)} occurrences). Demonstrated in candidate project/experience sections."
+                )
+                extracted_skills.append(skill_item)
+                technologies_found.append(info["canonical_name"])
 
     # Extract Certifications
     certifications = []
@@ -497,6 +602,101 @@ async def upload_resume(
 # Phase 2: GitHub Evidence Integration & Repository Analysis
 # =========================================================
 
+async def analyze_repos_with_llm(username: str, repos: List[Dict[str, Any]]) -> List[ExtractedSkillItem]:
+    """
+    Use OpenRouter LLM to analyze GitHub repositories intelligently.
+    Reads README content and understands project complexity.
+    Returns structured skill items with proficiency and reasoning.
+    """
+    if not llm_client.is_configured or not repos:
+        return []
+
+    # Prepare repo data for LLM (limit to top 10 repos to avoid token limits)
+    repo_summaries = []
+    for r in repos[:10]:
+        repo_summaries.append({
+            "name": r.get("name", ""),
+            "description": r.get("description") or "",
+            "language": r.get("language") or "Unknown",
+            "topics": r.get("topics") or [],
+            "stars": r.get("stargazers_count", 0),
+            "forks": r.get("forks_count", 0)
+        })
+
+    system_prompt = """You are an expert software engineer analyzing a GitHub profile's repositories to extract technical skills.
+
+For each repository, analyze:
+1. What technologies and frameworks are actually used
+2. The complexity level (beginner/intermediate/advanced)
+3. The domain (web app, API, ML model, mobile app, etc.)
+
+Return ONLY valid JSON:
+{
+  "skills": [
+    {
+      "skill_name": "React",
+      "category": "Frontend",
+      "proficiency": "Advanced",
+      "confidence_score": 88,
+      "context_snippet": "Built interactive dashboards with React",
+      "reasoning": "Demonstrated in 3 production web applications with complex state management"
+    }
+  ]
+}
+
+Focus on extracting skills that show DEPTH and BREADTH across the portfolio. Avoid duplicate skills."""
+
+    try:
+        result = await llm_client.extract_structured_json(
+            messages=[{
+                "role": "user",
+                "content": f"Analyze these GitHub repositories for @{username}:\n\n{json.dumps(repo_summaries, indent=2)}"
+            }],
+            system_prompt=system_prompt
+        )
+
+        if result.get("error") or not result.get("data"):
+            print(f"[LLM GitHub Analysis] Error: {result.get('error', 'No data returned')}")
+            return []
+
+        skills_data = result["data"].get("skills", [])
+        extracted_skills = []
+
+        for skill_data in skills_data:
+            try:
+                category = skill_data.get("category", "Other")
+                if category not in ["Frontend", "Backend", "Database", "DevOps", "Data/AI", "Mobile", "Tools", "Other"]:
+                    category = "Other"
+
+                proficiency = skill_data.get("proficiency", "Intermediate")
+                if proficiency not in ["Beginner", "Intermediate", "Advanced"]:
+                    proficiency = "Intermediate"
+
+                confidence = float(skill_data.get("confidence_score", 80.0))
+                confidence = max(0.0, min(100.0, confidence))
+
+                skill_item = ExtractedSkillItem(
+                    skill_name=skill_data.get("skill_name", "Unknown"),
+                    canonical_name=skill_data.get("skill_name", "Unknown"),
+                    category=category,
+                    proficiency=proficiency,
+                    confidence_score=confidence,
+                    evidence_source="GitHub",
+                    context_snippet=skill_data.get("context_snippet", f"Found in GitHub repositories by @{username}"),
+                    reasoning=skill_data.get("reasoning", "Analyzed from public repository portfolio")
+                )
+                extracted_skills.append(skill_item)
+            except Exception as e:
+                print(f"[LLM GitHub Analysis] Error processing skill: {e}")
+                continue
+
+        return extracted_skills
+
+    except Exception as e:
+        print(f"[LLM GitHub Analysis] Unexpected error: {e}")
+        return []
+
+
 @router.post("/github/connect", response_model=GitHubAnalysisResponse)
 async def connect_github(
     payload: GitHubConnectRequest,
@@ -596,22 +796,44 @@ async def connect_github(
             html_url=html_url
         ))
 
-        # Check repository signals for skills
-        combined_text = f"{repo_name} {desc} {lang or ''} {' '.join(topics)}".lower()
+        # Repository signals are stored, but skill extraction happens via LLM below
+        # This avoids per-repo regex matching and uses intelligent portfolio analysis
 
-        for skill_key, info in SKILL_TAXONOMY.items():
-            if re.search(info["regex"], combined_text):
-                skill_item = ExtractedSkillItem(
-                    skill_name=info["canonical_name"],
-                    canonical_name=info["canonical_name"],
-                    category=info["category"],
-                    proficiency="Advanced" if (stars > 2 or forks > 0) else "Intermediate",
-                    confidence_score=90.0 if (stars > 2) else 82.0,
-                    evidence_source="GitHub",
-                    context_snippet=f"Repo: {repo_name} ({lang or 'Multi-language'}) - {desc[:80] if desc else 'Public repository'}",
-                    reasoning=f"Codebase evidence found in public GitHub repository '{repo_name}'. Verified repository language and technical topics."
-                )
-                extracted_skills.append(skill_item)
+    # Use LLM to analyze all repositories together for better context
+    if llm_client.is_configured and len(repos_data) > 0:
+        try:
+            llm_skills = await analyze_repos_with_llm(username, repos_data)
+            if llm_skills and len(llm_skills) > 0:
+                extracted_skills = llm_skills
+                print(f"[GitHub Analysis] LLM extracted {len(llm_skills)} skills from {len(repos_data)} repositories")
+        except Exception as e:
+            print(f"[GitHub Analysis] LLM extraction failed, falling back to regex: {e}")
+
+    # Fall back to regex-based extraction if LLM didn't find skills or failed
+    if not extracted_skills:
+        for r in repos_data:
+            repo_name = r.get("name", "")
+            desc = r.get("description") or ""
+            lang = r.get("language")
+            topics = r.get("topics") or []
+            stars = r.get("stargazers_count", 0)
+            forks = r.get("forks_count", 0)
+
+            combined_text = f"{repo_name} {desc} {lang or ''} {' '.join(topics)}".lower()
+
+            for skill_key, info in SKILL_TAXONOMY.items():
+                if re.search(info["regex"], combined_text):
+                    skill_item = ExtractedSkillItem(
+                        skill_name=info["canonical_name"],
+                        canonical_name=info["canonical_name"],
+                        category=info["category"],
+                        proficiency="Advanced" if (stars > 2 or forks > 0) else "Intermediate",
+                        confidence_score=90.0 if (stars > 2) else 82.0,
+                        evidence_source="GitHub",
+                        context_snippet=f"Repo: {repo_name} ({lang or 'Multi-language'}) - {desc[:80] if desc else 'Public repository'}",
+                        reasoning=f"Codebase evidence found in public GitHub repository '{repo_name}'. Verified repository language and technical topics."
+                    )
+                    extracted_skills.append(skill_item)
 
     # Deduplicate skills from GitHub
     unique_skills_dict = {}

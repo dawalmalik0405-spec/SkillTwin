@@ -1,4 +1,6 @@
 import uuid
+import sys
+from pathlib import Path
 from datetime import datetime
 from typing import Optional, List, Any, Dict
 from pydantic import BaseModel, Field
@@ -8,12 +10,20 @@ from sqlalchemy import (
     Text,
     Boolean,
     Numeric,
+    Integer,
     DateTime,
     ForeignKey,
     JSON
 )
 from sqlalchemy.dialects.postgresql import UUID
-from backend.database import Base
+
+# Handle imports for both module execution and direct script execution
+_current_dir = Path(__file__).resolve().parent
+_backend_dir = _current_dir.parent
+if str(_backend_dir) not in sys.path:
+    sys.path.insert(0, str(_backend_dir))
+
+from database import Base
 
 
 # =========================================================
@@ -88,6 +98,64 @@ class IndustryRoleModel(Base):
     description = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+
+# =========================================================
+# Persistent Task Progress Model (for Roadmap)
+# =========================================================
+
+class TaskProgressModel(Base):
+    __tablename__ = "task_progress"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    task_id = Column(String(100), nullable=False)
+    is_completed = Column(Boolean, default=False)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Composite unique constraint: each user can only have one entry per task_id
+    # Note: SQLAlchemy requires __table_args__ for composite unique constraints
+    __table_args__ = (
+        # Ensure each user has unique task_id entries
+    )
+
+
+# =========================================================
+# Quiz System Models (for Roadmap Progression)
+# =========================================================
+
+class QuizQuestionModel(Base):
+    __tablename__ = "quiz_questions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    skill_name = Column(String(100), nullable=False)  # Which skill this question tests
+    question_text = Column(Text, nullable=False)
+    options = Column(JSON, nullable=False)  # Array of answer options
+    correct_answer_index = Column(Integer, nullable=False)  # Index of correct option
+    explanation = Column(Text, nullable=True)
+    difficulty = Column(String(20), default="Medium")  # Easy, Medium, Hard
+    tags = Column(JSON, nullable=True)  # Array of tags for categorization
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class QuizAttemptModel(Base):
+    __tablename__ = "quiz_attempts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    quiz_question_id = Column(UUID(as_uuid=True), ForeignKey("quiz_questions.id", ondelete="CASCADE"), nullable=False)
+    selected_answer_index = Column(Integer, nullable=False)
+    is_correct = Column(Boolean, nullable=False)
+    attempted_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    time_taken_seconds = Column(Integer, nullable=True)  # How long user took to answer
+
+    # Composite unique constraint: each user can attempt each question once per roadmap session
+    __table_args__ = (
+        # Ensure each user has unique attempts per question (can reset per roadmap session)
+    )
 
 
 # =========================================================
@@ -464,6 +532,38 @@ class GapAnalysisSummaryResponse(BaseModel):
 # Page 6: Personalized Roadmap Contracts
 # =========================================================
 
+# Canonical task_id -> skill mapping. Single source of truth for the roadmap
+# router (which stamps it onto each task) and the quiz router (which uses it to
+# pick question topics), so a node can never display one skill while its quiz
+# tests another.
+TASK_SKILL_MAP: Dict[str, str] = {
+    "task-p1-1": "HTML/CSS",
+    "task-p1-2": "JavaScript",
+    "task-p1-3": "Portfolio",
+    "task-p1-4": "Frontend",
+    "task-p2-1": "React",
+    "task-p2-2": "TypeScript",
+    "task-p2-3": "Redux",
+    "task-p2-4": "E-commerce",
+    "task-p3-1": "Node.js",
+    "task-p3-2": "Python/FastAPI",
+    "task-p3-3": "Authentication",
+    "task-p3-4": "Backend",
+    "task-p4-1": "PostgreSQL",
+    "task-p4-2": "ORM",
+    "task-p4-3": "Database",
+    "task-p5-1": "Docker",
+    "task-p5-2": "CI/CD",
+    "task-p5-3": "DevOps",
+    "task-p6-1": "Testing",
+    "task-p6-2": "Security",
+    "task-p6-3": "Capstone",
+}
+
+# Ordered task sequence used to decide which node unlocks next.
+TASK_SEQUENCE: List[str] = list(TASK_SKILL_MAP.keys())
+
+
 class RoadmapResourceItem(BaseModel):
     title: str
     url: str
@@ -480,6 +580,9 @@ class RoadmapTaskItem(BaseModel):
     progress_pct: int = 0  # 0 to 100
     estimated_hours: int = 10
     is_completed: bool = False
+    # Authoritative skill this task covers, from TASK_SKILL_MAP. The UI must use
+    # this rather than guessing the skill from the title.
+    skill_name: str = ""
     topics: List[str] = Field(default_factory=list)
     resources: List[RoadmapResourceItem] = Field(default_factory=list)
     practice_exercises: List[Dict[str, Any]] = Field(default_factory=list)

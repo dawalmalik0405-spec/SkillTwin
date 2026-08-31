@@ -1,7 +1,15 @@
 import os
 import json
+from pathlib import Path
 from typing import Dict, Any, Optional, List
+from dotenv import load_dotenv
 import httpx
+
+# Load environment variables from project root .env
+_root_dir = Path(__file__).resolve().parent.parent.parent
+_env_path = _root_dir / ".env"
+if _env_path.exists():
+    load_dotenv(dotenv_path=_env_path)
 
 
 class LLMClient:
@@ -143,7 +151,10 @@ class LLMClient:
         if not self.is_configured:
             return {"error": "OpenRouter API key not configured"}
 
-        full_messages = [{"role": "system", "content": system_prompt}]
+        # Add instruction to return JSON in the system prompt (works with all models)
+        enhanced_system = system_prompt + "\n\nIMPORTANT: Return ONLY valid JSON in your response. No additional text, no markdown code blocks. Just the raw JSON object."
+
+        full_messages = [{"role": "system", "content": enhanced_system}]
         full_messages.extend(messages)
 
         try:
@@ -154,10 +165,6 @@ class LLMClient:
                 "max_tokens": 4096
             }
 
-            # Add response format for JSON mode if schema provided
-            if json_schema:
-                request_json["response_format"] = {"type": "json_object"}
-
             response = await self.client.post(
                 "/chat/completions",
                 json=request_json
@@ -165,23 +172,51 @@ class LLMClient:
             response.raise_for_status()
             data = response.json()
 
+            if "choices" not in data:
+                return {"error": f"Unexpected response: {data}", "data": None}
+
             content = data["choices"][0]["message"]["content"]
 
-            # Parse JSON from response
+            if not content:
+                return {"error": "Empty response from LLM", "data": None}
+
+            # Parse JSON from response - try multiple strategies
             try:
-                # Try to extract JSON if wrapped in markdown code blocks
-                if "```json" in content:
+                # Try direct parse first
+                return {"error": None, "data": json.loads(content)}
+            except json.JSONDecodeError:
+                pass
+
+            # Try to extract JSON from markdown code blocks
+            if "```json" in content:
+                try:
                     start = content.find("```json") + 7
                     end = content.find("```", start)
-                    content = content[start:end].strip()
-                elif "```" in content:
+                    json_str = content[start:end].strip()
+                    return {"error": None, "data": json.loads(json_str)}
+                except (json.JSONDecodeError, ValueError):
+                    pass
+
+            if "```" in content:
+                try:
                     start = content.find("```") + 3
                     end = content.find("```", start)
-                    content = content[start:end].strip()
+                    json_str = content[start:end].strip()
+                    return {"error": None, "data": json.loads(json_str)}
+                except (json.JSONDecodeError, ValueError):
+                    pass
 
-                return {"error": None, "data": json.loads(content)}
-            except json.JSONDecodeError as e:
-                return {"error": f"Failed to parse JSON: {e}", "data": None}
+            # Try to find JSON-like content
+            try:
+                start = content.find("{")
+                end = content.rfind("}") + 1
+                if start >= 0 and end > start:
+                    json_str = content[start:end]
+                    return {"error": None, "data": json.loads(json_str)}
+            except json.JSONDecodeError:
+                pass
+
+            return {"error": f"Could not parse JSON from response: {content[:200]}", "data": None}
 
         except Exception as e:
             return {"error": str(e), "data": None}

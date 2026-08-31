@@ -117,6 +117,109 @@ CREATE TABLE IF NOT EXISTS project_verifications (
     verified_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- 10. Task Progress Table (Persistent Roadmap Task Completion Tracking)
+CREATE TABLE IF NOT EXISTS task_progress (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    task_id VARCHAR(100) NOT NULL,
+    is_completed BOOLEAN DEFAULT FALSE,
+    completed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_user_task_progress UNIQUE (user_id, task_id)
+);
+
+-- 11. Quiz Questions Table (Skill-based assessment for roadmap progression)
+CREATE TABLE IF NOT EXISTS quiz_questions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    skill_name VARCHAR(100) NOT NULL,
+    question_text TEXT NOT NULL,
+    options JSONB NOT NULL,
+    correct_answer_index INTEGER NOT NULL,
+    explanation TEXT,
+    difficulty VARCHAR(20) DEFAULT 'Medium',
+    tags JSONB,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 12. Quiz Attempts Table (Track user quiz attempts for roadmap unlocking)
+CREATE TABLE IF NOT EXISTS quiz_attempts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    quiz_question_id UUID NOT NULL REFERENCES quiz_questions(id) ON DELETE CASCADE,
+    selected_answer_index INTEGER NOT NULL,
+    is_correct BOOLEAN NOT NULL,
+    attempted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    time_taken_seconds INTEGER,
+    CONSTRAINT unique_user_quiz_attempt UNIQUE (user_id, quiz_question_id)
+);
+
+-- Seed sample quiz questions for key skills
+-- Collapse any duplicate rows created by earlier startups that ran this seed
+-- without a conflict guard, then enforce uniqueness so it cannot recur.
+DELETE FROM quiz_questions q
+USING quiz_questions dup
+WHERE q.skill_name = dup.skill_name
+  AND q.question_text = dup.question_text
+  AND q.id > dup.id;
+
+ALTER TABLE quiz_questions
+    DROP CONSTRAINT IF EXISTS unique_quiz_skill_question;
+ALTER TABLE quiz_questions
+    ADD CONSTRAINT unique_quiz_skill_question UNIQUE (skill_name, question_text);
+
+INSERT INTO quiz_questions (skill_name, question_text, options, correct_answer_index, explanation, difficulty, tags)
+VALUES
+    ('JavaScript', 'What is the output of console.log(typeof []); in JavaScript?',
+     '["object", "array", "function", "undefined"]', 0,
+     'In JavaScript, arrays are objects, so typeof [] returns "object".',
+     'Easy',
+     '["fundamentals", "types"]'),
+
+    ('JavaScript', 'Which method is used to add an element to the end of an array?',
+     '["push()", "pop()", "shift()", "unshift()"]', 0,
+     'The push() method adds one or more elements to the end of an array and returns the new length.',
+     'Easy',
+     '["arrays", "methods"]'),
+
+    ('React', 'What is the purpose of the useEffect hook in React?',
+     '["Manage state", "Handle side effects", "Create context", "Optimize renders"]', 1,
+     'useEffect lets you perform side effects in function components, such as data fetching, subscriptions, or manually changing the DOM.',
+     'Medium',
+     '["hooks", "side-effects"]'),
+
+    ('React', 'In React, what is the correct way to pass data from parent to child component?',
+     '["Props", "State", "Context API", "LocalStorage"]', 0,
+     'Props (properties) are the primary way to pass data from parent to child components in React.',
+     'Easy',
+     '["props", "component-communication"]'),
+
+    ('TypeScript', 'What is the difference between interface and type in TypeScript?',
+     '["interface is for objects, type is for primitives", "They are completely interchangeable", "interface can be extended, type can use unions/intersections", "No difference"]', 2,
+     'Both can describe object shapes, but interfaces support declaration merging and extends keyword, while types can represent unions, intersections, and mapped types more easily.',
+     'Medium',
+     '["types", "interface"]'),
+
+    ('PostgreSQL', 'Which SQL clause is used to filter groups after aggregation?',
+     '["WHERE", "HAVING", "GROUP BY", "ORDER BY"]', 1,
+     'The HAVING clause is used to filter groups based on aggregate conditions, while WHERE filters individual rows before grouping.',
+     'Medium',
+     '["aggregation", "filtering"]'),
+
+    ('Python/FastAPI', 'In FastAPI, what decorator is used to define a path parameter?',
+     '["@app.get()", "@app.path()", "Path() from fastapi", "@app.param()"]', 2,
+     'In FastAPI, you use Path() from fastapi to declare path parameters with validation and metadata.',
+     'Easy',
+     '["fastapi", "routing"]'),
+
+    ('Docker', 'What command is used to build a Docker image from a Dockerfile?',
+     '["docker run", "docker build", "docker pull", "docker push"]', 1,
+     'The docker build command builds Docker images from a Dockerfile and a context.',
+     'Easy',
+     '["docker", "commands"]')
+ON CONFLICT (skill_name, question_text) DO NOTHING;
+
 -- Seed Essential Curated Industry Roles
 INSERT INTO industry_roles (role_name, description)
 VALUES 
