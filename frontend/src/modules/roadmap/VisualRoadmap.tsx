@@ -42,6 +42,7 @@ interface RoadmapNode {
   color: string;
   gradient: string;
   docsUrl?: string;
+  youtubeUrl?: string;
   description: string;
   estimatedHours: number;
   type: 'Course' | 'Project' | 'Practice';

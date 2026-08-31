@@ -95,6 +95,49 @@ CURATED_RESOURCE_ALIASES: Dict[str, str] = {
 # AI Resource Generation
 # =========================================================
 
+# Simple in-memory cache to avoid regenerating roadmap on every refresh.
+# Cache key: user_id + role_name. New role = regenerate, same = instant return.
+_ROADMAP_CACHE: Dict[str, PersonalizedRoadmapResponse] = {}
+
+
+def _get_cached_task_status(user_id: str) -> Dict[str, bool]:
+    """Get current task completion status for a user from DB."""
+    try:
+        import uuid as uuid_lib
+        uuid_lib.UUID(user_id)
+        return TaskProgressDB.get_user_progress(user_id)
+    except (ValueError, Exception):
+        return {}
+
+
+def _apply_task_status_to_phases(phases: List[RoadmapPhaseItem], task_status: Dict[str, bool]) -> None:
+    """Apply user's current task completion status to roadmap phases."""
+    if not task_status:
+        return
+    for phase in phases:
+        for task in phase.tasks:
+            if task.id in task_status:
+                task.is_completed = task_status[task.id]
+                task.progress_pct = 100 if task_status[task.id] else 0
+
+
+def _store_in_cache(cache_key: str, roadmap: PersonalizedRoadmapResponse) -> None:
+    """Store roadmap in cache (without user-specific task status)."""
+    # Deep copy phases to avoid mutation of cached data
+    cached_phases = []
+    for phase in roadmap.phases:
+        cached_phase = phase.model_copy(deep=True)
+        # Reset task completion in cached version (will be applied per-user)
+        for task in cached_phase.tasks:
+            task.is_completed = False
+            task.progress_pct = 0
+        cached_phases.append(cached_phase)
+
+    cached_roadmap = roadmap.model_copy(deep=True)
+    cached_roadmap.phases = cached_phases
+    _ROADMAP_CACHE[cache_key] = cached_roadmap
+
+
 # A YouTube resource is only useful if it points at one specific video. These
 # match the two canonical single-video forms and capture the 11-character id.
 _YT_WATCH_RE = re.compile(
@@ -1107,7 +1150,19 @@ async def build_personalized_roadmap(
     Core Roadmap Generation Engine.
     Ingests Page 5 Gap Analysis results, target role benchmarks, and study availability
     to construct an actionable, structured, prioritized 6-phase learning path.
+
+    Uses in-memory cache to avoid regenerating the roadmap on every refresh.
+    Cache key: user_id + role_name. New role = regenerate.
     """
+    # Check cache first - if same user+role, return cached roadmap (fast!)
+    cache_key = f"{user_id or 'default'}::{role_name}"
+    if cache_key in _ROADMAP_CACHE:
+        cached = _ROADMAP_CACHE[cache_key]
+        # Preserve user_progress for task completion state
+        cached_tasks_status = _get_cached_task_status(user_id)
+        if cached_tasks_status:
+            _apply_task_status_to_phases(cached.phases, cached_tasks_status)
+        return cached
     uid = user_id or "default_user"
 
     # Get user progress from database (persistent storage)
@@ -1377,7 +1432,7 @@ async def build_personalized_roadmap(
             })
             week_offset += 1
 
-    return PersonalizedRoadmapResponse(
+    final_roadmap = PersonalizedRoadmapResponse(
         target_role=role_name,
         experience_level=experience_level,
         estimated_duration=est_duration,
@@ -1392,6 +1447,11 @@ async def build_personalized_roadmap(
         calculated_at=datetime.utcnow(),
         version="1.0.0"
     )
+
+    # Store in cache (without user-specific task completion)
+    _store_in_cache(cache_key, final_roadmap)
+
+    return final_roadmap
 
 
 @router.get("/plan", response_model=PersonalizedRoadmapResponse)
