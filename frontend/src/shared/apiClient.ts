@@ -30,7 +30,13 @@ import {
   CareerReadinessResponse
 } from './types';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// In production the API is served from the same origin as the UI (FastAPI mounts
+// the built frontend), so an empty base URL yields relative /api/... requests and
+// no CORS. In dev, Vite runs on 5173 and the API on 8000, hence the explicit
+// default. VITE_API_URL overrides both when the API lives elsewhere.
+// Note: `??`, not `||` -- VITE_API_URL="" is a meaningful value (same origin).
+const API_BASE_URL: string =
+  import.meta.env.VITE_API_URL ?? (import.meta.env.DEV ? 'http://localhost:8000' : '');
 
 class ApiClient {
   private baseUrl: string;
@@ -519,6 +525,24 @@ class ApiClient {
   }
 
   /**
+   * Fetch AI-curated learning resources for a single skill.
+   */
+  public async getAiResources(
+    skillName: string,
+    userLevel: string = 'intermediate'
+  ): Promise<{
+    skill_name: string;
+    user_level: string;
+    resources: Array<{ title: string; url: string; type: string; provider?: string }>;
+    generated_by: string;
+  }> {
+    const params = new URLSearchParams({ user_level: userLevel });
+    return this.fetchJson(
+      `/api/roadmap/ai-resources/${encodeURIComponent(skillName)}?${params.toString()}`
+    );
+  }
+
+  /**
    * Fetch candidate's submitted projects and verification summary.
    */
   public async getProjectVerifications(userId?: string): Promise<VerificationSummaryResponse> {
@@ -629,6 +653,87 @@ class ApiClient {
     const params = new URLSearchParams();
     if (userId) params.append('user_id', userId);
     return `${this.baseUrl}/api/readiness/export-report?${params.toString()}`;
+  }
+
+  // =========================================================
+  // Quiz System API Methods
+  // =========================================================
+
+  /**
+   * Quiz question response type
+   */
+  public async getQuizQuestions(
+    taskId: string,
+    questionCount: number = 5,
+    userLevel: string = 'intermediate'
+  ): Promise<{
+    questions: Array<{
+      id: string;
+      question_text: string;
+      options: Array<{ id: number; text: string }>;
+      difficulty: string;
+      skill_name: string;
+    }>;
+    total_questions: number;
+    passing_score: number;
+  }> {
+    const params = new URLSearchParams({
+      question_count: String(questionCount),
+      user_level: userLevel
+    });
+    return this.fetchJson(`/api/quiz/generate/${taskId}?${params.toString()}`);
+  }
+
+  /**
+   * Quiz validation request type
+   */
+  public async validateQuiz(
+    userId: string,
+    taskId: string,
+    submissions: Array<{ question_id: string; selected_answer_index: number }>,
+    timeTakenSeconds?: number
+  ): Promise<{
+    passed: boolean;
+    score_percentage: number;
+    correct_answers: number;
+    total_questions: number;
+    results: Array<{
+      question_id: string;
+      is_correct: boolean;
+      correct_answer_index: number;
+      explanation: string | null;
+    }>;
+    task_unlocked: boolean;
+    next_task_id: string | null;
+    message: string;
+  }> {
+    return this.fetchJson('/api/quiz/validate', {
+      method: 'POST',
+      body: JSON.stringify({
+        user_id: userId,
+        task_id: taskId,
+        submissions,
+        time_taken_seconds: timeTakenSeconds
+      })
+    });
+  }
+
+  /**
+   * Get quiz status for a specific task
+   */
+  public async getQuizStatus(
+    taskId: string,
+    userId: string
+  ): Promise<{
+    task_id: string;
+    skill_name: string;
+    is_unlocked: boolean;
+    is_completed: boolean;
+    best_score: number | null;
+    total_quizzes_taken: number;
+  }> {
+    const params = new URLSearchParams({ user_id: userId });
+    return this.fetchJson(`/api/quiz/status/${taskId}?${params.toString()}`);
   }
 }
 

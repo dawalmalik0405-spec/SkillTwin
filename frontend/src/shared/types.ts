@@ -454,6 +454,8 @@ export interface RoadmapTaskItem {
   progress_pct: number;
   estimated_hours: number;
   is_completed: boolean;
+  /** Authoritative skill for this task, from the backend's TASK_SKILL_MAP. */
+  skill_name?: string;
   topics: string[];
   resources: RoadmapResourceItem[];
   practice_exercises: Array<{ id: string; title: string; is_done: boolean }>;

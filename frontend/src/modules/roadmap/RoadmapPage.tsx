@@ -26,7 +26,8 @@ import {
   Trophy,
   BarChart2,
   Layers,
-  Bot
+  Bot,
+  GitGraph
 } from 'lucide-react';
 import {
   UserProfile,
@@ -36,6 +37,8 @@ import {
 import { apiClient } from '../../shared/apiClient';
 import PersistentSidebar from '../../shared/components/PersistentSidebar';
 import { GlobalHeaderBadge } from '../../shared/components/GlobalHeaderBadge';
+import { VisualRoadmap } from './VisualRoadmap';
+import { QuizModal } from './QuizModal';
 
 interface RoadmapPageProps {
   userProfile: UserProfile | null;
@@ -75,8 +78,8 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
   const [isRecalculating, setIsRecalculating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Active View Tab: Roadmap View vs Calendar View
-  const [activeTab, setActiveTab] = useState<'roadmap' | 'calendar'>('roadmap');
+  // Active View Tab: Roadmap View vs Calendar View vs Visual Graph
+  const [activeTab, setActiveTab] = useState<'roadmap' | 'calendar' | 'visual'>('visual');
 
   // Expanded Phases State (Phase 1 expanded by default)
   const [expandedPhases, setExpandedPhases] = useState<Record<number, boolean>>({
@@ -89,7 +92,26 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
   const [isHowItWorksOpen, setIsHowItWorksOpen] = useState<boolean>(false);
   const [isMilestonesModalOpen, setIsMilestonesModalOpen] = useState<boolean>(false);
 
+  // Quiz Modal State
+  const [isQuizModalOpen, setIsQuizModalOpen] = useState<boolean>(false);
+  const [currentQuizTaskId, setCurrentQuizTaskId] = useState<string>('');
+  const [currentQuizSkillName, setCurrentQuizSkillName] = useState<string>('');
+
   const phase1Ref = useRef<HTMLDivElement | null>(null);
+
+  // Handle starting a quiz for a specific task
+  const handleStartQuiz = (taskId: string, skillName: string) => {
+    setCurrentQuizTaskId(taskId);
+    setCurrentQuizSkillName(skillName);
+    setIsQuizModalOpen(true);
+  };
+
+  // Handle quiz completion - refresh roadmap data
+  const handleQuizComplete = async (passed: boolean, score: number) => {
+    console.log(`Quiz completed: passed=${passed}, score=${score}%`);
+    // Refresh roadmap data to reflect updated task status
+    await fetchRoadmap(false);
+  };
 
   // Fetch Roadmap from Backend
   const fetchRoadmap = async (showLoading: boolean = true) => {
@@ -579,9 +601,30 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                 </div>
               </div>
 
-              {/* TAB SWITCHER: ROADMAP VIEW VS CALENDAR VIEW */}
+              {/* TAB SWITCHER: ROADMAP VIEW VS CALENDAR VIEW VS VISUAL GRAPH */}
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(255, 255, 255, 0.08)', paddingBottom: '8px', flexWrap: 'wrap', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {/* Visual Graph Tab - NEW! */}
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('visual')}
+                    style={{
+                      padding: '8px 16px',
+                      background: activeTab === 'visual' ? 'rgba(99, 102, 241, 0.25)' : 'transparent',
+                      border: activeTab === 'visual' ? '1px solid #818CF8' : '1px solid transparent',
+                      borderRadius: '10px',
+                      color: activeTab === 'visual' ? '#FFFFFF' : 'var(--text-muted)',
+                      fontWeight: 700,
+                      fontSize: '0.82rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}
+                  >
+                    <GitGraph size={15} /> Visual Graph
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => setActiveTab('roadmap')}
@@ -635,9 +678,17 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                 gap: '20px',
                 alignItems: 'start'
               }}>
-                {/* LEFT WORKSPACE: ROADMAP PLAN OR CALENDAR */}
+                {/* LEFT WORKSPACE: VISUAL GRAPH OR ROADMAP PLAN OR CALENDAR */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {activeTab === 'roadmap' ? (
+                  {activeTab === 'visual' ? (
+                    /* ----------------- VISUAL GRAPH VIEW (NEW!) ----------------- */
+                    <div className="glass-panel" style={{ padding: '20px' }}>
+                      <VisualRoadmap
+                        roadmapData={roadmapData}
+                        onStartQuiz={handleStartQuiz}
+                      />
+                    </div>
+                  ) : activeTab === 'roadmap' ? (
                     /* ----------------- ROADMAP VIEW ----------------- */
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                       {roadmapData.phases.map((phase) => {
@@ -1501,6 +1552,13 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                       Completed builds prepare repositories for Page 7 Project Verification to update your Living SkillTwin.
                     </p>
                   </div>
+
+                  <div style={{ padding: '10px 14px', background: 'rgba(168, 85, 247, 0.15)', borderRadius: '8px', border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+                    <strong style={{ color: '#C084FC' }}>5. Visual Graph & Quiz System:</strong>
+                    <p style={{ margin: '2px 0 0' }}>
+                      Click on nodes in the Visual Graph tab to see YouTube tutorials and documentation. Complete a quick quiz (70% to pass) to unlock the next node!
+                    </p>
+                  </div>
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '18px' }}>
@@ -1511,6 +1569,17 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
               </div>
             </div>
           )}
+
+          {/* QUIZ MODAL */}
+          <QuizModal
+            isOpen={isQuizModalOpen}
+            onClose={() => setIsQuizModalOpen(false)}
+            taskId={currentQuizTaskId}
+            skillName={currentQuizSkillName}
+            userId={userProfile?.id || ''}
+            onQuizComplete={handleQuizComplete}
+            userProfile={userProfile}
+          />
         </main>
       </div>
     </div>

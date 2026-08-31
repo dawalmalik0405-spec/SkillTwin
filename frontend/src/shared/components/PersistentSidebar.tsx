@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   User,
-  ChevronDown,
   FileText,
   Cpu,
   Compass,
@@ -10,7 +9,11 @@ import {
   Settings,
   Shield,
   GraduationCap,
-  HelpCircle
+  HelpCircle,
+  Lock,
+  Map,
+  ShieldCheck,
+  Rocket
 } from 'lucide-react';
 import { UserProfile } from '../types';
 
@@ -44,6 +47,28 @@ interface PersistentSidebarProps {
   onOpenSecurityModal?: () => void;
 }
 
+/** One entry per journey step. Replaces nine near-identical JSX blocks. */
+interface StageDef {
+  key: string;
+  step: number;
+  label: string;
+  icon: React.ReactNode;
+  /** Shown when the user clicks a step they have not unlocked yet. */
+  blockedMsg: string;
+}
+
+const STAGES: StageDef[] = [
+  { key: 'onboarding', step: 1, label: 'Onboarding', icon: <GraduationCap size={15} />, blockedMsg: '' },
+  { key: 'evidence', step: 2, label: 'Evidence', icon: <FileText size={15} />, blockedMsg: 'Complete onboarding first.' },
+  { key: 'skilltwin', step: 3, label: 'Your SkillTwin', icon: <Cpu size={15} />, blockedMsg: 'Add your resume, GitHub profile or projects in Evidence first.' },
+  { key: 'target_role', step: 4, label: 'Target Role', icon: <Compass size={15} />, blockedMsg: 'Complete Evidence Collection first.' },
+  { key: 'gap', step: 5, label: 'Skill Gaps', icon: <Award size={15} />, blockedMsg: 'Pick your target role first.' },
+  { key: 'roadmap', step: 6, label: 'Roadmap', icon: <Map size={15} />, blockedMsg: 'Run your gap analysis first.' },
+  { key: 'verification', step: 7, label: 'Verify Projects', icon: <ShieldCheck size={15} />, blockedMsg: 'Start your roadmap first.' },
+  { key: 'skilltwin_updated', step: 8, label: 'Twin Update', icon: <Cpu size={15} />, blockedMsg: 'Verify a project first.' },
+  { key: 'readiness', step: 9, label: 'Career Readiness', icon: <Rocket size={15} />, blockedMsg: 'Update your twin first.' }
+];
+
 export const PersistentSidebar: React.FC<PersistentSidebarProps> = ({
   userProfile,
   activeStep,
@@ -63,7 +88,6 @@ export const PersistentSidebar: React.FC<PersistentSidebarProps> = ({
   onNavigateToHelp,
   onOpenSecurityModal
 }) => {
-  // Map views to 1-indexed steps
   const viewToStep: Record<string, number> = {
     onboarding: 1,
     evidence: 2,
@@ -77,12 +101,10 @@ export const PersistentSidebar: React.FC<PersistentSidebarProps> = ({
   };
   const currentStep = activeStep ?? (viewToStep[activeView] || 1);
 
-  // Extract user details dynamically from onboarding state
-  const userName = userProfile?.name?.trim() || 'Layeeba Haram';
+  const userName = userProfile?.name?.trim() || 'Your Profile';
   const userRole = userProfile?.target_role?.trim() || 'Full-Stack Developer';
   const avatarImage = userProfile?.avatar_base64 || userProfile?.avatar_url;
 
-  // Compute initials dynamically (e.g. "Layeeba Haram" -> "LH")
   const getInitials = (name: string): string => {
     const parts = name.split(/\s+/).filter(Boolean);
     if (parts.length === 0) return 'ST';
@@ -90,9 +112,6 @@ export const PersistentSidebar: React.FC<PersistentSidebarProps> = ({
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   };
 
-  const initials = getInitials(userName);
-
-  // Real stage completion status based on actual work performed
   const isCompleted = (key: string): boolean => {
     if (completedStages && typeof (completedStages as any)[key] === 'boolean') {
       return Boolean((completedStages as any)[key]);
@@ -130,7 +149,6 @@ export const PersistentSidebar: React.FC<PersistentSidebarProps> = ({
     return localStorage.getItem(`skilltwin_${key}_completed`) === 'true';
   };
 
-  // Stage availability based on true prerequisites
   const isAvailable = (key: string): boolean => {
     if (key === 'onboarding') return true;
     if (key === 'evidence') return isCompleted('onboarding');
@@ -144,408 +162,130 @@ export const PersistentSidebar: React.FC<PersistentSidebarProps> = ({
     return true;
   };
 
-  const handleStageClick = (key: string, callback?: () => void, prerequisiteMsg?: string) => {
+  const navHandlers: Record<string, (() => void) | undefined> = {
+    onboarding: onNavigateToOnboarding,
+    evidence: onNavigateToEvidence,
+    skilltwin: onNavigateToSkillTwin,
+    target_role: onNavigateToTargetRole,
+    gap: onNavigateToGapAnalysis,
+    roadmap: onNavigateToRoadmap,
+    verification: onNavigateToVerification,
+    skilltwin_updated: onNavigateToSkillTwinUpdated,
+    readiness: onNavigateToCareerReadiness
+  };
+
+  const handleStageClick = (stage: StageDef) => {
+    const callback = navHandlers[stage.key];
     if (!callback) return;
-    if (!isAvailable(key)) {
-      alert(prerequisiteMsg || 'Please complete the prerequisite steps first.');
+    if (!isAvailable(stage.key)) {
+      alert(stage.blockedMsg || 'Please complete the earlier steps first.');
       return;
     }
     callback();
   };
 
+  const doneCount = STAGES.filter(s => isCompleted(s.key)).length;
+  const pct = Math.round((doneCount / STAGES.length) * 100);
+
   return (
-    <aside className="app-persistent-sidebar" style={{
-      display: 'flex',
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-      width: '100%',
-      gap: '24px'
-    }}>
-      <div>
-        {/* Compact User Profile Card */}
-        <div
-          onClick={onNavigateToProfile}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '10px 14px',
-            background: activeView === 'profile' ? 'rgba(99, 102, 241, 0.2)' : 'rgba(15, 23, 42, 0.85)',
-            border: activeView === 'profile' ? '1px solid #818CF8' : '1px solid rgba(255, 255, 255, 0.09)',
-            borderRadius: '14px',
-            marginBottom: '20px',
-            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.25)',
-            cursor: onNavigateToProfile ? 'pointer' : 'default',
-            transition: 'all 0.2s ease'
-          }}
-          title="Click to view & edit Profile"
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
-            {/* Avatar: Custom Image or Dynamic Initials */}
-            <div style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 50%, #9333EA 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              color: '#FFFFFF',
-              boxShadow: '0 0 12px rgba(124, 58, 237, 0.45)',
-              flexShrink: 0,
-              overflow: 'hidden'
-            }}>
-              {avatarImage ? (
-                <img
-                  src={avatarImage}
-                  alt={userName}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                />
-              ) : (
-                initials
-              )}
-            </div>
+    <aside className="psb">
+      {/* Profile chip */}
+      <button
+        type="button"
+        className={`psb-profile${activeView === 'profile' ? ' psb-profile--active' : ''}`}
+        onClick={onNavigateToProfile}
+        title="View and edit your profile"
+      >
+        <span className="psb-avatar">
+          {avatarImage ? <img src={avatarImage} alt={userName} /> : getInitials(userName)}
+        </span>
+        <span className="psb-profile-text">
+          <span className="psb-profile-name">{userName}</span>
+          <span className="psb-profile-role">{userRole}</span>
+        </span>
+      </button>
 
-            {/* Name and Role */}
-            <div style={{ overflow: 'hidden' }}>
-              <div style={{
-                fontSize: '0.85rem',
-                fontWeight: 700,
-                color: '#F8FAFC',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis'
-              }}>
-                {userName}
-              </div>
-              <div style={{
-                fontSize: '0.7rem',
-                color: '#C084FC',
-                fontWeight: 600,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                marginTop: '1px'
-              }}>
-                {userRole}
-              </div>
-            </div>
-          </div>
-
-          <div style={{ color: 'var(--text-muted)', flexShrink: 0, paddingLeft: '4px' }}>
-            <ChevronDown size={15} />
-          </div>
+      {/* Progress summary */}
+      <div className="psb-progress">
+        <div className="psb-progress-top">
+          <span className="psb-progress-label">Your progress</span>
+          <span className="psb-progress-count">{doneCount}/{STAGES.length}</span>
         </div>
-
-        {/* Sidebar Navigation Items */}
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {/* Step 1: Onboarding */}
-          <div
-            className={`nav-item ${activeView === 'onboarding' ? 'active' : ''}`}
-            onClick={onNavigateToOnboarding}
-            style={{ cursor: onNavigateToOnboarding ? 'pointer' : 'default' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <GraduationCap size={16} />
-              <span>Onboarding</span>
-            </div>
-            {isCompleted('onboarding') ? (
-              <span className="badge badge-analyzed" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>✓</span>
-            ) : (
-              <span className="nav-badge-pill">1</span>
-            )}
-          </div>
-
-          {/* Step 2: Evidence Collection */}
-          <div
-            className={`nav-item ${activeView === 'evidence' ? 'active' : ''}`}
-            onClick={() => handleStageClick('evidence', onNavigateToEvidence, 'Please complete onboarding first.')}
-            style={{
-              opacity: isAvailable('evidence') ? 1 : 0.45,
-              cursor: isAvailable('evidence') && onNavigateToEvidence ? 'pointer' : 'not-allowed'
-            }}
-            title={!isAvailable('evidence') ? 'Complete Onboarding first' : undefined}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <FileText size={16} />
-              <span>Evidence Collection</span>
-            </div>
-            {isCompleted('evidence') ? (
-              <span className="badge badge-analyzed" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>✓</span>
-            ) : (
-              <span className="nav-badge-pill">2</span>
-            )}
-          </div>
-
-          {/* Step 3: SkillTwin */}
-          <div
-            className={`nav-item ${activeView === 'skilltwin' ? 'active' : ''}`}
-            onClick={() => handleStageClick('skilltwin', onNavigateToSkillTwin, 'Evidence needed: Add your resume, GitHub profile, or projects in Evidence Collection to synthesize your SkillTwin.')}
-            style={{
-              opacity: isAvailable('skilltwin') ? 1 : 0.45,
-              cursor: isAvailable('skilltwin') && onNavigateToSkillTwin ? 'pointer' : 'not-allowed'
-            }}
-            title={!isAvailable('skilltwin') ? 'Evidence needed: Add your resume, GitHub profile, or projects in Evidence Collection first.' : undefined}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Cpu size={16} />
-              <span>SkillTwin</span>
-            </div>
-            {isCompleted('skilltwin') ? (
-              <span className="badge badge-analyzed" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>✓</span>
-            ) : (
-              <span className="nav-badge-pill">3</span>
-            )}
-          </div>
-
-          {/* Step 4: Target Role / Industry Mapping */}
-          <div
-            className={`nav-item ${activeView === 'target_role' ? 'active' : ''}`}
-            onClick={() => handleStageClick('target_role', onNavigateToTargetRole, 'Evidence needed: Add your resume, GitHub profile, or projects in Evidence Collection first.')}
-            style={{
-              opacity: isAvailable('target_role') ? 1 : 0.45,
-              cursor: isAvailable('target_role') && onNavigateToTargetRole ? 'pointer' : 'not-allowed'
-            }}
-            title={!isAvailable('target_role') ? 'Evidence needed: Complete Evidence Collection first.' : undefined}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <GraduationCap size={16} color="#C084FC" />
-              <span>Target Role / Industry</span>
-            </div>
-            {isCompleted('target_role') ? (
-              <span className="badge badge-analyzed" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>✓</span>
-            ) : (
-              <span className="nav-badge-pill">4</span>
-            )}
-          </div>
-
-          {/* Step 5: Gap Analysis */}
-          <div
-            className={`nav-item ${activeView === 'gap' ? 'active' : ''}`}
-            onClick={() => handleStageClick('gap', onNavigateToGapAnalysis, 'Please select your Target Role first.')}
-            style={{
-              opacity: isAvailable('gap') ? 1 : 0.45,
-              cursor: isAvailable('gap') && onNavigateToGapAnalysis ? 'pointer' : 'not-allowed'
-            }}
-            title={!isAvailable('gap') ? 'Please select your Target Role first.' : undefined}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Compass size={16} />
-              <span>Gap Analysis</span>
-            </div>
-            {isCompleted('gap') ? (
-              <span className="badge badge-analyzed" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>✓</span>
-            ) : (
-              <span className="nav-badge-pill">5</span>
-            )}
-          </div>
-
-          {/* Step 6: Roadmap */}
-          <div
-            className={`nav-item ${activeView === 'roadmap' ? 'active' : ''}`}
-            onClick={() => handleStageClick('roadmap', onNavigateToRoadmap, 'Please complete Gap Analysis first.')}
-            style={{
-              opacity: isAvailable('roadmap') ? 1 : 0.45,
-              cursor: isAvailable('roadmap') && onNavigateToRoadmap ? 'pointer' : 'not-allowed'
-            }}
-            title={!isAvailable('roadmap') ? 'Please complete Gap Analysis first.' : undefined}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Award size={16} />
-              <span>Roadmap</span>
-            </div>
-            {isCompleted('roadmap') ? (
-              <span className="badge badge-analyzed" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>✓</span>
-            ) : (
-              <span className="nav-badge-pill">6</span>
-            )}
-          </div>
-
-          {/* Step 7: Project Verification */}
-          <div
-            className={`nav-item ${activeView === 'verification' ? 'active' : ''}`}
-            onClick={() => handleStageClick('verification', onNavigateToVerification, 'Please review your Roadmap and prepare a project first.')}
-            style={{
-              opacity: isAvailable('verification') ? 1 : 0.45,
-              cursor: isAvailable('verification') && onNavigateToVerification ? 'pointer' : 'not-allowed'
-            }}
-            title={!isAvailable('verification') ? 'Please complete Roadmap first.' : undefined}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <CheckCircle2 size={16} />
-              <span>Project Verification</span>
-            </div>
-            {isCompleted('verification') ? (
-              <span className="badge badge-analyzed" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>✓</span>
-            ) : (
-              <span className="nav-badge-pill">7</span>
-            )}
-          </div>
-
-          {/* Step 8: SkillTwin Updated */}
-          <div
-            className={`nav-item ${activeView === 'skilltwin_updated' ? 'active' : ''}`}
-            onClick={() => handleStageClick('skilltwin_updated', onNavigateToSkillTwinUpdated, 'Please verify a project in Step 7 first.')}
-            style={{
-              opacity: isAvailable('skilltwin_updated') ? 1 : 0.45,
-              cursor: isAvailable('skilltwin_updated') && onNavigateToSkillTwinUpdated ? 'pointer' : 'not-allowed'
-            }}
-            title={!isAvailable('skilltwin_updated') ? 'Please complete Project Verification first.' : undefined}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Cpu size={16} />
-              <span>SkillTwin Updated</span>
-            </div>
-            {isCompleted('skilltwin_updated') ? (
-              <span className="badge badge-analyzed" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>✓</span>
-            ) : (
-              <span className="nav-badge-pill">8</span>
-            )}
-          </div>
-
-          {/* Step 9: Career Readiness */}
-          <div
-            className={`nav-item ${activeView === 'readiness' ? 'active' : ''}`}
-            onClick={() => handleStageClick('readiness', onNavigateToCareerReadiness, 'Please review your updated SkillTwin in Step 8 first.')}
-            style={{
-              opacity: isAvailable('readiness') ? 1 : 0.45,
-              cursor: isAvailable('readiness') && onNavigateToCareerReadiness ? 'pointer' : 'not-allowed'
-            }}
-            title={!isAvailable('readiness') ? 'Please complete SkillTwin Updated first.' : undefined}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Award size={16} />
-              <span>Career Readiness</span>
-            </div>
-            {isCompleted('readiness') ? (
-              <span className="badge badge-analyzed" style={{ padding: '2px 6px', fontSize: '0.65rem' }}>✓</span>
-            ) : (
-              <span className="nav-badge-pill">9</span>
-            )}
-          </div>
-        </nav>
-
-        {/* Divider */}
-        <div style={{ borderTop: '1px solid var(--border-subtle)', margin: '16px 0 12px' }} />
-
-        {/* Secondary Navigation: Profile, Settings, Help & About */}
-        <nav style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <div
-            className={`nav-item ${activeView === 'profile' ? 'active' : ''}`}
-            onClick={onNavigateToProfile}
-            style={{ cursor: onNavigateToProfile ? 'pointer' : 'default' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <User size={16} />
-              <span>Profile</span>
-            </div>
-          </div>
-
-          <div
-            className={`nav-item ${activeView === 'settings' ? 'active' : ''}`}
-            onClick={onNavigateToSettings}
-            style={{ cursor: onNavigateToSettings ? 'pointer' : 'default' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Settings size={16} />
-              <span>Settings</span>
-            </div>
-          </div>
-
-          <div
-            className={`nav-item ${activeView === 'help' ? 'active' : ''}`}
-            onClick={onNavigateToHelp}
-            style={{ cursor: onNavigateToHelp ? 'pointer' : 'default' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <HelpCircle size={16} />
-              <span>Help & About</span>
-            </div>
-          </div>
-        </nav>
+        <div className="psb-progress-track">
+          <div className="psb-progress-fill" style={{ width: `${pct}%` }} />
+        </div>
       </div>
 
-      {/* Bottom Cards: Quote Card + Security Card */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {/* Quote / Inspiration Card */}
-        <div className="glass-card" style={{
-          padding: '16px 14px',
-          background: 'rgba(15, 23, 42, 0.75)',
-          border: '1px solid rgba(168, 85, 247, 0.25)',
-          borderRadius: '14px',
-          position: 'relative',
-          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.3)'
-        }}>
-          <div style={{
-            fontSize: '1.75rem',
-            lineHeight: 1,
-            color: '#A855F7',
-            fontWeight: 800,
-            fontFamily: 'serif',
-            marginBottom: '4px'
-          }}>
-            “
-          </div>
-          <p style={{
-            fontSize: '0.78rem',
-            color: '#E2E8F0',
-            lineHeight: 1.45,
-            fontWeight: 500,
-            letterSpacing: '-0.01em'
-          }}>
-            You're building your future<br />
-            with every verified step you take.<br />
-            <span style={{ color: '#C084FC', fontWeight: 600 }}>Keep going! 💜</span>
-          </p>
-        </div>
+      {/* Journey rail. One row per step, states: done / current / open / locked. */}
+      <nav className="psb-rail" aria-label="Your career journey">
+        {STAGES.map(stage => {
+          const done = isCompleted(stage.key);
+          const current = currentStep === stage.step;
+          const open = isAvailable(stage.key);
+          const state = current ? 'current' : done ? 'done' : open ? 'open' : 'locked';
 
-        {/* Security / Privacy Card */}
-        <div className="glass-card" style={{
-          padding: '14px',
-          background: 'rgba(13, 19, 36, 0.85)',
-          border: '1px solid rgba(56, 189, 248, 0.2)',
-          borderRadius: '14px'
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
-            <div style={{
-              padding: '6px',
-              background: 'rgba(56, 189, 248, 0.15)',
-              borderRadius: '8px',
-              color: '#38BDF8',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Shield size={16} />
-            </div>
-            <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#F8FAFC' }}>
-              Your data is secure
-            </span>
-          </div>
-          <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', lineHeight: 1.35, marginBottom: '8px' }}>
-            We use encryption to keep your data safe and private.
-          </p>
-          <a
-            href="#learn-more"
-            onClick={(e) => {
-              e.preventDefault();
-              if (onOpenSecurityModal) onOpenSecurityModal();
-            }}
-            style={{
-              fontSize: '0.72rem',
-              color: '#38BDF8',
-              textDecoration: 'none',
-              fontWeight: 600,
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '3px'
-            }}
+          return (
+            <button
+              type="button"
+              key={stage.key}
+              className={`psb-step psb-step--${state}`}
+              onClick={() => handleStageClick(stage)}
+              disabled={!open}
+              aria-current={current ? 'step' : undefined}
+              title={!open ? stage.blockedMsg : stage.label}
+            >
+              <span className="psb-step-marker">
+                {done && !current ? (
+                  <CheckCircle2 size={15} />
+                ) : !open ? (
+                  <Lock size={12} />
+                ) : (
+                  <span className="psb-step-num">{stage.step}</span>
+                )}
+              </span>
+              <span className="psb-step-icon">{stage.icon}</span>
+              <span className="psb-step-label">{stage.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Utility row: kept to icons so it reads as a footer, not another menu. */}
+      <div className="psb-utils">
+        <button
+          type="button"
+          className={`psb-util${activeView === 'profile' ? ' psb-util--active' : ''}`}
+          onClick={onNavigateToProfile}
+          title="Profile"
+        >
+          <User size={15} />
+        </button>
+        <button
+          type="button"
+          className={`psb-util${activeView === 'settings' ? ' psb-util--active' : ''}`}
+          onClick={onNavigateToSettings}
+          title="Settings"
+        >
+          <Settings size={15} />
+        </button>
+        <button
+          type="button"
+          className={`psb-util${activeView === 'help' ? ' psb-util--active' : ''}`}
+          onClick={onNavigateToHelp}
+          title="Help"
+        >
+          <HelpCircle size={15} />
+        </button>
+        {onOpenSecurityModal && (
+          <button
+            type="button"
+            className="psb-util"
+            onClick={onOpenSecurityModal}
+            title="Privacy & security"
           >
-            Learn more →
-          </a>
-        </div>
+            <Shield size={15} />
+          </button>
+        )}
       </div>
     </aside>
   );
