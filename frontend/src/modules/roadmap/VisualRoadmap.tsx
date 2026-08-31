@@ -259,6 +259,7 @@ export const VisualRoadmap: React.FC<VisualRoadmapProps> = ({
   );
 
   // Fetch AI-curated resources for the selected node's skill.
+  // Always ensures YouTube + docs links are present as fallback.
   useEffect(() => {
     if (!selectedNode) {
       setAiResources([]);
@@ -267,15 +268,79 @@ export const VisualRoadmap: React.FC<VisualRoadmapProps> = ({
 
     let cancelled = false;
     const skill = selectedNode.skill;
+    const node = selectedNode;
+
+    const buildFallbackResources = (): Array<{ title: string; url: string; type: string; provider: string }> => {
+      const skillSlug = skill.toLowerCase().replace(/\s+/g, '+').replace(/[&/]/g, '+');
+      const taskSlug = node.label.toLowerCase().replace(/\s+/g, '+').replace(/[&:/]/g, '+').substring(0, 60);
+
+      return [
+        {
+          title: `YouTube: ${skill} Tutorial for Beginners`,
+          url: node.youtubeUrl || `https://www.youtube.com/results?search_query=${skillSlug}+tutorial+for+beginners`,
+          type: 'video',
+          provider: 'YouTube'
+        },
+        {
+          title: `YouTube: ${skill} Full Course`,
+          url: `https://www.youtube.com/results?search_query=${skillSlug}+full+course+2024`,
+          type: 'video',
+          provider: 'YouTube'
+        },
+        {
+          title: `YouTube: ${node.label.substring(0, 50)}`,
+          url: `https://www.youtube.com/results?search_query=${taskSlug}+tutorial`,
+          type: 'video',
+          provider: 'YouTube'
+        },
+        {
+          title: `Official ${skill} Documentation`,
+          url: node.docsUrl || `https://developer.mozilla.org/en-US/docs/Learn`,
+          type: 'documentation',
+          provider: 'Official Docs'
+        },
+        {
+          title: `FreeCodeCamp: Learn ${skill}`,
+          url: `https://www.freecodecamp.org/news/search/?query=${skillSlug}`,
+          type: 'course',
+          provider: 'freeCodeCamp'
+        }
+      ];
+    };
 
     const fetchResources = async () => {
       setLoadingResources(true);
       try {
         const data = await apiClient.getAiResources(skill, 'intermediate');
-        if (!cancelled) setAiResources(data.resources || []);
+        const aiResources = data.resources || [];
+
+        // Merge AI resources with guaranteed fallbacks
+        const fallback = buildFallbackResources();
+        const merged = [...aiResources];
+
+        // Ensure at least 2 video resources exist
+        const videos = merged.filter(r => r.type === 'video');
+        if (videos.length < 2) {
+          const fallbackVideos = fallback.filter(r => r.type === 'video');
+          for (const fv of fallbackVideos) {
+            if (!merged.some(m => m.url === fv.url)) {
+              merged.push(fv);
+            }
+            if (merged.filter(r => r.type === 'video').length >= 2) break;
+          }
+        }
+
+        // Ensure docs exist
+        const hasDocs = merged.some(r => r.type === 'documentation');
+        if (!hasDocs) {
+          const fallbackDoc = fallback.find(r => r.type === 'documentation');
+          if (fallbackDoc) merged.push(fallbackDoc);
+        }
+
+        if (!cancelled) setAiResources(merged);
       } catch (err) {
         console.error('[VisualRoadmap] Failed to fetch AI resources:', err);
-        if (!cancelled) setAiResources([]);
+        if (!cancelled) setAiResources(buildFallbackResources());
       } finally {
         if (!cancelled) setLoadingResources(false);
       }

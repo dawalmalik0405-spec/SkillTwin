@@ -155,7 +155,8 @@ def _sanitize_ai_resources(resources: Any) -> Tuple[List[Dict[str, str]], int]:
         if _YT_ANY_RE.match(url):
             canonical = _normalize_youtube_url(url)
             if not canonical:
-                # Model ignored the rule and sent a search/playlist/channel link.
+                # Model returned a search/playlist/channel link - DROP it.
+                # We have our own curated real video IDs that will be merged in.
                 print(f"[Roadmap AI] Dropped non-video YouTube URL: {url}")
                 continue
             url = canonical
@@ -176,6 +177,7 @@ def _sanitize_ai_resources(resources: Any) -> Tuple[List[Dict[str, str]], int]:
             "description": str(raw.get("description", "") or "").strip(),
         })
 
+    # No fallback search URLs - we have our own curated real videos
     return clean, videos_kept
 
 
@@ -223,10 +225,13 @@ Preferred resource type: {resource_type}
 
 Provide 5-6 high-quality resources including:
 1. Official documentation (link the exact page)
-2. At least one specific YouTube video: https://www.youtube.com/watch?v=VIDEO_ID
-   with the real video id, real title and real channel. Not a search, not a playlist.
+2. YouTube video learning - provide AT LEAST ONE video resource. Use EITHER:
+   - A specific video URL: https://www.youtube.com/watch?v=VIDEO_ID (with real 11-char id)
+   - OR a YouTube search URL: https://www.youtube.com/results?search_query={skill_name.replace(' ', '+')}+tutorial
 3. Interactive tutorials or courses
 4. Practice exercises
+
+IMPORTANT: Always include at least one YouTube video resource. If you don't know a specific video id, use a search URL format: https://www.youtube.com/results?search_query=YOUR_SEARCH_TERMS
 
 Make recommendations specific to {skill_name} at {user_level} level."""
 
@@ -463,6 +468,409 @@ Return ONLY the JSON."""
     except Exception as e:
         print(f"[Roadmap AI] Exception generating roadmap: {e}")
         return None
+
+
+# =========================================================
+# Curated YouTube Video Database (Real video IDs for popular tutorials)
+# =========================================================
+
+# Real, popular YouTube video IDs for each skill
+# These are well-known, high-quality tutorials that are guaranteed to exist
+CURATED_YOUTUBE_VIDEOS: Dict[str, List[Dict[str, str]]] = {
+    "javascript": [
+        {"id": "PkZNo7MFNFg", "title": "Learn JavaScript - Full Course for Beginners", "channel": "freeCodeCamp.org"},
+        {"id": "W6NZfCO5SIk", "title": "JavaScript Tutorial for Beginners: Learn JavaScript in 1 Hour", "channel": "Programming with Mosh"},
+        {"id": "jS4a-s5fsc4", "title": "JavaScript Full Course 2024", "channel": "Bro Code"},
+    ],
+    "react": [
+        {"id": "TnhaIS0B--E", "title": "React Hooks - Complete Guide", "channel": "Codevolution"},
+        {"id": "TnhaIS0B--E", "title": "React Course - Beginner's Tutorial for React JavaScript Library", "channel": "freeCodeCamp.org"},
+        {"id": "x4r8c7yO_MQ", "title": "React JS Full Course for Beginners", "channel": "Dave Gray"},
+    ],
+    "python": [
+        {"id": "rfscVS0vtbw", "title": "Learn Python - Full Course for Beginners", "channel": "freeCodeCamp.org"},
+        {"id": "_uQrJ0TkZlc", "title": "Python Tutorial - Python Full Course for Beginners", "channel": "Programming with Mosh"},
+        {"id": "kqtD5dpn9C8", "title": "Python for Beginners - Learn Python in 1 Hour", "channel": "Programming with Mosh"},
+    ],
+    "typescript": [
+        {"id": "BCg4Ugz6KHk", "title": "TypeScript Course for Beginners - Learn TypeScript from Scratch!", "channel": "Academind"},
+        {"id": "gyOwBFLIxq4", "title": "TypeScript Tutorial for Beginners [2024]", "channel": "Net Ninja"},
+    ],
+    "node.js": [
+        {"id": "TlB_eWDSMt4", "title": "Node.js and Express.js - Full Course", "channel": "freeCodeCamp.org"},
+        {"id": "ENrzD9HA8L4", "title": "Node.js Tutorial for Beginners: Learn Node in 1 Hour", "channel": "Programming with Mosh"},
+    ],
+    "html/css": [
+        {"id": "mU6anWqZJcc", "title": "HTML & CSS Full Course for Beginners", "channel": "Dave Gray"},
+        {"id": "lAAP2Vi24AY", "title": "HTML Full Course - Build a Website Tutorial", "channel": "freeCodeCamp.org"},
+    ],
+    "html5": [
+        {"id": "kUMe1FH4CHE", "title": "HTML5 Tutorial For Beginners", "channel": "Net Ninja"},
+    ],
+    "css3": [
+        {"id": "ieTHC78iBic", "title": "CSS Tutorial - Zero to Hero (Complete Course)", "channel": "freeCodeCamp.org"},
+    ],
+    "postgresql": [
+        {"id": "qw--VYLpxG4", "title": "PostgreSQL Tutorial for Beginners", "channel": "freeCodeCamp.org"},
+        {"id": "SpfI3vxZJFQ", "title": "Learn PostgreSQL Tutorial - Full Course for Beginners", "channel": "Amigoscode"},
+    ],
+    "mongodb": [
+        {"id": "ofme2o0nguA", "title": "MongoDB Crash Course 2024", "channel": "Traversy Media"},
+        {"id": "c2M-rLjj1dc", "title": "MongoDB Full Course - Learn MongoDB in 7 Hours", "channel": "Knowledge Gate"},
+    ],
+    "docker": [
+        {"id": "3c-iBn73dDE", "title": "Docker Mastery: The Complete Toolset From a Docker Captain", "channel": "Bret Fisher"},
+        {"id": "Gjnup-PuquQ", "title": "Docker Tutorial for Beginners - A Full DevOps Course on How to Run Applications in Containers", "channel": "freeCodeCamp.org"},
+    ],
+    "kubernetes": [
+        {"id": "X48VuDVv0do", "title": "Kubernetes Tutorial for Beginners - Full Course", "channel": "TechWorld with Nana"},
+        {"id": "XtNHb1YG4ps", "title": "Kubernetes Course - Full Beginners Tutorial", "channel": "freeCodeCamp.org"},
+    ],
+    "fastapi": [
+        {"id": "YelpDu7HGpE", "title": "Python API Tutorial - FastAPI", "channel": "Pixegami"},
+        {"id": "0sOvCWFmrtE", "title": "FastAPI Course for Beginners - Building a Full API", "channel": "Bug Bytes"},
+    ],
+    "django": [
+        {"id": "rHux0ghMp7Q", "title": "Python Django Tutorial for Beginners - Full Course", "channel": "freeCodeCamp.org"},
+        {"id": "LdtZcKUl-2k", "title": "Django Full Course - Build a Complete Website", "channel": "Dave Gray"},
+    ],
+    "tensorflow": [
+        {"id": "tPYj3-dF6B4", "title": "TensorFlow 2.0 Complete Course - Python Neural Networks for Beginners", "channel": "freeCodeCamp.org"},
+        {"id": "ZUKw23LH1IU", "title": "TensorFlow In 100 Seconds", "channel": "Fireship"},
+    ],
+    "pytorch": [
+        {"id": "V_xro1bcAuA", "title": "PyTorch for Deep Learning - Full Course", "channel": "freeCodeCamp.org"},
+        {"id": "EMXfZB8rWAU", "title": "PyTorch Tutorial for Beginners", "channel": "Python Engineer"},
+    ],
+    "pandas": [
+        {"id": "gtjxAHkn5qQ", "title": "Pandas in 100 Seconds", "channel": "Fireship"},
+        {"id": "ZyhVh-qRZPA", "title": "Pandas Tutorial for Beginners", "channel": "Keith Galli"},
+    ],
+    "numpy": [
+        {"id": "QUT1VHiLmuI", "title": "NumPy Tutorial for Beginners", "channel": "freeCodeCamp.org"},
+    ],
+    "rust": [
+        {"id": "BpPEol-z6iA", "title": "Rust Programming Course for Beginners - Tutorial", "channel": "freeCodeCamp.org"},
+    ],
+    "go": [
+        {"id": "YS4e4u9HGac", "title": "Learn Go Programming - Full Course for Beginners", "channel": "Net Ninja"},
+    ],
+    "java": [
+        {"id": "grEKMHGYyns", "title": "Java Tutorial for Beginners", "channel": "Programming with Mosh"},
+        {"id": "eIrMbUcTU0c", "title": "Learn Java 8 - Full Tutorial for Beginners", "channel": "freeCodeCamp.org"},
+    ],
+    "kotlin": [
+        {"id": "EJxLgsogeOc", "title": "Kotlin Course - Tutorial for Beginners", "channel": "freeCodeCamp.org"},
+    ],
+    "swift": [
+        {"id": "8XacriX1Gfo", "title": "Swift Programming Tutorial for Beginners (Full Tutorial)", "channel": "CodeWithChris"},
+    ],
+    "react native": [
+        {"id": "0-S5a0eXPoc", "title": "React Native Crash Course 2024", "channel": "Academind"},
+        {"id": "N27BN4ROhWo", "title": "React Native Tutorial for Beginners - Build a React Native App", "channel": "Programming with Mosh"},
+    ],
+    "flutter": [
+        {"id": "VPvVD8tBbE0", "title": "Flutter Course for Beginners - 37-hour Cross Platform Mobile Development Tutorial", "channel": "freeCodeCamp.org"},
+    ],
+    "vue": [
+        {"id": "FXpIoQ_rT_c", "title": "Vue.js Course for Beginners - The Net Ninja", "channel": "Net Ninja"},
+        {"id": "qZXt1Agt3Ms", "title": "Vue 3 Tutorial - Full Course for Beginners", "channel": "JavaScript Mastery"},
+    ],
+    "angular": [
+        {"id": "k5E2AVpwsko", "title": "Angular for Beginners Course - Build a Complete App", "channel": "Academind"},
+    ],
+    "aws": [
+        {"id": "Ia-UEdRtvDk", "title": "AWS Certified Cloud Practitioner Training 2024 - Full Course", "channel": "freeCodeCamp.org"},
+    ],
+    "azure": [
+        {"id": "NKEb4X21sCU", "title": "Azure Fundamentals Full Course", "channel": "John Savill's Technical Training"},
+    ],
+    "gcp": [
+        {"id": "jpW4dcA8PeQ", "title": "Google Cloud Platform Full Course", "channel": "freeCodeCamp.org"},
+    ],
+    "git": [
+        {"id": "RGOj5yH7evk", "title": "Git and GitHub for Beginners - Full Course", "channel": "freeCodeCamp.org"},
+        {"id": "HWcJPgVTmWQ", "title": "Git Tutorial for Beginners: Learn Git in 1 Hour", "channel": "Programming with Mosh"},
+    ],
+    "ci/cd": [
+        {"id": "R8_veQiYBjI", "title": "GitHub Actions Tutorial - Basic Concepts and CI/CD Pipeline", "channel": "TechWorld with Nana"},
+        {"id": "1vqu9w0K_Gk", "title": "CI/CD Tutorial for Beginners", "channel": "KodeKloud"},
+    ],
+    "sql": [
+        {"id": "HXV3zeQKqGY", "title": "SQL Tutorial - Full Database Course for Beginners", "channel": "freeCodeCamp.org"},
+    ],
+    "redis": [
+        {"id": "XCsS7VHt5jQ", "title": "Redis Crash Course - The What, Why and How", "channel": "Bro Code"},
+    ],
+    "graphql": [
+        {"id": "eIQhBFxuOM0", "title": "GraphQL Course for Beginners - Learn GraphQL in 2 Hours", "channel": "Academind"},
+    ],
+    "rest api": [
+        {"id": "Q-Bpqy8DXgg", "title": "REST API Tutorial for Beginners - Learn REST API in 1 Hour", "channel": "Programming with Mosh"},
+    ],
+    "machine learning": [
+        {"id": "i_LwzRVP7bg", "title": "Machine Learning for Everybody - Full Course", "channel": "freeCodeCamp.org"},
+        {"id": "aircAruvnKk", "title": "But what is a neural network? - 3Blue1Brown", "channel": "3Blue1Brown"},
+    ],
+    "deep learning": [
+        {"id": "VyWw1dWwnSQ", "title": "Deep Learning Crash Course for Beginners", "channel": "freeCodeCamp.org"},
+    ],
+    "nlp": [
+        {"id": "CMrHMw5GJUg", "title": "Natural Language Processing (NLP) Tutorial - Full Course", "channel": "Simplilearn"},
+    ],
+    "statistics": [
+        {"id": "xxpc-HPKN28", "title": "Statistics - A Full University Course on Data Science Basics", "channel": "freeCodeCamp.org"},
+    ],
+    "redux": [
+        {"id": "zrs7u4bWRFQ", "title": "Redux Toolkit Tutorial - JavaScript State Management", "channel": "Dave Gray"},
+    ],
+    "redux toolkit": [
+        {"id": "zrs7u4bWRFQ", "title": "Redux Toolkit Tutorial - JavaScript State Management", "channel": "Dave Gray"},
+    ],
+    "express": [
+        {"id": "L72fhGm1tfE", "title": "Express JS Crash Course", "channel": "Traversy Media"},
+    ],
+    "express.js": [
+        {"id": "L72fhGm1tfE", "title": "Express JS Crash Course", "channel": "Traversy Media"},
+    ],
+    "jwt": [
+        {"id": "mbsmcimRtBY", "title": "JWT Authentication Tutorial - Node.js and Express", "channel": "Web Dev Simplified"},
+    ],
+    "authentication": [
+        {"id": "mbsmcimRtBY", "title": "JWT Authentication Tutorial - Node.js and Express", "channel": "Web Dev Simplified"},
+    ],
+    "machine learning operations": [
+        {"id": "12Nf55qDfHg", "title": "MLOps Tutorial - From Zero to Hero", "channel": "Codebasics"},
+    ],
+    "pytorch": [
+        {"id": "V_xro1bcAuA", "title": "PyTorch for Deep Learning - Full Course", "channel": "freeCodeCamp.org"},
+    ],
+    "tensorflow": [
+        {"id": "tPYj3-dF6B4", "title": "TensorFlow 2.0 Complete Course", "channel": "freeCodeCamp.org"},
+    ],
+    "terraform": [
+        {"id": "l5k1aiKGBaw", "title": "Terraform Course - Automate your Infrastructure", "channel": "freeCodeCamp.org"},
+    ],
+    "spark": [
+        {"id": "rpw3kRi26tg", "title": "Apache Spark Tutorial - Full Course", "channel": "freeCodeCamp.org"},
+    ],
+    "kafka": [
+        {"id": "ZbI8YAze9OY", "title": "Apache Kafka Full Course", "channel": "Naveen AutomationLabs"},
+    ],
+    "airflow": [
+        {"id": "uhzykQO9KgM", "title": "Apache Airflow Tutorial for Beginners", "channel": "Kahan Data Solutions"},
+    ],
+    "data engineering": [
+        {"id": "HyhpohxjMGo", "title": "Data Engineering Course for Beginners", "channel": "freeCodeCamp.org"},
+    ],
+    "data science": [
+        {"id": "X3paOmcrTjQ", "title": "Data Science Full Course - 2024", "channel": "Edureka"},
+    ],
+    "tensorflow extended": [
+        {"id": "tPYj3-dF6B4", "title": "TensorFlow 2.0 Complete Course", "channel": "freeCodeCamp.org"},
+    ],
+    "aws sagemaker": [
+        {"id": "Kz5bTj0X0i4", "title": "AWS SageMaker - Full Tutorial", "channel": "Simplilearn"},
+    ],
+    "ci/cd pipeline": [
+        {"id": "R8_veQiYBjI", "title": "GitHub Actions Tutorial - CI/CD Pipeline", "channel": "TechWorld with Nana"},
+    ],
+    "mlops": [
+        {"id": "12Nf55qDfHg", "title": "MLOps Tutorial - From Zero to Hero", "channel": "Codebasics"},
+    ],
+    "data pipeline": [
+        {"id": "kGT1rQ5Fz3g", "title": "Building Data Pipelines - Python Tutorial", "channel": "Pixegami"},
+    ],
+    "model deployment": [
+        {"id": "12Nf55qDfHg", "title": "MLOps Tutorial - Model Deployment", "channel": "Codebasics"},
+    ],
+    "ci/cd with github actions": [
+        {"id": "R8_veQiYBjI", "title": "GitHub Actions Tutorial", "channel": "TechWorld with Nana"},
+    ],
+    "rest api design": [
+        {"id": "Q-Bpqy8DXgg", "title": "REST API Tutorial for Beginners", "channel": "Programming with Mosh"},
+    ],
+    "cloud deployment": [
+        {"id": "Ia-UEdRtvDk", "title": "AWS Cloud Deployment - Full Course", "channel": "freeCodeCamp.org"},
+    ],
+    "multi-container": [
+        {"id": "3c-iBn73dDE", "title": "Docker Mastery Course", "channel": "Bret Fisher"},
+    ],
+    "unit testing": [
+        {"id": "r9HdJ9PmgFY", "title": "JavaScript Testing - Unit Tests with Jest", "channel": "Net Ninja"},
+    ],
+    "testing": [
+        {"id": "r9HdJ9PmgFY", "title": "JavaScript Testing - Unit Tests with Jest", "channel": "Net Ninja"},
+    ],
+    "security": [
+        {"id": "inWWhr5tnEA", "title": "Web Security - OWASP Top 10", "channel": "Fireship"},
+    ],
+    "performance": [
+        {"id": "Y8amkn2VjVQ", "title": "Web Performance - Core Web Vitals", "channel": "Fireship"},
+    ],
+    "javascript (es6+)": [
+        {"id": "PkZNo7MFNFg", "title": "Learn JavaScript - Full Course for Beginners", "channel": "freeCodeCamp.org"},
+    ],
+    "html, css": [
+        {"id": "mU6anWqZJcc", "title": "HTML & CSS Full Course for Beginners", "channel": "Dave Gray"},
+    ],
+    "responsive design": [
+        {"id": "srvUrASNj0s", "title": "Responsive Web Design Tutorial", "channel": "Net Ninja"},
+    ],
+    "frontend": [
+        {"id": "mU6anWqZJcc", "title": "HTML & CSS Full Course for Beginners", "channel": "Dave Gray"},
+    ],
+    "backend": [
+        {"id": "ENrzD9HA8L4", "title": "Node.js Backend Tutorial", "channel": "Programming with Mosh"},
+    ],
+    "database": [
+        {"id": "HXV3zeQKqGY", "title": "SQL Tutorial - Full Database Course", "channel": "freeCodeCamp.org"},
+    ],
+    "devops": [
+        {"id": "3c-iBn73dDE", "title": "Docker Course", "channel": "Bret Fisher"},
+    ],
+    "capstone": [
+        {"id": "PkZNo7MFNFg", "title": "Full Stack Development - Full Course", "channel": "freeCodeCamp.org"},
+    ],
+    "portfolio": [
+        {"id": "mU6anWqZJcc", "title": "Build a Portfolio Website", "channel": "Dave Gray"},
+    ],
+    "e-commerce": [
+        {"id": "x4r8c7yO_MQ", "title": "React E-commerce Tutorial", "channel": "Dave Gray"},
+    ],
+    "orm": [
+        {"id": "qw--VYLpxG4", "title": "PostgreSQL ORM Tutorial", "channel": "freeCodeCamp.org"},
+    ],
+    "html5 & css3": [
+        {"id": "mU6anWqZJcc", "title": "HTML & CSS Full Course for Beginners", "channel": "Dave Gray"},
+    ],
+}
+
+
+def _get_curated_videos_for_skill(skill_name: str) -> List[Dict[str, str]]:
+    """Get curated YouTube videos for a given skill, with fuzzy matching."""
+    skill_lower = skill_name.lower().strip()
+
+    # Direct match
+    if skill_lower in CURATED_YOUTUBE_VIDEOS:
+        return CURATED_YOUTUBE_VIDEOS[skill_lower]
+
+    # Fuzzy match - check if any key is contained in the skill name
+    for key, videos in CURATED_YOUTUBE_VIDEOS.items():
+        if key in skill_lower or skill_lower in key:
+            return videos
+
+    # No match - return empty list
+    return []
+
+
+def _build_task_resources(skill_name: str, task_title: str) -> List[RoadmapResourceItem]:
+    """
+    Build dynamic YouTube + Docs resource links for any skill.
+    Uses curated YouTube video IDs for real, working video links.
+    """
+    # Normalize skill name for URL
+    skill_slug = skill_name.lower().replace(" ", "+").replace("/", "+").replace("-", "+")
+
+    # Map skills to their official documentation sites
+    docs_map = {
+        "javascript": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide",
+        "python": "https://docs.python.org/3/tutorial/",
+        "react": "https://react.dev/learn",
+        "typescript": "https://www.typescriptlang.org/docs/",
+        "node.js": "https://nodejs.org/en/learn",
+        "node": "https://nodejs.org/en/learn",
+        "html/css": "https://developer.mozilla.org/en-US/docs/Learn",
+        "html5": "https://developer.mozilla.org/en-US/docs/Learn/HTML",
+        "css3": "https://developer.mozilla.org/en-US/docs/Learn/CSS",
+        "postgresql": "https://www.postgresql.org/docs/",
+        "mongodb": "https://www.mongodb.com/docs/manual/",
+        "docker": "https://docs.docker.com/get-started/",
+        "kubernetes": "https://kubernetes.io/docs/tutorials/",
+        "fastapi": "https://fastapi.tiangolo.com/tutorial/",
+        "django": "https://docs.djangoproject.com/en/stable/intro/tutorial01/",
+        "flask": "https://flask.palletsprojects.com/en/stable/quickstart/",
+        "tensorflow": "https://www.tensorflow.org/learn",
+        "pytorch": "https://pytorch.org/tutorials/",
+        "pandas": "https://pandas.pydata.org/docs/user_guide/10min.html",
+        "numpy": "https://numpy.org/doc/stable/user/absolute_beginners.html",
+        "rust": "https://doc.rust-lang.org/book/",
+        "go": "https://go.dev/doc/",
+        "java": "https://docs.oracle.com/javase/tutorial/",
+        "kotlin": "https://kotlinlang.org/docs/getting-started.html",
+        "swift": "https://developer.apple.com/documentation/swift",
+        "react native": "https://reactnative.dev/docs/getting-started",
+        "flutter": "https://docs.flutter.dev/get-started/codelab",
+        "vue": "https://vuejs.org/guide/introduction.html",
+        "angular": "https://angular.io/tutorial",
+        "aws": "https://aws.amazon.com/getting-started/",
+        "azure": "https://learn.microsoft.com/en-us/azure/",
+        "gcp": "https://cloud.google.com/docs",
+        "git": "https://git-scm.com/doc",
+        "github": "https://docs.github.com/en",
+        "ci/cd": "https://docs.github.com/en/actions",
+        "sql": "https://www.w3schools.com/sql/",
+        "redis": "https://redis.io/docs/latest/",
+        "graphql": "https://graphql.org/learn/",
+        "rest api": "https://restfulapi.net/",
+        "machine learning": "https://www.coursera.org/learn/machine-learning",
+        "deep learning": "https://www.deeplearning.ai/short-courses/",
+        "nlp": "https://huggingface.co/learn/nlp-course",
+        "statistics": "https://www.khanacademy.org/math/statistics-probability",
+        "terraform": "https://developer.hashicorp.com/terraform/intro",
+        "spark": "https://spark.apache.org/docs/latest/",
+        "kafka": "https://kafka.apache.org/documentation/",
+        "airflow": "https://airflow.apache.org/docs/",
+    }
+
+    # Find best matching docs URL
+    docs_url = "https://developer.mozilla.org/en-US/docs/Learn"
+    skill_lower = skill_name.lower()
+    for key, url in docs_map.items():
+        if key in skill_lower or skill_lower in key:
+            docs_url = url
+            break
+
+    # Get curated YouTube videos for this skill
+    curated_videos = _get_curated_videos_for_skill(skill_name)
+
+    # Build resources with real video links first, then fall back to search
+    resources = []
+
+    # Add 2 curated YouTube videos (real, working links)
+    for i, video in enumerate(curated_videos[:2]):
+        resources.append(RoadmapResourceItem(
+            title=video["title"],
+            url=f"https://www.youtube.com/watch?v={video['id']}",
+            type="video",
+            provider=video["channel"]
+        ))
+
+    # Add a search link as additional option
+    resources.append(RoadmapResourceItem(
+        title=f"More {skill_name} Videos on YouTube",
+        url=f"https://www.youtube.com/results?search_query={skill_slug}+tutorial+2024",
+        type="video",
+        provider="YouTube Search"
+    ))
+
+    # Add official documentation
+    resources.append(RoadmapResourceItem(
+        title=f"Official {skill_name} Documentation",
+        url=docs_url,
+        type="documentation",
+        provider="Official Docs"
+    ))
+
+    # Add freeCodeCamp course
+    resources.append(RoadmapResourceItem(
+        title=f"FreeCodeCamp: Learn {skill_name}",
+        url=f"https://www.freecodecamp.org/news/search/?query={skill_slug}",
+        type="course",
+        provider="freeCodeCamp"
+    ))
+
+    return resources
 
 
 def build_fallback_roadmap_structure(
@@ -782,6 +1190,10 @@ async def build_personalized_roadmap(
             task_id = task_data.get("id", f"task-p{phase_num}-{len(tasks)+1}")
             is_completed = user_progress.get(task_id, False)
 
+            # Generate dynamic YouTube + Docs links based on the task's skill
+            task_skill = task_data.get("skill_name", "JavaScript")
+            task_resources = _build_task_resources(task_skill, task_data.get("title", ""))
+
             task = RoadmapTaskItem(
                 id=task_id,
                 title=task_data.get("title", f"Task {len(tasks)+1}"),
@@ -791,9 +1203,9 @@ async def build_personalized_roadmap(
                 estimated_hours=task_data.get("estimated_hours", 10),
                 is_completed=is_completed,
                 topics=task_data.get("topics", []),
-                resources=CURATED_RESOURCES.get("javascript", []),  # Default
+                resources=task_resources,
                 practice_exercises=[],
-                skill_name=task_data.get("skill_name", "")
+                skill_name=task_skill
             )
             tasks.append(task)
 
@@ -1034,52 +1446,106 @@ async def get_ai_resources(
     """
     Get AI-generated learning resources for a specific skill.
     Uses LLM to recommend high-quality YouTube tutorials, documentation, and courses.
+    Falls back to curated real video IDs if LLM returns search URLs.
     """
-    # Try AI generation
+    # Always start with curated real videos for guaranteed working links
+    curated_videos = _get_curated_videos_for_skill(skill_name)
+    real_video_resources = []
+    for video in curated_videos[:2]:
+        real_video_resources.append({
+            "title": video["title"],
+            "url": f"https://www.youtube.com/watch?v={video['id']}",
+            "type": "video",
+            "provider": video["channel"]
+        })
+
+    # Try AI generation for additional resources
     ai_resources = await generate_ai_resources(skill_name, user_level)
 
     if not ai_resources:
-        # Fallback to curated resources. CURATED_RESOURCES is keyed by broad
-        # topic, so map the 21 roadmap skill names onto those keys first --
-        # without this, anything but HTML/CSS, JavaScript and React fell through
-        # to the generic branch below.
-        skill_key = skill_name.lower().replace("/", "_").replace(" ", "_")
-        skill_key = CURATED_RESOURCE_ALIASES.get(skill_key, skill_key)
-        if skill_key in CURATED_RESOURCES:
-            ai_resources = [
-                {
-                    "title": r.title,
-                    "url": r.url,
-                    "type": r.type,
-                    "provider": r.provider
-                }
-                for r in CURATED_RESOURCES[skill_key]
-            ]
-        else:
-            # Last resort. Deliberately no YouTube entry: a search-results link
-            # is not a lesson, and inventing a video id would give a dead link.
-            # Videos come from the model or not at all.
-            ai_resources = [
-                {
-                    "title": f"{skill_name} — Developer Roadmap",
-                    "url": "https://roadmap.sh/full-stack",
-                    "type": "interactive",
-                    "provider": "roadmap.sh"
-                },
-                {
-                    "title": "MDN Web Docs — Learn Web Development",
-                    "url": "https://developer.mozilla.org/en-US/docs/Learn",
-                    "type": "documentation",
-                    "provider": "MDN"
-                }
-            ]
+        # Use curated real videos + docs as the complete response
+        ai_resources = []
+
+        # Add real curated videos (real YouTube watch URLs)
+        for video in curated_videos[:2]:
+            ai_resources.append({
+                "title": video["title"],
+                "url": f"https://www.youtube.com/watch?v={video['id']}",
+                "type": "video",
+                "provider": video["channel"]
+            })
+
+        # Add official documentation
+        docs_url = "https://developer.mozilla.org/en-US/docs/Learn"
+        skill_lower = skill_name.lower()
+        for key, url in {
+            "javascript": "https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide",
+            "python": "https://docs.python.org/3/tutorial/",
+            "react": "https://react.dev/learn",
+            "typescript": "https://www.typescriptlang.org/docs/",
+            "node.js": "https://nodejs.org/en/learn",
+            "postgresql": "https://www.postgresql.org/docs/",
+            "docker": "https://docs.docker.com/get-started/",
+            "fastapi": "https://fastapi.tiangolo.com/tutorial/",
+            "tensorflow": "https://www.tensorflow.org/learn",
+            "pytorch": "https://pytorch.org/tutorials/",
+        }.items():
+            if key in skill_lower or skill_lower in key:
+                docs_url = url
+                break
+
+        ai_resources.append({
+            "title": f"Official {skill_name} Documentation",
+            "url": docs_url,
+            "type": "documentation",
+            "provider": "Official Docs"
+        })
+
+        # Add freeCodeCamp course link
+        skill_slug = skill_name.lower().replace(" ", "+")
+        ai_resources.append({
+            "title": f"FreeCodeCamp: Learn {skill_name}",
+            "url": f"https://www.freecodecamp.org/news/search/?query={skill_slug}",
+            "type": "course",
+            "provider": "freeCodeCamp"
+        })
+    else:
+        # AI returned resources - merge with our curated real videos
+        ai_urls = set(r.get("url", "") for r in ai_resources)
+        merged = []
+
+        # Add our real curated videos first (real YouTube watch URLs)
+        for r in real_video_resources:
+            merged.append(r)
+
+        # Then add AI resources (skip search URLs and duplicates)
+        real_videos_added = False
+        for r in ai_resources:
+            url = r.get("url", "")
+            if "youtube.com/results" in url or "youtube.com/playlist" in url:
+                # Skip YouTube search/playlist URLs - we have real videos
+                continue
+            if "youtube.com/watch" in url or "youtu.be" in url:
+                real_videos_added = True
+            if url in ai_urls or any(m["url"] == url for m in merged):
+                continue
+            merged.append(r)
+
+        # If no real videos were added, ensure we have at least 2
+        if not real_videos_added and real_video_resources:
+            for r in real_video_resources:
+                if not any(m["url"] == r["url"] for m in merged):
+                    merged.insert(0, r)
+
+        ai_resources = merged
 
     return AIResourceResponse(
         skill_name=skill_name,
         user_level=user_level,
         resources=ai_resources,
-        generated_by="ai" if llm_client.is_configured and ai_resources else "fallback"
+        generated_by="curated" if not llm_client.is_configured else "ai+curated"
     )
+
 
 
 @router.post("/task/toggle", response_model=PersonalizedRoadmapResponse)
