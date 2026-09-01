@@ -196,7 +196,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
               display: 'flex',
               flexDirection: 'column',
-              gap: '16px'
+              gap: '16px',
+              maxHeight: 'calc(100vh - 74px)',
+              overflowY: 'auto',
+              boxShadow: '0 20px 40px rgba(0, 0, 0, 0.8)'
             }}
           >
             <span className="landing-nav-link" onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }); setMobileMenuOpen(false); }}>
@@ -263,10 +266,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         id="hero"
         style={{
           position: 'relative',
-          padding: '80px 24px 100px',
+          padding: 'clamp(40px, 8vw, 80px) clamp(16px, 4vw, 24px) clamp(50px, 10vw, 100px)',
           textAlign: 'center',
           maxWidth: '1240px',
-          margin: '0 auto'
+          margin: '0 auto',
+          width: '100%'
         }}
       >
         {/* Subtle Ambient Background Halo */}
@@ -276,8 +280,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             top: '20%',
             left: '50%',
             transform: 'translateX(-50%)',
-            width: '600px',
-            height: '400px',
+            width: 'min(600px, 90vw)',
+            height: 'min(400px, 60vw)',
             borderRadius: '50%',
             background: 'radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(147, 51, 234, 0.08) 50%, transparent 70%)',
             filter: 'blur(60px)',
@@ -295,9 +299,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           {/* Main Headline */}
           <h1
             style={{
-              fontSize: 'clamp(2.4rem, 5.5vw, 4.4rem)',
+              fontSize: 'clamp(2.2rem, 5.5vw, 4.4rem)',
               fontWeight: 900,
-              lineHeight: 1.1,
+              lineHeight: 1.12,
               letterSpacing: '-0.03em',
               maxWidth: '920px',
               margin: '0 auto 20px',
@@ -312,7 +316,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           {/* Supporting Text */}
           <p
             style={{
-              fontSize: 'clamp(1.05rem, 2vw, 1.25rem)',
+              fontSize: 'clamp(0.95rem, 2vw, 1.25rem)',
               color: 'var(--text-secondary)',
               maxWidth: '720px',
               margin: '0 auto 36px',
@@ -360,7 +364,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           {/* Centerpiece: Reused & Scaled Galaxy / Planetary Orbital System */}
-          <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', minHeight: '340px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', position: 'relative', minHeight: 'clamp(260px, 40vw, 340px)', width: '100%', overflow: 'hidden' }}>
             <GalaxyOrbitalSystem size="hero" />
           </div>
         </div>

@@ -343,39 +343,7 @@ def synthesize_living_skilltwin(
         resume_data = store.get("resume")
         github_data = store.get("github")
         projects_data = store.get("projects", [])
-        extracted_skills_dict = dict(store.get("skills", {}))
-
-    # Also automatically discover and merge skills from resume_data, github_data, projects_data
-    if resume_data:
-        r_skills = getattr(resume_data, "skills_extracted", None) or (resume_data.get("skills_extracted", []) if isinstance(resume_data, dict) else [])
-        for rs in r_skills:
-            cn = getattr(rs, "canonical_name", None) or (rs.get("canonical_name") if isinstance(rs, dict) else "")
-            if cn and cn not in extracted_skills_dict:
-                extracted_skills_dict[cn] = rs
-
-    if github_data:
-        g_skills = getattr(github_data, "skills_extracted", None) or (github_data.get("skills_extracted", []) if isinstance(github_data, dict) else [])
-        for gs in g_skills:
-            cn = getattr(gs, "canonical_name", None) or (gs.get("canonical_name") if isinstance(gs, dict) else "")
-            if cn and cn not in extracted_skills_dict:
-                extracted_skills_dict[cn] = gs
-
-    for p in projects_data:
-        p_skills = getattr(p, "skills_extracted", None) or (p.get("skills_extracted", []) if isinstance(p, dict) else [])
-        for ps in p_skills:
-            cn = getattr(ps, "canonical_name", None) or (ps.get("canonical_name") if isinstance(ps, dict) else "")
-            if cn and cn not in extracted_skills_dict:
-                extracted_skills_dict[cn] = ps
-        p_techs = getattr(p, "detected_technologies", None) or (p.get("detected_technologies", []) if isinstance(p, dict) else [])
-        for pt in p_techs:
-            if pt and pt not in extracted_skills_dict:
-                extracted_skills_dict[pt] = {
-                    "skill_name": pt,
-                    "canonical_name": pt,
-                    "proficiency": "Intermediate",
-                    "confidence_score": 85.0,
-                    "evidence_source": "Projects"
-                }
+        extracted_skills_dict = store.get("skills", {})
 
     # 1. Gather all evidence sources (already set above from DB or in-memory)
     skill_items: List[SkillTwinSkillItem] = []
@@ -392,48 +360,30 @@ def synthesize_living_skilltwin(
             # Check Resume
             has_resume = False
             if resume_data:
-                r_skills = getattr(resume_data, "skills_extracted", None) or (resume_data.get("skills_extracted", []) if isinstance(resume_data, dict) else [])
-                for rs in r_skills:
-                    rs_cn = getattr(rs, "canonical_name", None) or (rs.get("canonical_name") if isinstance(rs, dict) else "")
-                    if rs_cn.lower() == canonical_name.lower():
+                for rs in resume_data.skills_extracted:
+                    if rs.canonical_name == canonical_name:
                         has_resume = True
                         sources_set.add("Resume")
-                        rs_snip = getattr(rs, "context_snippet", None) or (rs.get("context_snippet") if isinstance(rs, dict) else "")
-                        if rs_snip:
-                            quotes.append(rs_snip)
+                        quotes.append(rs.context_snippet)
                         break
 
             # Check GitHub
             has_github = False
             if github_data:
-                g_skills = getattr(github_data, "skills_extracted", None) or (github_data.get("skills_extracted", []) if isinstance(github_data, dict) else [])
-                for gs in g_skills:
-                    gs_cn = getattr(gs, "canonical_name", None) or (gs.get("canonical_name") if isinstance(gs, dict) else "")
-                    if gs_cn.lower() == canonical_name.lower():
+                for gs in github_data.skills_extracted:
+                    if gs.canonical_name == canonical_name:
                         has_github = True
                         sources_set.add("GitHub")
-                        gh_repos = getattr(github_data, "repos", None) or (github_data.get("repos", []) if isinstance(github_data, dict) else [])
-                        for r in gh_repos:
-                            r_name = getattr(r, "name", None) or (r.get("name") if isinstance(r, dict) else "")
-                            r_lang = getattr(r, "primary_language", None) or (r.get("primary_language") if isinstance(r, dict) else "")
-                            r_topics = getattr(r, "topics", None) or (r.get("topics") if isinstance(r, dict) else [])
-                            if (r_lang and canonical_name.lower() in r_lang.lower()) or (r_topics and any(canonical_name.lower() in t.lower() for t in r_topics)):
-                                repos.append(r_name)
+                        repos.extend([r.name for r in github_data.repos if (r.primary_language and canonical_name.lower() in r.primary_language.lower()) or (r.topics and any(canonical_name.lower() in t.lower() for t in r.topics))][:3])
                         break
 
             # Check Projects
             has_proj = False
             for p in projects_data:
-                p_title = getattr(p, "title", None) or (p.get("title") if isinstance(p, dict) else "")
-                p_techs = getattr(p, "detected_technologies", None) or (p.get("detected_technologies") if isinstance(p, dict) else [])
-                p_skills = getattr(p, "skills_extracted", None) or (p.get("skills_extracted") if isinstance(p, dict) else [])
-                has_tech = any(canonical_name.lower() in t.lower() for t in p_techs)
-                has_skill = any(canonical_name.lower() == (getattr(ps, "canonical_name", "") or (ps.get("canonical_name") if isinstance(ps, dict) else "")).lower() for ps in p_skills)
-                if has_tech or has_skill:
+                if any(canonical_name.lower() in t.lower() for t in p.detected_technologies):
                     has_proj = True
                     sources_set.add("Projects")
-                    if p_title:
-                        projects.append(p_title)
+                    projects.append(p.title)
 
             # Calculate source counts
             source_count = len(sources_set)
@@ -456,48 +406,27 @@ def synthesize_living_skilltwin(
                 evidence_status = "Supported"
 
             # Determine Evidence-Based Proficiency & Numeric Score (0-5)
-            raw_prof = ""
-            if isinstance(raw_skill, dict):
-                raw_prof = (raw_skill.get("proficiency") or "").capitalize()
-            elif hasattr(raw_skill, "proficiency"):
-                raw_prof = (getattr(raw_skill, "proficiency", "") or "").capitalize()
-
             if source_count >= 3 or (has_github and has_proj):
                 proficiency = "Advanced"
-                numeric_proficiency = 4.2 + (min(len(repos), 3) * 0.25)
-            elif (has_github or has_proj) and raw_prof == "Advanced":
-                proficiency = "Advanced"
-                numeric_proficiency = 4.0 + (0.5 if has_resume else 0.0)
+                numeric_proficiency = 4.0 + (min(len(repos), 3) * 0.25)
             elif has_github or has_proj:
                 proficiency = "Intermediate"
-                numeric_proficiency = 3.2 + (0.4 if has_resume else 0.0)
-            elif raw_prof == "Advanced":
-                proficiency = "Advanced"
-                numeric_proficiency = 3.8 + (0.4 if len(quotes) > 1 else 0.0)
-            elif raw_prof == "Intermediate":
-                proficiency = "Intermediate"
-                numeric_proficiency = 3.0 + (0.3 if len(quotes) > 1 else 0.0)
+                numeric_proficiency = 3.0 + (0.5 if has_resume else 0.0)
             else:
                 proficiency = "Beginner"
-                numeric_proficiency = 2.0 + (0.4 if len(quotes) > 2 else 0.0)
+                numeric_proficiency = 1.5 + (0.5 if len(quotes) > 2 else 0.0)
 
             numeric_proficiency = round(min(numeric_proficiency, 5.0), 1)
 
             # Determine Independent Confidence Score (0-100%)
-            raw_conf = 0.0
-            if isinstance(raw_skill, dict):
-                raw_conf = float(raw_skill.get("confidence_score") or 0.0)
-            elif hasattr(raw_skill, "confidence_score"):
-                raw_conf = float(getattr(raw_skill, "confidence_score", 0.0) or 0.0)
-
             if source_count >= 3:
-                confidence = max(raw_conf, 88.0 + min(len(repos) * 2.0, 6.0))
+                confidence = 88.0 + min(len(repos) * 2.0, 6.0)
             elif source_count == 2:
-                confidence = max(raw_conf, 76.0 + min(len(repos) * 2.5, 8.0))
+                confidence = 74.0 + min(len(repos) * 2.5, 8.0)
             else:
-                confidence = max(raw_conf, 68.0 + (10.0 if has_github else 4.0))
+                confidence = 62.0 + (10.0 if has_github else 4.0)
 
-            confidence = round(min(confidence, 98.0), 1)
+            confidence = round(min(confidence, 96.0), 1)
 
             # Categorize
             category = "Technical"

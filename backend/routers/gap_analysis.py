@@ -1,7 +1,7 @@
 import uuid
 import re
 from datetime import datetime
-from typing import Optional, List, Dict, Any, Tuple
+from typing import Optional, List, Dict, Any, Set
 from fastapi import APIRouter, Depends, Query, HTTPException, status, Header
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
@@ -18,12 +18,7 @@ from backend.routers.evidence import (
     _get_user_evidence_store,
     _normalize_user_key,
     _in_memory_evidence,
-    _in_memory_users,
-    SKILL_TAXONOMY
-)
-from backend.routers.skilltwin import (
-    synthesize_living_skilltwin,
-    DEFAULT_FALLBACK_SKILLS
+    _in_memory_users
 )
 from backend.routers.target_role import (
     build_target_role_benchmark,
@@ -32,13 +27,72 @@ from backend.routers.target_role import (
 
 router = APIRouter(prefix="/api/gap-analysis", tags=["Skill Gap Analysis Engine"])
 
+# Canonical Skill Taxonomy and Alias Groups for Intelligent Cross-Evidence Resolution
+SKILL_ALIASES: Dict[str, List[str]] = {
+    "react": ["react", "react.js", "reactjs", "react native"],
+    "typescript": ["typescript", "ts"],
+    "javascript": ["javascript", "js", "es6", "ecmascript"],
+    "html5 & css3": ["html5 & css3", "html5", "css3", "html", "css", "html / css", "html/css", "html5 & semantic markup", "css3 / modern layouts"],
+    "tailwind css": ["tailwind css", "tailwind", "tailwindcss", "css3 / tailwind"],
+    "next.js": ["next.js", "nextjs", "next.js & ssr", "next"],
+    "state management": ["state management (redux/zustand)", "state management", "redux", "zustand", "redux-toolkit"],
+    "responsive design": ["responsive web design", "responsive design", "mobile-first", "responsive styling"],
+    "frontend testing": ["frontend testing (jest/vitest)", "frontend testing", "testing", "jest", "vitest", "cypress", "playwright", "unit testing"],
+    "web performance": ["web performance optimization", "web performance & core vitals", "web performance", "performance", "optimization"],
+    "node.js": ["node.js", "node", "nodejs"],
+    "python": ["python", "python3", "py", "python or go scripting"],
+    "fastapi": ["fastapi", "fastapi / django", "fastapi for model serving"],
+    "express.js": ["express.js", "express", "expressjs"],
+    "restful apis": ["restful api design", "restful api architecture", "restful apis", "rest apis", "rest api", "rest", "rest & graphql integration"],
+    "security & auth": ["authentication & jwt", "authentication & oauth2", "security & auth", "authentication", "auth", "oauth2", "jwt", "api security & rate limiting", "security best practices", "security"],
+    "microservices": ["microservices architecture", "microservices"],
+    "graphql": ["graphql", "apollo"],
+    "serverless": ["serverless functions", "serverless", "lambda", "aws lambda"],
+    "sql": ["sql", "sql & databases", "sql & data engineering", "relational databases", "sql queries", "structured query language"],
+    "postgresql": ["postgresql", "postgres", "psql"],
+    "mongodb": ["mongodb", "mongo", "nosql"],
+    "redis": ["redis caching", "redis & caching", "redis"],
+    "database optimization": ["database indexing & tuning", "database optimization", "database indexing", "indexing & tuning"],
+    "git": ["git", "git & github", "git & version control", "version control"],
+    "github": ["github workflows & prs", "github", "github actions", "pull requests"],
+    "docker": ["docker containerization", "docker & containerization", "docker & mlops", "docker", "containers", "containerization"],
+    "ci/cd": ["ci / cd pipelines", "ci/cd (github actions / jenkins)", "ci/cd", "ci / cd", "continuous integration", "github actions"],
+    "linux": ["linux & shell scripting", "linux & bash", "linux", "bash", "shell scripting", "ubuntu"],
+    "cloud": ["aws / cloud basics", "aws", "aws/gcp/azure", "cloud", "cloud platforms", "amazon web services", "gcp", "azure"],
+    "postman": ["postman & api testing", "postman", "api testing"],
+    "build tools": ["vite & modern build tools", "vite", "webpack", "build tools"],
+    "dsa": ["data structures & algorithms", "dsa", "algorithms", "data structures"],
+    "agile": ["agile & scrum methodologies", "agile", "scrum"],
+    "system design": ["system architecture & design", "system design", "system architecture"],
+    "documentation": ["technical documentation", "documentation", "swagger", "openapi"],
+    "debugging": ["debugging & troubleshooting", "debugging", "troubleshooting"],
+    "sqlalchemy": ["sqlalchemy orm", "sqlalchemy", "orm"],
+    "statistics": ["statistics & probability", "statistics", "probability"],
+    "linear algebra": ["linear algebra", "matrices", "vectors"],
+    "pandas": ["pandas & numpy", "pandas", "numpy", "data analysis (pandas/numpy)"],
+    "scikit-learn": ["scikit-learn", "sklearn"],
+    "pytorch": ["pytorch", "deep learning (pytorch/tensorflow)", "deep learning basics", "deep learning / pytorch"],
+    "tensorflow": ["tensorflow", "keras"],
+    "mlflow": ["mlflow / model registry", "mlflow", "model registry"],
+    "machine learning": ["machine learning", "ml", "machine learning & ai", "ai/ml"],
+    "data visualization": ["data visualization (matplotlib/seaborn)", "data visualization", "matplotlib", "seaborn"],
+    "a/b testing": ["a/b testing & experimentation", "a/b testing", "experimentation"],
+    "jupyter": ["jupyter notebooks", "jupyter", "ipython"],
+    "nlp": ["nlp / llms", "nlp", "llms", "llm", "large language models", "transformers"],
+    "kubernetes": ["kubernetes", "k8s"],
+    "terraform": ["terraform / iac", "terraform", "iac", "infrastructure as code"],
+    "ansible": ["ansible / configuration mgmt", "ansible"],
+    "monitoring": ["monitoring (prometheus/grafana)", "monitoring", "prometheus", "grafana"],
+    "networking": ["networking fundamentals", "networking", "tcp/ip", "dns", "http"]
+}
+
 # Canonical Skill Metadata mapping for Explainable AI & Recommendations
 SKILL_GAP_METADATA: Dict[str, Dict[str, Any]] = {
     "React": {
-        "why_role": "Essential for building modern, component-driven user interfaces in full-stack web applications.",
+        "why_role": "Essential for building modern, component-driven user interfaces in web applications.",
         "why_gap": "Essential for building modern user interfaces.",
-        "missing_evidence": "No advanced state management (Redux/Zustand), testing, or complex hook patterns observed in public repos.",
-        "recommended_action": "Build a multi-page interactive dashboard with client-side routing, optimistic UI updates, and unit testing.",
+        "missing_evidence": "No advanced state management (Redux/Zustand), testing, or component hook patterns observed.",
+        "recommended_action": "Build an interactive dashboard application with routing, state management, and unit testing.",
         "roadmap_destination": "Roadmap Milestone: Modern React & State Architecture"
     },
     "TypeScript": {
@@ -66,7 +120,7 @@ SKILL_GAP_METADATA: Dict[str, Dict[str, Any]] = {
         "why_role": "Industry standard for containerization, local development parity, and reproducible production deployment environments.",
         "why_gap": "Industry standard for containerization.",
         "missing_evidence": "No Dockerfiles or docker-compose.yml configurations found in repositories.",
-        "recommended_action": "Containerize a multi-service web app (React frontend + Python/Node API + PostgreSQL) with multi-stage Docker builds.",
+        "recommended_action": "Containerize a multi-service web app (frontend + API + database) with multi-stage Docker builds.",
         "roadmap_destination": "Roadmap Milestone: Containerization & Cloud Deployments"
     },
     "JavaScript": {
@@ -120,273 +174,362 @@ SKILL_GAP_METADATA: Dict[str, Dict[str, Any]] = {
     }
 }
 
-# Alias & Keyword mapping for cross-referencing target role requirements with evidence skills
-SKILL_SYNONYMS: Dict[str, List[str]] = {
-    "react": ["react.js", "reactjs", "react", "react native"],
-    "typescript": ["typescript", "ts"],
-    "javascript": ["javascript", "js", "es6", "ecmascript"],
-    "html5 & css3": ["html5 & css3", "html / css", "html5", "css3", "html", "css", "html5 & semantic markup", "css3 / modern layouts"],
-    "html5": ["html5", "html", "html5 & semantic markup", "html5 & css3"],
-    "css3": ["css3", "css", "css3 / modern layouts", "html5 & css3"],
-    "tailwind css": ["tailwind css", "tailwind", "tailwindcss"],
-    "next.js": ["next.js", "nextjs", "next.js & ssr"],
-    "state management": ["state management", "redux", "redux toolkit", "zustand", "state management (redux/zustand)"],
-    "redux": ["redux", "redux toolkit", "state management", "state management (redux/zustand)"],
-    "node.js": ["node.js", "nodejs", "node"],
-    "python": ["python", "python3", "py"],
-    "fastapi": ["fastapi", "fastapi / django"],
-    "django": ["django", "django rest framework", "fastapi / django"],
-    "express.js": ["express.js", "express", "expressjs"],
-    "restful apis": ["restful apis", "restful api design", "rest api", "rest apis", "rest & graphql integration", "api integration"],
-    "sql": ["sql", "postgresql", "mysql", "sqlite", "relational databases"],
-    "postgresql": ["postgresql", "postgres", "psql", "sql"],
-    "mongodb": ["mongodb", "mongo", "nosql"],
-    "redis": ["redis", "redis caching", "redis & caching"],
-    "sqlalchemy": ["sqlalchemy", "sqlalchemy orm", "orm"],
-    "git": ["git", "git & github", "git & version control", "github workflows & prs", "version control"],
-    "github": ["github", "git & github", "github workflows & prs", "git"],
-    "docker": ["docker", "docker containerization", "containers"],
-    "ci/cd": ["ci/cd", "ci / cd pipelines", "github actions", "continuous integration"],
-    "linux": ["linux", "linux & shell scripting", "bash", "shell scripting"],
-    "cloud": ["cloud", "aws", "aws / cloud basics", "cloud infrastructure"],
-    "postman": ["postman", "postman & api testing", "api testing"],
-    "testing": ["testing", "frontend testing (jest/vitest)", "unit testing", "pytest", "jest", "vitest"],
-    "graphql": ["graphql", "apollo"],
-    "machine learning": ["machine learning", "machine learning & ai", "ml", "data science"],
-    "pandas": ["pandas", "pandas & numpy", "data analysis (pandas/numpy)"]
-}
 
-
-def _normalize_skill_string(s: str) -> str:
-    """Lowercase and clean skill strings for fuzzy matching."""
-    if not s:
-        return ""
-    # Strip punctuation and normalize spaces
-    cleaned = re.sub(r"[^\w\s\+\#\/\.\-]", " ", s.lower())
-    return re.sub(r"\s+", " ", cleaned).strip()
-
-
-def _match_candidate_skill(
-    req_skill: str,
-    req_canonical: str,
-    candidate_skills: Dict[str, Dict[str, Any]]
-) -> Optional[Dict[str, Any]]:
+def _collect_all_user_evidence_skills(user_id: Optional[str] = None, email: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
     """
-    Intelligently cross-reference a required benchmark skill against
-    the candidate's living evidence skills.
+    Aggregates all extracted and verified skills for the user across:
+    1. Persistent database (user_skills, user_evidence, user_projects)
+    2. In-memory evidence store (_in_memory_evidence for user_id, email, and candidate keys)
+    Returns a unified, deduplicated map of candidate evidence data.
     """
-    req_s_norm = _normalize_skill_string(req_skill)
-    req_c_norm = _normalize_skill_string(req_canonical)
+    candidate_skills: Dict[str, Dict[str, Any]] = {}
 
-    # 1. Direct match on canonical name or skill name
-    for key, data in candidate_skills.items():
-        cand_s_norm = _normalize_skill_string(data.get("skill_name", ""))
-        cand_c_norm = _normalize_skill_string(data.get("canonical_name", ""))
-        cand_name_norm = _normalize_skill_string(data.get("name", ""))
+    def _merge_skill(
+        name: str,
+        canonical: str,
+        category: str,
+        proficiency: str,
+        confidence: float,
+        source: str,
+        context: str = "",
+        reasoning: str = "",
+        repo_name: str = "",
+        project_title: str = ""
+    ):
+        if not name and not canonical:
+            return
+        canon_name = canonical or name
+        key = canon_name.strip().lower()
 
-        if req_c_norm and req_c_norm in [cand_c_norm, cand_s_norm, cand_name_norm, key]:
-            return data
-        if req_s_norm and req_s_norm in [cand_c_norm, cand_s_norm, cand_name_norm, key]:
-            return data
+        if key not in candidate_skills:
+            candidate_skills[key] = {
+                "name": name or canon_name,
+                "canonical_name": canon_name,
+                "category": category or "Technical",
+                "proficiency": proficiency or "Beginner",
+                "confidence": float(confidence or 70.0),
+                "sources": set([source]) if source else set(["Resume"]),
+                "quotes": [context] if context else [],
+                "repos": [repo_name] if repo_name else [],
+                "projects": [project_title] if project_title else [],
+                "reasoning": reasoning or ""
+            }
+        else:
+            entry = candidate_skills[key]
+            if source:
+                entry["sources"].add(source)
+            if context and context not in entry["quotes"]:
+                entry["quotes"].append(context)
+            if repo_name and repo_name not in entry["repos"]:
+                entry["repos"].append(repo_name)
+            if project_title and project_title not in entry["projects"]:
+                entry["projects"].append(project_title)
+            if confidence > entry["confidence"]:
+                entry["confidence"] = float(confidence)
 
-    # 2. Synonym dictionary lookup
-    for syn_key, synonyms in SKILL_SYNONYMS.items():
-        # Check if the requirement matches any synonym group
-        syn_matches_req = (
-            req_c_norm == syn_key or
-            req_s_norm == syn_key or
-            any(_normalize_skill_string(syn) in [req_s_norm, req_c_norm] for syn in synonyms)
+            # Proficiency precedence: Advanced > Intermediate > Beginner
+            current_prof = (entry["proficiency"] or "").lower()
+            new_prof = (proficiency or "").lower()
+            if "advanced" in new_prof or (current_prof == "beginner" and "intermediate" in new_prof):
+                entry["proficiency"] = proficiency
+
+            if reasoning and not entry["reasoning"]:
+                entry["reasoning"] = reasoning
+
+    # 1. Load from persistent DB if valid UUID user_id is provided
+    if user_id:
+        try:
+            is_valid_uuid = False
+            try:
+                uuid.UUID(str(user_id))
+                is_valid_uuid = True
+            except (ValueError, TypeError, AttributeError):
+                is_valid_uuid = False
+
+            if is_valid_uuid:
+                from backend.shared.user_data_db import get_user_skills, get_user_evidence, get_user_projects
+                db_skills = get_user_skills(user_id)
+                for s in db_skills:
+                    _merge_skill(
+                        name=s.get("skill_name") or s.get("canonical_name", ""),
+                        canonical=s.get("canonical_name") or s.get("skill_name", ""),
+                        category=s.get("category", "Technical"),
+                        proficiency=s.get("proficiency", "Beginner"),
+                        confidence=s.get("confidence_score", 70.0),
+                        source=s.get("evidence_source", "Resume"),
+                        context=s.get("context_snippet", ""),
+                        reasoning=s.get("reasoning", "")
+                    )
+
+                # Check DB resume
+                db_resume = get_user_evidence(user_id, "resume")
+                if db_resume and isinstance(db_resume, dict):
+                    for s in db_resume.get("skills_extracted", []):
+                        if isinstance(s, dict):
+                            _merge_skill(
+                                name=s.get("skill_name", ""),
+                                canonical=s.get("canonical_name", ""),
+                                category=s.get("category", "Technical"),
+                                proficiency=s.get("proficiency", "Intermediate"),
+                                confidence=s.get("confidence_score", 75.0),
+                                source="Resume",
+                                context=s.get("context_snippet", ""),
+                                reasoning=s.get("reasoning", "")
+                            )
+                    for t in db_resume.get("technologies", []):
+                        if isinstance(t, str):
+                            _merge_skill(name=t, canonical=t, category="Technical", proficiency="Intermediate", confidence=70.0, source="Resume")
+
+                # Check DB GitHub
+                db_github = get_user_evidence(user_id, "github")
+                if db_github and isinstance(db_github, dict):
+                    for s in db_github.get("skills_extracted", []):
+                        if isinstance(s, dict):
+                            _merge_skill(
+                                name=s.get("skill_name", ""),
+                                canonical=s.get("canonical_name", ""),
+                                category=s.get("category", "Technical"),
+                                proficiency=s.get("proficiency", "Intermediate"),
+                                confidence=s.get("confidence_score", 80.0),
+                                source="GitHub",
+                                context=s.get("context_snippet", ""),
+                                reasoning=s.get("reasoning", "")
+                            )
+                    for lang in db_github.get("detected_languages", []):
+                        _merge_skill(name=lang, canonical=lang, category="Technical", proficiency="Intermediate", confidence=75.0, source="GitHub")
+                    for fw in db_github.get("detected_frameworks", []):
+                        _merge_skill(name=fw, canonical=fw, category="Technical", proficiency="Intermediate", confidence=75.0, source="GitHub")
+
+                # Check DB Projects
+                db_projects = get_user_projects(user_id)
+                for p in db_projects:
+                    techs = p.get("detected_technologies", [])
+                    if isinstance(techs, str):
+                        techs = [techs]
+                    for t in techs:
+                        _merge_skill(
+                            name=t,
+                            canonical=t,
+                            category="Technical",
+                            proficiency="Intermediate",
+                            confidence=75.0,
+                            source="Projects",
+                            project_title=p.get("title", "")
+                        )
+        except Exception as e:
+            print(f"[GapAnalysis] DB Evidence Query Notice: {e}")
+
+    # 2. Load from In-Memory Stores
+    keys_to_check: List[str] = []
+    if user_id:
+        keys_to_check.append(_normalize_user_key(user_id))
+    if email:
+        keys_to_check.append(_normalize_user_key(email))
+    keys_to_check.append("default_user")
+
+    for k in keys_to_check:
+        store = _in_memory_evidence.get(k)
+        if store:
+            # Check skills dict
+            skills_dict = store.get("skills", {})
+            if isinstance(skills_dict, dict):
+                for s_name, s_obj in skills_dict.items():
+                    if isinstance(s_obj, dict):
+                        _merge_skill(
+                            name=s_obj.get("skill_name") or s_name,
+                            canonical=s_obj.get("canonical_name") or s_name,
+                            category=s_obj.get("category", "Technical"),
+                            proficiency=s_obj.get("proficiency", "Intermediate"),
+                            confidence=s_obj.get("confidence_score", 75.0),
+                            source=s_obj.get("evidence_source", "Resume"),
+                            context=s_obj.get("context_snippet", ""),
+                            reasoning=s_obj.get("reasoning", "")
+                        )
+                    else:
+                        # ExtractedSkillItem object
+                        _merge_skill(
+                            name=getattr(s_obj, "skill_name", s_name),
+                            canonical=getattr(s_obj, "canonical_name", s_name),
+                            category=getattr(s_obj, "category", "Technical"),
+                            proficiency=getattr(s_obj, "proficiency", "Intermediate"),
+                            confidence=getattr(s_obj, "confidence_score", 75.0),
+                            source=getattr(s_obj, "evidence_source", "Resume"),
+                            context=getattr(s_obj, "context_snippet", ""),
+                            reasoning=getattr(s_obj, "reasoning", "")
+                        )
+
+            # Check Resume
+            res = store.get("resume")
+            if res:
+                skills_ext = getattr(res, "skills_extracted", []) if hasattr(res, "skills_extracted") else res.get("skills_extracted", [])
+                for s in skills_ext:
+                    name = getattr(s, "skill_name", None) or (s.get("skill_name") if isinstance(s, dict) else "")
+                    canonical = getattr(s, "canonical_name", None) or (s.get("canonical_name") if isinstance(s, dict) else "")
+                    cat = getattr(s, "category", "Technical") or (s.get("category", "Technical") if isinstance(s, dict) else "Technical")
+                    prof = getattr(s, "proficiency", "Intermediate") or (s.get("proficiency", "Intermediate") if isinstance(s, dict) else "Intermediate")
+                    conf = getattr(s, "confidence_score", 75.0) or (s.get("confidence_score", 75.0) if isinstance(s, dict) else 75.0)
+                    ctx = getattr(s, "context_snippet", "") or (s.get("context_snippet", "") if isinstance(s, dict) else "")
+                    rsn = getattr(s, "reasoning", "") or (s.get("reasoning", "") if isinstance(s, dict) else "")
+                    _merge_skill(name=name, canonical=canonical, category=cat, proficiency=prof, confidence=conf, source="Resume", context=ctx, reasoning=rsn)
+
+            # Check GitHub
+            gh = store.get("github")
+            if gh:
+                skills_ext = getattr(gh, "skills_extracted", []) if hasattr(gh, "skills_extracted") else gh.get("skills_extracted", [])
+                for s in skills_ext:
+                    name = getattr(s, "skill_name", None) or (s.get("skill_name") if isinstance(s, dict) else "")
+                    canonical = getattr(s, "canonical_name", None) or (s.get("canonical_name") if isinstance(s, dict) else "")
+                    cat = getattr(s, "category", "Technical") or (s.get("category", "Technical") if isinstance(s, dict) else "Technical")
+                    prof = getattr(s, "proficiency", "Intermediate") or (s.get("proficiency", "Intermediate") if isinstance(s, dict) else "Intermediate")
+                    conf = getattr(s, "confidence_score", 80.0) or (s.get("confidence_score", 80.0) if isinstance(s, dict) else 80.0)
+                    ctx = getattr(s, "context_snippet", "") or (s.get("context_snippet", "") if isinstance(s, dict) else "")
+                    rsn = getattr(s, "reasoning", "") or (s.get("reasoning", "") if isinstance(s, dict) else "")
+                    _merge_skill(name=name, canonical=canonical, category=cat, proficiency=prof, confidence=conf, source="GitHub", context=ctx, reasoning=rsn)
+
+            # Check Projects
+            projs = store.get("projects", [])
+            for p in projs:
+                p_title = getattr(p, "title", None) or (p.get("title") if isinstance(p, dict) else "")
+                p_techs = getattr(p, "detected_technologies", []) if hasattr(p, "detected_technologies") else (p.get("detected_technologies", []) if isinstance(p, dict) else [])
+                for t in p_techs:
+                    _merge_skill(name=t, canonical=t, category="Technical", proficiency="Intermediate", confidence=75.0, source="Projects", project_title=p_title)
+
+    # Convert sources set to list
+    for k, v in candidate_skills.items():
+        if isinstance(v.get("sources"), set):
+            v["sources"] = sorted(list(v["sources"]))
+
+    return candidate_skills
+
+
+def _find_matching_evidence(req_skill: str, req_canonical: str, candidate_skills: Dict[str, Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    """
+    Intelligently matches a required target role skill against candidate evidence skills
+    using canonical names, aliases, and clean token resolution.
+    """
+    if not candidate_skills:
+        return None
+
+    s_key = req_skill.strip().lower()
+    c_key = req_canonical.strip().lower()
+
+    # 1. Direct lowercase key match
+    if s_key in candidate_skills:
+        return candidate_skills[s_key]
+    if c_key in candidate_skills:
+        return candidate_skills[c_key]
+
+    # 2. Alias group matching
+    for group_key, aliases in SKILL_ALIASES.items():
+        req_in_group = any(s_key == a.lower() or c_key == a.lower() or a.lower() in s_key for a in aliases)
+        if req_in_group:
+            for cand_key, cand_data in candidate_skills.items():
+                if any(cand_key == a.lower() or a.lower() in cand_key for a in aliases):
+                    return cand_data
+
+    # 3. Substring / Token matching
+    def clean_tokens(text: str) -> Set[str]:
+        cleaned = re.sub(r'[^a-zA-Z0-9\s]', ' ', text.lower())
+        tokens = set(cleaned.split()) - {
+            "and", "or", "the", "in", "for", "with", "a", "an", "basics",
+            "design", "development", "tools", "pipelines", "architecture",
+            "markup", "workflows", "layouts", "overview"
+        }
+        return tokens
+
+    req_tokens = clean_tokens(req_skill) | clean_tokens(req_canonical)
+    for cand_key, cand_data in candidate_skills.items():
+        cand_tokens = (
+            clean_tokens(cand_data.get("name", ""))
+            | clean_tokens(cand_data.get("canonical_name", ""))
+            | clean_tokens(cand_key)
         )
-        if syn_matches_req:
-            # Look for candidate skills in this synonym group
-            for key, data in candidate_skills.items():
-                cand_c_norm = _normalize_skill_string(data.get("canonical_name", ""))
-                cand_s_norm = _normalize_skill_string(data.get("skill_name", ""))
-                cand_name_norm = _normalize_skill_string(data.get("name", ""))
-
-                for syn in synonyms:
-                    syn_norm = _normalize_skill_string(syn)
-                    if syn_norm in [cand_c_norm, cand_s_norm, cand_name_norm, key]:
-                        return data
-
-    # 3. Substring word match for multi-word skills (e.g. "Docker Containerization" -> "Docker")
-    req_words = [w for w in req_s_norm.split() if len(w) > 2 and w not in ["and", "for", "the", "with"]]
-    for key, data in candidate_skills.items():
-        cand_text = f"{data.get('canonical_name', '')} {data.get('skill_name', '')} {data.get('name', '')}".lower()
-        for word in req_words:
-            if word in cand_text:
-                return data
+        common = req_tokens & cand_tokens
+        if common and any(len(t) >= 3 for t in common):
+            return cand_data
 
     return None
 
 
-def _calculate_evidence_proficiency_pct(skill_data: Dict[str, Any]) -> int:
+def _calculate_proficiency_from_evidence(candidate_match: Dict[str, Any], req: Any) -> Dict[str, Any]:
     """
-    Calculate realistic 0-100% proficiency based on genuine evidence quality,
-    multi-source confirmation, and confidence score.
+    Computes evidence-backed proficiency (0-100), score (0-5.0), level, and confidence
+    based on the strength and quality of the user's actual collected evidence.
     """
-    prof = (skill_data.get("proficiency") or "Intermediate").capitalize()
-
-    # 1. Base score from qualitative proficiency
-    if prof == "Advanced":
-        base_pct = 84
-    elif prof == "Intermediate":
-        base_pct = 68
-    elif prof == "Beginner":
-        base_pct = 48
-    else:
-        base_pct = 60
-
-    # 2. Adjust using numeric proficiency (1.0 to 5.0 scale) if present
-    numeric = skill_data.get("numeric_proficiency") or skill_data.get("numeric")
-    if numeric and float(numeric) > 0:
-        # Numeric 1.0 -> 38%, 2.0 -> 52%, 3.0 -> 68%, 4.0 -> 84%, 5.0 -> 96%
-        numeric_pct = int(22 + (float(numeric) * 15))
-        base_pct = int((base_pct * 0.35) + (numeric_pct * 0.65))
-
-    # 3. Multi-source confirmation bonus
-    sources = skill_data.get("sources") or skill_data.get("evidence_sources") or []
+    sources = candidate_match.get("sources", ["Resume"])
+    if isinstance(sources, set):
+        sources = list(sources)
     source_count = len(sources)
-    if source_count >= 3:
-        source_bonus = 8
-    elif source_count == 2:
-        source_bonus = 4
-    elif source_count == 1 and "Resume" in sources:
-        source_bonus = -3  # Single resume mention has less proven technical depth
+
+    prof = (candidate_match.get("proficiency") or "Intermediate").lower()
+    raw_confidence = float(candidate_match.get("confidence") or 75.0)
+    quotes = candidate_match.get("quotes", [])
+    repos = candidate_match.get("repos", [])
+    projects = candidate_match.get("projects", [])
+
+    # Step 1: Base score from extraction depth
+    if "advanced" in prof:
+        base_score = 80.0
+    elif "intermediate" in prof:
+        base_score = 65.0
+    elif "beginner" in prof:
+        base_score = 45.0
     else:
-        source_bonus = 0
+        base_score = 55.0
 
-    # 4. Confidence score adjustment
-    conf = skill_data.get("confidence_score") or skill_data.get("confidence") or 75
-    conf_adj = (float(conf) - 75) * 0.12
+    # Step 2: Multi-source evidence confirmation bonus
+    if source_count >= 3:
+        # Verified across Resume, GitHub repository code, AND registered Project
+        multi_bonus = 12.0
+    elif source_count == 2:
+        multi_bonus = 6.0
+    else:
+        multi_bonus = 0.0
 
-    # 5. Depth bonus from verified repos and project deliverables
-    repos = skill_data.get("repos") or skill_data.get("github_repos") or []
-    projects = skill_data.get("projects") or skill_data.get("project_refs") or []
-    depth_bonus = min(len(repos) * 1.5 + len(projects) * 2.0, 6.0)
+    # Step 3: Codebase & Project depth bonuses
+    repo_bonus = min(len(repos) * 2.5, 6.0)
+    proj_bonus = min(len(projects) * 3.0, 6.0)
+    quotes_bonus = min(len(quotes) * 1.5, 4.0)
 
-    final_pct = round(base_pct + source_bonus + conf_adj + depth_bonus)
-    return max(25, min(98, final_pct))
+    # Step 4: Confidence adjustment
+    conf_adj = (raw_confidence - 70.0) * 0.1
 
+    # Total calculated proficiency percentage
+    calc_pct = base_score + multi_bonus + repo_bonus + proj_bonus + quotes_bonus + conf_adj
 
-def _ingest_all_user_evidence_skills(
-    user_id: Optional[str] = None,
-    email: Optional[str] = None,
-    db: Optional[Session] = None
-) -> Tuple[Dict[str, Dict[str, Any]], bool]:
-    """
-    Comprehensive multi-source evidence ingestor.
-    Gathers extracted skills from Resume, GitHub, and Projects across both
-    persistent database and active in-memory session caches.
+    # Quality constraint: If only Resume text without code repository or project, cap at 72%
+    if source_count == 1 and "Resume" in sources and len(repos) == 0 and len(projects) == 0:
+        calc_pct = min(calc_pct, 72.0)
 
-    Returns:
-      (candidate_skills_map, has_any_evidence)
-    """
-    candidate_skills: Dict[str, Dict[str, Any]] = {}
-    has_any_evidence = False
+    your_pct = min(100, max(20, int(round(calc_pct))))
+    your_score = round(your_pct / 20.0, 1)
 
-    # 1. Ingest from synthesize_living_skilltwin (the core multi-source aggregator)
-    try:
-        twin = synthesize_living_skilltwin(email=email, user_id=user_id, db=db)
-        if twin and twin.skills and len(twin.skills) > 0:
-            has_any_evidence = True
-            for s in twin.skills:
-                key = _normalize_skill_string(s.canonical_name or s.name)
-                candidate_skills[key] = {
-                    "name": s.name,
-                    "canonical_name": s.canonical_name or s.name,
-                    "skill_name": s.name,
-                    "category": s.category,
-                    "proficiency": s.proficiency,
-                    "numeric_proficiency": s.numeric_proficiency,
-                    "confidence_score": s.confidence_score,
-                    "evidence_sources": s.evidence_sources,
-                    "sources": s.evidence_sources,
-                    "evidence_status": s.evidence_status,
-                    "reasoning": s.reasoning,
-                    "quotes": s.evidence_details.resume_quotes if s.evidence_details else [],
-                    "repos": s.evidence_details.github_repos if s.evidence_details else [],
-                    "projects": s.evidence_details.project_refs if s.evidence_details else []
-                }
-    except Exception as e:
-        print(f"[GapAnalysis] synthesize_living_skilltwin ingest note: {e}")
+    if your_pct >= 80:
+        your_level = "Advanced"
+    elif your_pct >= 60:
+        your_level = "Intermediate"
+    else:
+        your_level = "Beginner"
 
-    # 2. Ingest from persistent database user_skills table directly
-    if user_id:
-        try:
-            from backend.shared.user_data_db import get_user_skills, get_all_user_evidence, get_user_projects
-            db_skills = get_user_skills(user_id)
-            if db_skills and len(db_skills) > 0:
-                has_any_evidence = True
-                for item in db_skills:
-                    cname = item.get("canonical_name") or item.get("skill_name")
-                    if cname:
-                        key = _normalize_skill_string(cname)
-                        if key not in candidate_skills:
-                            candidate_skills[key] = {
-                                "name": cname,
-                                "canonical_name": cname,
-                                "skill_name": item.get("skill_name") or cname,
-                                "category": item.get("category", "Technical"),
-                                "proficiency": item.get("proficiency", "Intermediate"),
-                                "numeric_proficiency": 4.5 if item.get("proficiency") == "Advanced" else (3.0 if item.get("proficiency") == "Intermediate" else 2.0),
-                                "confidence_score": item.get("confidence_score", 75.0),
-                                "sources": [item.get("evidence_source", "Resume")],
-                                "evidence_sources": [item.get("evidence_source", "Resume")],
-                                "reasoning": item.get("reasoning", "")
-                            }
+    # Dynamic confidence score based on source verification
+    if source_count >= 3:
+        final_conf = min(98, max(85, int(raw_confidence + 8)))
+    elif source_count == 2:
+        final_conf = min(92, max(75, int(raw_confidence + 4)))
+    else:
+        final_conf = min(85, max(60, int(raw_confidence)))
 
-            # Check if user has uploaded resume or connected GitHub in DB
-            db_ev = get_all_user_evidence(user_id)
-            if db_ev and len(db_ev) > 0:
-                has_any_evidence = True
-
-            db_proj = get_user_projects(user_id)
-            if db_proj and len(db_proj) > 0:
-                has_any_evidence = True
-        except Exception as e:
-            print(f"[GapAnalysis] Direct DB evidence lookup note: {e}")
-
-    # 3. Ingest from in-memory evidence store (active session / newly uploaded data)
-    user_key = _normalize_user_key(email or user_id or "default_user")
-    store = _get_user_evidence_store(user_key)
-
-    # If the direct store is empty, check candidate aliases
-    if not store.get("skills") and not store.get("resume") and not store.get("github"):
-        for candidate in [email, user_id, "default_user"]:
-            if candidate:
-                cand_key = _normalize_user_key(candidate)
-                cand_store = _in_memory_evidence.get(cand_key)
-                if cand_store and (cand_store.get("skills") or cand_store.get("resume") or cand_store.get("github")):
-                    store = cand_store
-                    break
-
-    # Read extracted skills from in-memory store
-    in_mem_skills = store.get("skills", {})
-    if in_mem_skills:
-        has_any_evidence = True
-        for cname, item in in_mem_skills.items():
-            key = _normalize_skill_string(cname)
-            if key not in candidate_skills:
-                if isinstance(item, dict):
-                    candidate_skills[key] = item
-                else:
-                    candidate_skills[key] = {
-                        "name": getattr(item, "canonical_name", cname),
-                        "canonical_name": getattr(item, "canonical_name", cname),
-                        "skill_name": getattr(item, "skill_name", cname),
-                        "category": getattr(item, "category", "Technical"),
-                        "proficiency": getattr(item, "proficiency", "Intermediate"),
-                        "numeric_proficiency": 4.5 if getattr(item, "proficiency", "") == "Advanced" else 3.0,
-                        "confidence_score": getattr(item, "confidence_score", 80.0),
-                        "sources": [getattr(item, "evidence_source", "Resume")],
-                        "reasoning": getattr(item, "reasoning", "")
-                    }
-
-    if store.get("resume") or store.get("github") or store.get("projects"):
-        has_any_evidence = True
-
-    return candidate_skills, has_any_evidence
+    return {
+        "proficiency_pct": your_pct,
+        "proficiency_score": your_score,
+        "proficiency_level": your_level,
+        "confidence": final_conf,
+        "sources": sources,
+        "quotes": quotes,
+        "repos": repos,
+        "projects": projects,
+        "reasoning": candidate_match.get("reasoning", "")
+    }
 
 
 def compute_skill_gap_analysis(
@@ -394,13 +537,12 @@ def compute_skill_gap_analysis(
     experience_level: str = "Entry Level (0-2 years)",
     industry: str = "All Industries",
     user_id: Optional[str] = None,
-    email: Optional[str] = None,
-    db: Optional[Session] = None
+    email: Optional[str] = None
 ) -> GapAnalysisSummaryResponse:
     """
     Core Gap Engine Computation.
-    Dynamically cross-references user's verified evidence (Resume, GitHub, Projects)
-    against Target Role requirements to calculate genuine proficiencies, gaps, and match statuses.
+    Cross-references actual evidence collected across Resume, GitHub, and Projects
+    against Target Role Industry Benchmark Requirements.
     """
     # 1. Fetch Target Role Benchmark Requirements
     benchmark = build_target_role_benchmark(
@@ -409,14 +551,10 @@ def compute_skill_gap_analysis(
         industry=industry
     )
 
-    # 2. Ingest Candidate's Demonstrated Skills from All Connected Evidence Sources
-    candidate_skills, has_any_evidence = _ingest_all_user_evidence_skills(
-        user_id=user_id,
-        email=email,
-        db=db
-    )
+    # 2. Ingest Candidate's Demonstrated Skills from all Evidence stores
+    candidate_skills = _collect_all_user_evidence_skills(user_id=user_id, email=email)
 
-    # 3. Analyze each requirement from the Benchmark
+    # 3. Analyze each requirement from the Benchmark against evidence
     gaps_list: List[SkillGapItem] = []
 
     critical_count = 0
@@ -430,74 +568,75 @@ def compute_skill_gap_analysis(
     for req in benchmark.requirements:
         req_pct = int(req.industry_avg_proficiency or 75)
         req_level = req.required_proficiency
+        req_score = round(req_pct / 20.0, 1)
 
-        # Match requirement against candidate's verified evidence
-        candidate_match = _match_candidate_skill(
-            req_skill=req.skill,
-            req_canonical=req.canonical_name,
-            candidate_skills=candidate_skills
-        )
+        # Check if candidate has evidence for this skill
+        candidate_match = _find_matching_evidence(req.skill, req.canonical_name, candidate_skills)
 
         meta = (
-            SKILL_GAP_METADATA.get(req.canonical_name) or
-            SKILL_GAP_METADATA.get(req.skill) or
-            SKILL_GAP_METADATA.get(req.skill.split()[0]) or
-            {}
+            SKILL_GAP_METADATA.get(req.canonical_name)
+            or SKILL_GAP_METADATA.get(req.skill)
+            or SKILL_GAP_METADATA.get(req.skill.split()[0])
+            or {}
         )
 
         if candidate_match:
-            # User has verified evidence for this skill
-            your_pct = _calculate_evidence_proficiency_pct(candidate_match)
-            your_score = round(your_pct / 20.0, 1)
-            your_level = candidate_match.get("proficiency", "Intermediate")
-            confidence = int(candidate_match.get("confidence_score") or candidate_match.get("confidence") or 80)
+            # User has evidence - calculate from actual evidence strength
+            ev_calc = _calculate_proficiency_from_evidence(candidate_match, req)
+            your_pct = ev_calc["proficiency_pct"]
+            your_score = ev_calc["proficiency_score"]
+            your_level = ev_calc["proficiency_level"]
+            confidence = ev_calc["confidence"]
+            sources = ev_calc["sources"]
 
-            # Compare against required benchmark
             gap_pct = your_pct - req_pct
 
-            # Determine Match Status based on evidence
+            # Determine Match Status
             if gap_pct >= 0:
                 match_status = "Strong"
-            elif gap_pct >= -15:
+            elif gap_pct >= -12 or (your_pct >= 60 and gap_pct >= -15):
                 match_status = "Matched"
             else:
                 match_status = "Weak"
 
-            # Determine Priority
-            if req.importance == "Core" and gap_pct < -20:
-                priority = "Critical"
-            elif req.importance in ["Core", "High"] and gap_pct < -15:
-                priority = "High"
-            elif gap_pct < -10:
-                priority = "Medium"
-            else:
+            # Determine Priority based on importance & gap
+            if match_status == "Weak":
+                if req.importance == "Core" and gap_pct < -20:
+                    priority = "Critical"
+                elif req.importance in ["Core", "High"]:
+                    priority = "High"
+                else:
+                    priority = "Medium"
+            elif match_status == "Matched":
+                if req.importance == "Core" and gap_pct < -5:
+                    priority = "Medium"
+                else:
+                    priority = "Low"
+            else:  # Strong
                 priority = "Low"
 
-            # Evidence summary and reasoning
-            sources_list = candidate_match.get("sources") or candidate_match.get("evidence_sources") or ["Resume"]
-            repos_list = candidate_match.get("repos") or []
-            projects_list = candidate_match.get("projects") or []
-            quotes_list = candidate_match.get("quotes") or []
-
-            evidence_summary = f"Demonstrated across {', '.join(sources_list)}"
-            if repos_list:
-                evidence_summary += f" ({len(repos_list)} GitHub repo{'s' if len(repos_list) > 1 else ''})"
-
-            if gap_pct >= 0:
-                why_gap = f"Your verified evidence demonstrates strong capability ({your_pct}%), exceeding the role requirement ({req_pct}%)."
-            elif gap_pct >= -15:
-                why_gap = f"Your proficiency ({your_pct}%) closely matches the required benchmark ({req_pct}%) for {role_name}."
+            # Explainable AI Reasoning
+            if match_status == "Strong":
+                why_gap = f"Your verified {your_pct}% proficiency ({your_level}) in {req.skill} meets or exceeds the {req_pct}% industry benchmark for {role_name}."
+            elif match_status == "Matched":
+                why_gap = f"Your {your_pct}% proficiency ({your_level}) in {req.skill} aligns with baseline expectations ({req_pct}% required) for {role_name}."
             else:
-                why_gap = f"Your current evidence shows {your_pct}% proficiency, creating a {abs(gap_pct)}% gap against the {req_pct}% benchmark required for {role_name}."
+                why_gap = f"Your verified evidence demonstrates {your_pct}% proficiency ({your_level}), leaving a {abs(gap_pct)}% gap against the {req_pct}% requirement for {role_name}."
 
+            evidence_summary = (
+                f"Demonstrated across {', '.join(sources)}."
+                if sources
+                else "Demonstrated in candidate profile evidence."
+            )
             evidence_details = {
-                "sources": sources_list,
-                "repos": repos_list,
-                "quotes": quotes_list,
-                "reasoning": candidate_match.get("reasoning", f"Verified through candidate evidence in {', '.join(sources_list)}.")
+                "sources": sources,
+                "repos": ev_calc["repos"],
+                "projects": ev_calc["projects"],
+                "quotes": ev_calc["quotes"],
+                "reasoning": ev_calc["reasoning"]
             }
         else:
-            # Genuine Insufficient Evidence - user has no verified evidence for this skill
+            # Genuinely NO evidence found across connected sources
             your_pct = 0
             your_score = 0.0
             your_level = "Insufficient Evidence"
@@ -505,7 +644,7 @@ def compute_skill_gap_analysis(
             gap_pct = -req_pct
             match_status = "Missing"
 
-            # Missing skills with high importance are prioritized
+            # Missing skills with high role importance are critical priorities
             if req.importance == "Core":
                 priority = "Critical"
             elif req.importance == "High":
@@ -513,17 +652,18 @@ def compute_skill_gap_analysis(
             else:
                 priority = "Medium"
 
-            why_gap = f"{req.skill} is required ({req_pct}%) for {role_name}, but no verified evidence was found in your connected resume, GitHub, or projects."
+            why_gap = f"{req.skill} is required for {role_name}, but no verified evidence was found in your connected Resume, GitHub, or Projects. Add code samples or projects to demonstrate this skill."
             evidence_summary = "Insufficient evidence in connected sources (Resume / GitHub / Projects)."
             evidence_details = {
                 "sources": [],
                 "repos": [],
+                "projects": [],
                 "quotes": [],
-                "reasoning": f"No evidence found in uploaded resume, GitHub repositories, or registered projects for {req.skill}."
+                "reasoning": "No supporting evidence found in uploaded resume, GitHub repositories, or registered projects."
             }
 
         # Metric counters
-        if match_status == "Missing" or priority == "Critical":
+        if priority == "Critical" or match_status == "Missing":
             critical_count += 1
         elif match_status == "Weak":
             weak_count += 1
@@ -532,7 +672,7 @@ def compute_skill_gap_analysis(
         elif match_status == "Matched":
             matched_count += 1
 
-        # Weighted readiness computation
+        # Weighted readiness computation based on importance
         weight = 3 if req.importance == "Core" else (2 if req.importance == "High" else 1)
         skill_alignment = min(100, max(0, int((your_pct / max(1, req_pct)) * 100)))
         total_weighted_match += skill_alignment * weight
@@ -547,7 +687,7 @@ def compute_skill_gap_analysis(
             your_proficiency_score=your_score,
             your_proficiency_level=your_level,
             required_level_pct=req_pct,
-            required_level_score=round(req_pct / 20.0, 1),
+            required_level_score=req_score,
             required_proficiency_level=req_level,
             gap_percentage=gap_pct,
             priority=priority,
@@ -567,7 +707,7 @@ def compute_skill_gap_analysis(
     total_skills = len(gaps_list)
     overall_pct = int(total_weighted_match / max(1, total_weights)) if total_weights > 0 else 0
 
-    # Severity distribution
+    # Severity distribution calculated from actual gaps
     sev_critical = sum(1 for g in gaps_list if g.priority == "Critical")
     sev_high = sum(1 for g in gaps_list if g.priority == "High")
     sev_med = sum(1 for g in gaps_list if g.priority == "Medium")
@@ -609,37 +749,45 @@ def compute_skill_gap_analysis(
             color=color_map.get(cat, "#A855F7")
         ))
 
-    # Identify top critical gaps and strong verified skills for dynamic AI Insights
-    critical_skill_names = [g.skill for g in gaps_list if g.priority == "Critical"][:3]
-    strong_skill_names = [g.skill for g in gaps_list if g.match_status == "Strong"][:3]
+    # Dynamic AI Insights based on real candidate strengths and critical gaps
+    strong_skills = [g.skill for g in gaps_list if g.match_status in ["Strong", "Matched"]][:3]
+    critical_skills = [g.skill for g in gaps_list if g.priority == "Critical"][:3]
 
     ai_insights = [
         GapInsightItem(
             id="insight-1",
             type="critical",
             title="Focus on closing critical gaps first",
-            description=f"Improving {', '.join(critical_skill_names) if critical_skill_names else 'core foundational'} skills will significantly increase your role readiness score."
+            description=(
+                f"Prioritizing {', '.join(critical_skills)} will increase your overall match score significantly."
+                if critical_skills
+                else "Your core skill alignment is strong. Focus on expanding secondary framework depth."
+            )
         ),
         GapInsightItem(
             id="insight-2",
             type="strength",
-            title="Capitalize on verified strengths",
-            description=f"Your verified evidence in {', '.join(strong_skill_names) if strong_skill_names else 'foundational skills'} demonstrates strong baseline competence."
+            title="Capitalize on verified evidence foundations",
+            description=(
+                f"Your verified proficiency in {', '.join(strong_skills)} satisfies industry benchmarks—leverage these foundations when tackling new milestones."
+                if strong_skills
+                else "Upload your resume or connect GitHub to verify your existing skill foundations."
+            )
         ),
         GapInsightItem(
             id="insight-3",
             type="recommendation",
             title="Evidence-backed project verification",
-            description="Completing verified full-stack project deliverables will eliminate high-priority gaps and validate production readiness."
+            description="Completing practical projects with verified repository code will systematically eliminate high-priority gaps."
         )
     ]
 
     # Recommended Steps
     recommended_steps = [
-        f"Start with {sev_critical} critical priority gap skills",
-        "Follow your personalized roadmap milestones",
-        "Build and verify hands-on projects to demonstrate missing competencies",
-        "Re-evaluate your SkillTwin to track real readiness progress"
+        f"Start with {sev_critical} critical priority gaps" if sev_critical > 0 else "Review your roadmap progression",
+        "Follow the personalized milestone roadmap",
+        "Build and verify projects to demonstrate skills",
+        "Track capability improvements with continuous verification"
     ]
 
     readiness_rating = "Moderate"
@@ -649,8 +797,6 @@ def compute_skill_gap_analysis(
         readiness_rating = "Strong"
     elif overall_pct >= 60:
         readiness_rating = "Moderate"
-    elif overall_pct >= 40:
-        readiness_rating = "Good"
     else:
         readiness_rating = "Emerging"
 
@@ -681,14 +827,12 @@ def get_gap_analysis(
     experience: str = Query("Entry Level (0-2 years)", description="Experience level"),
     industry: str = Query("All Industries", description="Industry domain"),
     user_id: Optional[str] = Query(None, description="Optional user ID"),
-    authorization: Optional[str] = Header(None),
-    db: Session = Depends(get_db)
+    authorization: Optional[str] = Header(None)
 ):
     """
-    Retrieve evidence-backed Skill Gap Analysis comparing Living SkillTwin with selected Target Role.
-    Uses authenticated token or user_id to dynamically analyze all candidate evidence.
+    Retrieve evidence-backed Skill Gap Analysis comparing actual evidence with selected Target Role.
+    Uses authenticated token if no user_id is provided.
     """
-    # Use authenticated user_id if not provided
     if not user_id and authorization:
         from backend.routers.auth import get_user_id_from_token
         auth_user_id = get_user_id_from_token(authorization)
@@ -700,8 +844,7 @@ def get_gap_analysis(
             role_name=role,
             experience_level=experience,
             industry=industry,
-            user_id=user_id,
-            db=db
+            user_id=user_id
         )
     except Exception as e:
         raise HTTPException(
@@ -716,11 +859,10 @@ def recalculate_gap_analysis(
     experience: str = Query("Entry Level (0-2 years)"),
     industry: str = Query("All Industries"),
     user_id: Optional[str] = Query(None),
-    authorization: Optional[str] = Header(None),
-    db: Session = Depends(get_db)
+    authorization: Optional[str] = Header(None)
 ):
     """
-    Recalculate Skill Gap Analysis from newly uploaded/modified evidence.
+    Recalculate Skill Gap Analysis from newly uploaded evidence.
     """
     if not user_id and authorization:
         from backend.routers.auth import get_user_id_from_token
@@ -732,8 +874,7 @@ def recalculate_gap_analysis(
         role_name=role,
         experience_level=experience,
         industry=industry,
-        user_id=user_id,
-        db=db
+        user_id=user_id
     )
 
 
@@ -743,8 +884,7 @@ def export_gap_report(
     experience: str = Query("Entry Level (0-2 years)"),
     industry: str = Query("All Industries"),
     user_id: Optional[str] = Query(None),
-    authorization: Optional[str] = Header(None),
-    db: Session = Depends(get_db)
+    authorization: Optional[str] = Header(None)
 ):
     """
     Generate downloadable text/markdown summary of the candidate's Gap Analysis.
@@ -759,8 +899,7 @@ def export_gap_report(
         role_name=role,
         experience_level=experience,
         industry=industry,
-        user_id=user_id,
-        db=db
+        user_id=user_id
     )
 
     report_lines = [
@@ -814,6 +953,6 @@ def get_gap_engine_status():
     """Diagnostic readiness status for Skill Gap Engine."""
     return {
         "status": "ready",
-        "engine": "SkillTwin Gap Engine v1.0",
+        "engine": "SkillTwin Gap Engine v2.0",
         "features": ["evidence_matching", "explainable_reasoning", "priority_ranking", "report_export"]
     }

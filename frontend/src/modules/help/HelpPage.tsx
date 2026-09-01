@@ -103,18 +103,9 @@ export const HelpPage: React.FC<HelpPageProps> = ({
   ];
 
   return (
-    <div style={{ maxWidth: '1440px', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: '16px 24px 32px' }}>
+    <div className="page-container">
       {/* Top Header */}
-      <header style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingBottom: '16px',
-        borderBottom: '1px solid var(--border-subtle)',
-        marginBottom: '24px',
-        flexWrap: 'wrap',
-        gap: '16px'
-      }}>
+      <header className="dashboard-header">
         {/* Brand Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
