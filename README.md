@@ -9,13 +9,14 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 [![OpenRouter](https://img.shields.io/badge/AI-OpenRouter-7C3AED?style=flat-square)](https://openrouter.ai/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-00E599?style=flat-square&logo=render&logoColor=white)](https://skilltwin-vx3z.onrender.com)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
 
 SkillTwin is an evidence-based skill development platform designed to help students identify, measure, validate, and improve their skills using real-world evidence such as GitHub repositories, resumes, projects, certifications, and assessments.
 
 Instead of relying only on self-declared skills, SkillTwin aims to create a dynamic skill profile that evolves as students gain experience, identify skill gaps, and work toward industry-relevant career goals.
 
-> 🌐 **Live Deployed Demo**: [SkillTwin Live Service](https://skilltwin.onrender.com) *(Update with your production URL)*
+> 🌐 **Live Deployed Demo**: [https://skilltwin-vx3z.onrender.com](https://skilltwin-vx3z.onrender.com)
 
 ---
 
