@@ -148,6 +148,105 @@ CURATED_ROLE_BENCHMARKS: Dict[str, Dict[str, Any]] = {
             {"skill": "Git & Version Control", "canonical": "Git", "category": "DevOps & Tools", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 82, "desc": "Branching, rebase workflows, and CI/CD automation integration."},
             {"skill": "SQLAlchemy ORM", "canonical": "SQLAlchemy", "category": "Databases", "importance": "High", "level": "Intermediate", "demand": "High", "avg": 72, "desc": "Object-relational mapping, relationship models, and migrations."}
         ]
+    },
+    "ML Engineer": {
+        "description": "Designs, builds, trains, and deploys machine learning models for production environments. Combines ML expertise with software engineering skills.",
+        "experience_levels": ["Entry Level (0-2 years)", "Mid Level (2-5 years)", "Senior Level (5+ years)"],
+        "industries": ["All Industries", "Tech & SaaS", "Healthcare & Biotech", "Fintech", "E-Commerce & Retail"],
+        "roles_analyzed": "8,750+ job postings benchmark",
+        "last_updated": "May 25, 2026",
+        "top_5": [
+            {"name": "Python", "category": "Programming", "demand_level": "Very High", "importance": "Core"},
+            {"name": "Machine Learning", "category": "AI/ML", "demand_level": "Very High", "importance": "Core"},
+            {"name": "Deep Learning (PyTorch/TensorFlow)", "category": "AI/ML", "demand_level": "Very High", "importance": "Core"},
+            {"name": "SQL & Data Engineering", "category": "Data", "demand_level": "High", "importance": "Core"},
+            {"name": "Docker & MLOps", "category": "DevOps", "demand_level": "High", "importance": "Core"}
+        ],
+        "guidance": [
+            {"title": "Build a strong math foundation", "desc": "Linear algebra, calculus, and statistics are essential for understanding ML algorithms."},
+            {"title": "Master Python data stack", "desc": "NumPy, Pandas, and Matplotlib are used in every ML workflow."},
+            {"title": "Deploy models to production", "desc": "Use Docker, FastAPI, and cloud platforms to serve models at scale."}
+        ],
+        "requirements": [
+            {"skill": "Python", "canonical": "Python", "category": "Programming Languages", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 88, "desc": "Primary language for ML - data structures, OOP, async, and scientific libraries."},
+            {"skill": "Statistics & Probability", "canonical": "Statistics", "category": "Mathematics", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 82, "desc": "Hypothesis testing, Bayesian inference, distributions, and A/B testing."},
+            {"skill": "Linear Algebra", "canonical": "Linear Algebra", "category": "Mathematics", "importance": "Core", "level": "Intermediate", "demand": "High", "avg": 75, "desc": "Vectors, matrices, eigenvalues, and matrix decompositions for ML."},
+            {"skill": "Pandas & NumPy", "canonical": "Pandas", "category": "Data Engineering", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 85, "desc": "Data manipulation, feature engineering, and numerical computing."},
+            {"skill": "SQL & Databases", "canonical": "SQL", "category": "Data Engineering", "importance": "Core", "level": "Intermediate", "demand": "High", "avg": 75, "desc": "Data extraction, joins, aggregations, and window functions for feature pipelines."},
+            {"skill": "Scikit-learn", "canonical": "Scikit-learn", "category": "AI/ML", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 80, "desc": "Classical ML algorithms, model evaluation, and pipelines."},
+            {"skill": "PyTorch", "canonical": "PyTorch", "category": "AI/ML", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 82, "desc": "Deep learning, neural networks, and tensor operations for production models."},
+            {"skill": "TensorFlow", "canonical": "TensorFlow", "category": "AI/ML", "importance": "High", "level": "Intermediate", "demand": "High", "avg": 72, "desc": "Alternative deep learning framework for model serving and TFX pipelines."},
+            {"skill": "Docker & Containerization", "canonical": "Docker", "category": "DevOps & MLOps", "importance": "Core", "level": "Intermediate", "demand": "High", "avg": 72, "desc": "Containerize models for reproducible deployments."},
+            {"skill": "MLflow / Model Registry", "canonical": "MLflow", "category": "DevOps & MLOps", "importance": "High", "level": "Intermediate", "demand": "Medium", "avg": 65, "desc": "Experiment tracking, model versioning, and deployment workflows."},
+            {"skill": "AWS/GCP/Azure", "canonical": "Cloud Platforms", "category": "DevOps & MLOps", "importance": "High", "level": "Intermediate", "demand": "High", "avg": 70, "desc": "Sagemaker, Vertex AI, or Azure ML for managed model training and deployment."},
+            {"skill": "FastAPI for Model Serving", "canonical": "FastAPI", "category": "DevOps & MLOps", "importance": "High", "level": "Intermediate", "demand": "High", "avg": 68, "desc": "Build REST APIs to serve ML model predictions at scale."},
+            {"skill": "Git & Version Control", "canonical": "Git", "category": "DevOps & MLOps", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 82, "desc": "Branching, collaboration, and CI/CD for ML projects."}
+        ]
+    },
+    "Data Scientist": {
+        "description": "Analyzes data, builds predictive models, and communicates insights to drive business decisions. Focuses on statistical analysis and modeling.",
+        "experience_levels": ["Entry Level (0-2 years)", "Mid Level (2-5 years)", "Senior Level (5+ years)"],
+        "industries": ["All Industries", "Tech & SaaS", "Healthcare & Biotech", "Fintech", "Research"],
+        "roles_analyzed": "9,200+ job postings benchmark",
+        "last_updated": "May 25, 2026",
+        "top_5": [
+            {"name": "Python", "category": "Programming", "demand_level": "Very High", "importance": "Core"},
+            {"name": "Statistics & Probability", "category": "Mathematics", "demand_level": "Very High", "importance": "Core"},
+            {"name": "Machine Learning", "category": "AI/ML", "demand_level": "Very High", "importance": "Core"},
+            {"name": "SQL", "category": "Data", "demand_level": "High", "importance": "Core"},
+            {"name": "Data Visualization", "category": "Analytics", "demand_level": "High", "importance": "High"}
+        ],
+        "guidance": [
+            {"title": "Build strong statistical foundations", "desc": "Understanding distributions, hypothesis testing, and causality is critical."},
+            {"title": "Master exploratory data analysis", "desc": "EDA reveals patterns that guide modeling decisions."},
+            {"title": "Communicate findings clearly", "desc": "Storytelling with data is what distinguishes senior data scientists."}
+        ],
+        "requirements": [
+            {"skill": "Python", "canonical": "Python", "category": "Programming Languages", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 88, "desc": "Primary language for data analysis and ML."},
+            {"skill": "Statistics & Probability", "canonical": "Statistics", "category": "Mathematics", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 88, "desc": "Core skill for analyzing data and validating findings."},
+            {"skill": "SQL", "canonical": "SQL", "category": "Data Engineering", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 85, "desc": "Extract and join data from relational databases for analysis."},
+            {"skill": "Pandas & NumPy", "canonical": "Pandas", "category": "Data Engineering", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 88, "desc": "Data manipulation, cleaning, and transformation at scale."},
+            {"skill": "Data Visualization (Matplotlib/Seaborn)", "canonical": "Data Visualization", "category": "Analytics", "importance": "Core", "level": "Advanced", "demand": "High", "avg": 78, "desc": "Communicate insights through clear visualizations."},
+            {"skill": "Machine Learning", "canonical": "Machine Learning", "category": "AI/ML", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 82, "desc": "Build predictive models using scikit-learn and other libraries."},
+            {"skill": "Deep Learning Basics", "canonical": "Deep Learning", "category": "AI/ML", "importance": "High", "level": "Intermediate", "demand": "High", "avg": 72, "desc": "Neural networks for image, text, and time-series data."},
+            {"skill": "A/B Testing & Experimentation", "canonical": "A/B Testing", "category": "Analytics", "importance": "High", "level": "Intermediate", "demand": "High", "avg": 70, "desc": "Design and analyze controlled experiments for product decisions."},
+            {"skill": "Jupyter Notebooks", "canonical": "Jupyter", "category": "Tools", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 85, "desc": "Interactive analysis and reproducible research."},
+            {"skill": "Git & Version Control", "canonical": "Git", "category": "Tools", "importance": "High", "level": "Intermediate", "demand": "High", "avg": 72, "desc": "Version control for notebooks and analysis scripts."},
+            {"skill": "NLP / LLMs", "canonical": "NLP", "category": "AI/ML", "importance": "High", "level": "Intermediate", "demand": "Very High", "avg": 78, "desc": "Modern NLP using transformers and large language models."}
+        ]
+    },
+    "DevOps Engineer": {
+        "description": "Builds and maintains infrastructure, CI/CD pipelines, and deployment automation. Ensures reliable and scalable systems.",
+        "experience_levels": ["Entry Level (0-2 years)", "Mid Level (2-5 years)", "Senior Level (5+ years)"],
+        "industries": ["All Industries", "Tech & SaaS", "Cloud Computing", "Fintech", "Enterprise Software"],
+        "roles_analyzed": "7,500+ job postings benchmark",
+        "last_updated": "May 25, 2026",
+        "top_5": [
+            {"name": "Linux & Bash", "category": "Systems", "demand_level": "Very High", "importance": "Core"},
+            {"name": "Docker", "category": "Containers", "demand_level": "Very High", "importance": "Core"},
+            {"name": "Kubernetes", "category": "Containers", "demand_level": "Very High", "importance": "Core"},
+            {"name": "AWS/GCP/Azure", "category": "Cloud", "demand_level": "Very High", "importance": "Core"},
+            {"name": "CI/CD Pipelines", "category": "Automation", "demand_level": "High", "importance": "Core"}
+        ],
+        "guidance": [
+            {"title": "Master Linux fundamentals", "desc": "Strong command-line skills are the foundation of DevOps work."},
+            {"title": "Automate everything", "desc": "If you do it twice, write a script or pipeline for it."},
+            {"title": "Learn Infrastructure as Code", "desc": "Terraform and Ansible enable reproducible infrastructure."}
+        ],
+        "requirements": [
+            {"skill": "Linux & Bash", "canonical": "Linux", "category": "Systems & Networking", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 90, "desc": "Command-line operations, shell scripting, and system administration."},
+            {"skill": "Networking Fundamentals", "canonical": "Networking", "category": "Systems & Networking", "importance": "Core", "level": "Intermediate", "demand": "High", "avg": 78, "desc": "TCP/IP, DNS, HTTP, load balancing, and firewalls."},
+            {"skill": "Docker", "canonical": "Docker", "category": "Containers", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 88, "desc": "Container builds, multi-stage Dockerfiles, and Docker Compose."},
+            {"skill": "Kubernetes", "canonical": "Kubernetes", "category": "Containers", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 85, "desc": "Container orchestration, deployments, services, and Helm charts."},
+            {"skill": "AWS", "canonical": "AWS", "category": "Cloud Platforms", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 85, "desc": "EC2, S3, RDS, Lambda, IAM, and VPC networking."},
+            {"skill": "Terraform / IaC", "canonical": "Terraform", "category": "Cloud Platforms", "importance": "Core", "level": "Intermediate", "demand": "Very High", "avg": 78, "desc": "Infrastructure as Code for reproducible cloud deployments."},
+            {"skill": "CI/CD (GitHub Actions / Jenkins)", "canonical": "CI/CD", "category": "Automation", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 82, "desc": "Automated testing, building, and deployment pipelines."},
+            {"skill": "Ansible / Configuration Mgmt", "canonical": "Ansible", "category": "Automation", "importance": "High", "level": "Intermediate", "demand": "High", "avg": 68, "desc": "Configuration management and infrastructure automation."},
+            {"skill": "Monitoring (Prometheus/Grafana)", "canonical": "Monitoring", "category": "Operations", "importance": "High", "level": "Intermediate", "demand": "High", "avg": 72, "desc": "Metrics, alerting, and observability for production systems."},
+            {"skill": "Python or Go Scripting", "canonical": "Python", "category": "Programming Languages", "importance": "High", "level": "Intermediate", "demand": "High", "avg": 72, "desc": "Scripting for automation and tooling."},
+            {"skill": "Git & Version Control", "canonical": "Git", "category": "Tools", "importance": "Core", "level": "Advanced", "demand": "Very High", "avg": 82, "desc": "Branching, collaboration, and version control."},
+            {"skill": "Security Best Practices", "canonical": "Security", "category": "Operations", "importance": "Core", "level": "Intermediate", "demand": "High", "avg": 75, "desc": "Secrets management, IAM policies, and security scanning."}
+        ]
     }
 }
 
