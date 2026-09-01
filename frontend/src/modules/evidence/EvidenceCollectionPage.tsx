@@ -32,6 +32,24 @@ import {
 } from '../../shared/types';
 import PersistentSidebar from '../../shared/components/PersistentSidebar';
 
+/**
+ * Repository count from a GitHub analysis payload.
+ *
+ * `repos` has to be tested for length rather than truthiness. A fresh connect or
+ * resync returns the full repo array, but the evidence summary endpoint rehydrates
+ * an already-connected profile with `repos: []` and the real figure in
+ * `total_repositories`. An empty array is truthy in JS, so `data.repos ?
+ * data.repos.length : data.total_repositories` reports 0 repositories for every
+ * account restored from the database.
+ */
+const getRepoCount = (
+  data?: { repos?: unknown[] | null; total_repositories?: number | null } | null
+): number => {
+  if (!data) return 0;
+  if (Array.isArray(data.repos) && data.repos.length > 0) return data.repos.length;
+  return data.total_repositories ?? 0;
+};
+
 interface EvidenceCollectionPageProps {
   userProfile?: UserProfile | null;
   onNavigateToSkillTwin?: () => void;
@@ -217,7 +235,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
       localStorage.setItem('skilltwin_evidence_completed', 'true');
       if (onEvidenceUpdated) onEvidenceUpdated(true);
       setIsGithubModalOpen(false);
-      const count = result.repos ? result.repos.length : (result.total_repositories ?? 0);
+      const count = getRepoCount(result);
       setActionSuccessMessage(`Connected to GitHub @${result.username}. Extracted ${count} public ${count === 1 ? 'repository' : 'repositories'}.`);
       await refreshSummary();
     } catch (err: any) {
@@ -244,7 +262,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
       localStorage.setItem('skilltwin_github_data', JSON.stringify(result));
       localStorage.setItem('skilltwin_evidence_completed', 'true');
       if (onEvidenceUpdated) onEvidenceUpdated(true);
-      const count = result.repos ? result.repos.length : (result.total_repositories ?? 0);
+      const count = getRepoCount(result);
       setActionSuccessMessage(`Resynced ${count} public ${count === 1 ? 'repository' : 'repositories'} from GitHub @${result.username}.`);
       await refreshSummary();
     } catch (err: any) {
@@ -317,7 +335,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
   const skillsCount = summaryData?.total_skills || 0;
   const techCount = summaryData?.total_technologies || 0;
   const projectsCount = summaryData?.total_projects || (resumeData?.projects.length || 0) + (projectsData.length || 0);
-  const repoCount = githubData ? (githubData.repos ? githubData.repos.length : (githubData.total_repositories ?? 0)) : (summaryData?.total_repositories ?? 0);
+  const repoCount = githubData ? getRepoCount(githubData) : (summaryData?.total_repositories ?? 0);
   const certCount = summaryData?.total_certifications || resumeData?.certifications.length || 0;
   const completionPercentage = summaryData?.completion_percentage || 0;
   const canContinue = summaryData?.can_continue || Boolean(resumeData || githubData || projectsData.length > 0);
@@ -797,7 +815,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                             </span>
                           </div>
                           <div style={{ fontSize: '0.72rem', color: '#34D399', fontWeight: 600 }}>
-                            {githubData.repos ? githubData.repos.length : (githubData.total_repositories ?? 0)} {(githubData.repos ? githubData.repos.length : (githubData.total_repositories ?? 0)) === 1 ? 'repository' : 'repositories'} analyzed
+                            {repoCount} {repoCount === 1 ? 'repository' : 'repositories'} analyzed
                           </div>
                         </div>
 
