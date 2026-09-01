@@ -255,9 +255,18 @@ export const GapAnalysisPage: React.FC<GapAnalysisPageProps> = ({
   };
 
   return (
-    <div className="page-container">
+    <div style={{ maxWidth: '1440px', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: '16px 24px 32px' }}>
       {/* Top Header & Workflow Progress */}
-      <header className="dashboard-header">
+      <header style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingBottom: '16px',
+        borderBottom: '1px solid var(--border-subtle)',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
         {/* Brand Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
@@ -678,13 +687,7 @@ export const GapAnalysisPage: React.FC<GapAnalysisPageProps> = ({
               </div>
 
               {/* FILTER & SEARCH ROW */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '12px'
-              }}>
+              <div className="responsive-filter-bar" style={{ gap: '12px' }}>
                 {/* Filter Pills */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                   <button
@@ -729,30 +732,9 @@ export const GapAnalysisPage: React.FC<GapAnalysisPageProps> = ({
                   </button>
                 </div>
 
-                {/* Search & Category Dropdown & View Mode */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  {/* Search Input */}
-                  <div style={{ position: 'relative', width: '190px' }}>
-                    <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                    <input
-                      type="text"
-                      placeholder="Search skills..."
-                      value={searchQuery}
-                      onChange={e => setSearchQuery(e.target.value)}
-                      className="form-input"
-                      style={{ padding: '6px 10px 6px 30px', fontSize: '0.78rem', width: '100%' }}
-                    />
-                    {searchQuery && (
-                      <button
-                        onClick={() => setSearchQuery('')}
-                        style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
-                      >
-                        <X size={12} />
-                      </button>
-                    )}
-                  </div>
-
-                  {/* Category Dropdown */}
+                {/* Search & Sort Controls */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  {/* Category Filter Dropdown */}
                   <div style={{ position: 'relative' }}>
                     <select
                       value={selectedCategory}
@@ -760,13 +742,26 @@ export const GapAnalysisPage: React.FC<GapAnalysisPageProps> = ({
                       className="form-select"
                       style={{ padding: '6px 26px 6px 12px', fontSize: '0.78rem' }}
                     >
-                      {allCategories.map((cat, idx) => (
+                      {allCategories.map((cat: string, idx: number) => (
                         <option key={idx} value={cat}>{cat}</option>
                       ))}
                     </select>
                   </div>
 
-                  {/* Sort Dropdown */}
+                  {/* Search Bar */}
+                  <div style={{ position: 'relative', minWidth: '150px' }}>
+                    <Search size={13} color="var(--text-muted)" style={{ position: 'absolute', left: '9px', top: '50%', transform: 'translateY(-50%)' }} />
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Search skill gap..."
+                      value={searchQuery}
+                      onChange={e => setSearchQuery(e.target.value)}
+                      style={{ paddingLeft: '28px', height: '32px', fontSize: '0.78rem' }}
+                    />
+                  </div>
+
+                  {/* Sort By Dropdown */}
                   <div style={{ position: 'relative' }}>
                     <select
                       value={sortBy}
@@ -818,12 +813,7 @@ export const GapAnalysisPage: React.FC<GapAnalysisPageProps> = ({
               </div>
 
               {/* TWO COLUMN WORKSPACE: MAIN GAP TABLE + RIGHT INSIGHTS PANEL */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1fr) 300px',
-                gap: '20px',
-                alignItems: 'start'
-              }}>
+              <div className="responsive-grid-split">
                 {/* LEFT: MAIN SKILL GAP TABLE */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <div className="glass-panel" style={{ padding: '0', overflow: 'hidden' }}>

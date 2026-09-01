@@ -105,9 +105,18 @@ export const CareerReadinessPage: React.FC<CareerReadinessPageProps> = ({
   };
 
   return (
-    <div className="page-container">
+    <div style={{ maxWidth: '1440px', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: '16px 24px 32px' }}>
       {/* TOP HEADER & 9-STAGE PROGRESS STEPPER */}
-      <header className="dashboard-header">
+      <header style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingBottom: '16px',
+        borderBottom: '1px solid var(--border-subtle)',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
         {/* Brand Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
@@ -566,12 +575,7 @@ export const CareerReadinessPage: React.FC<CareerReadinessPageProps> = ({
           </div>
 
           {/* MIDDLE SECTION: 4-COLUMN SKILL STATUS GRID + RECOMMENDED ACTION PANEL */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.8fr) minmax(0, 1fr)',
-            gap: '20px',
-            alignItems: 'start'
-          }}>
+          <div className="responsive-grid-split">
             {/* LEFT: 4-COLUMN SKILL STATUS CARDS */}
             <div style={{
               display: 'grid',

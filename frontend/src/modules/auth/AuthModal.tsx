@@ -146,7 +146,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         style={{
           width: '100%',
           maxWidth: '460px',
-          padding: '32px',
+          maxHeight: 'calc(100vh - 32px)',
+          overflowY: 'auto',
+          padding: 'clamp(20px, 5vw, 32px)',
           position: 'relative',
           borderRadius: '20px',
           border: '1px solid rgba(168, 85, 247, 0.28)',

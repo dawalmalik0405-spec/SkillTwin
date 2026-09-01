@@ -285,9 +285,18 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
   };
 
   return (
-    <div className="page-container">
+    <div style={{ maxWidth: '1440px', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: '16px 24px 32px' }}>
       {/* Top Header & Workflow Progress (Steps 1 to 6) */}
-      <header className="dashboard-header">
+      <header style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingBottom: '16px',
+        borderBottom: '1px solid var(--border-subtle)',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
         {/* Brand Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
@@ -687,14 +696,9 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
               </div>
 
               {/* TWO COLUMN LAYOUT: MAIN ROADMAP / CALENDAR + RIGHT SUMMARY */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1fr) 300px',
-                gap: '20px',
-                alignItems: 'start'
-              }}>
+              <div className="responsive-grid-split">
                 {/* LEFT WORKSPACE: VISUAL GRAPH OR ROADMAP PLAN OR CALENDAR */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
                   {activeTab === 'visual' ? (
                     /* ----------------- VISUAL GRAPH VIEW (NEW!) ----------------- */
                     <div className="glass-panel" style={{ padding: '20px' }}>

@@ -231,9 +231,18 @@ export const TargetRoleMappingPage: React.FC<TargetRoleMappingPageProps> = ({
   };
 
   return (
-    <div className="page-container">
+    <div style={{ maxWidth: '1440px', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: '16px 24px 32px' }}>
       {/* Top Header & 6-Step Progress Stepper */}
-      <header className="dashboard-header">
+      <header style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingBottom: '16px',
+        borderBottom: '1px solid var(--border-subtle)',
+        marginBottom: '24px',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
         {/* Brand Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
@@ -387,11 +396,8 @@ export const TargetRoleMappingPage: React.FC<TargetRoleMappingPageProps> = ({
           </div>
 
           {/* Top Horizontal Target Role Selection Card */}
-          <div className="glass-panel" style={{
+          <div className="glass-panel responsive-grid-3col" style={{
             padding: '16px 20px',
-            display: 'grid',
-            gridTemplateColumns: '1.2fr 1fr 1fr',
-            gap: '16px',
             alignItems: 'center'
           }}>
             {/* 1. Selected Role */}
@@ -523,21 +529,16 @@ export const TargetRoleMappingPage: React.FC<TargetRoleMappingPageProps> = ({
           </div>
 
           {/* Main 2-Column Grid: Center Content (Left 65%) + Right Sidebar (35%) */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1fr) 340px',
-            gap: '24px',
-            alignItems: 'start'
-          }}>
+          <div className="responsive-grid-split">
             {/* Center Area: Overall Metrics, Breakdown/Top5, and All Required Skills Table */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: 0 }}>
               {/* 1. Overall Role Requirements (4 Stat Tiles) */}
               <div className="glass-panel" style={{ padding: '18px 20px' }}>
                 <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '14px' }}>
                   Overall Role Requirements
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+                <div className="responsive-grid-4col">
                   {/* Tile 1: Total Skills */}
                   <div style={{
                     display: 'flex',
@@ -817,109 +818,114 @@ export const TargetRoleMappingPage: React.FC<TargetRoleMappingPageProps> = ({
                   </div>
                 </div>
 
-                {/* Table Header Row */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1.3fr 1.2fr 0.8fr 0.8fr 1.3fr 1.8fr',
-                  padding: '8px 12px',
-                  fontSize: '0.72rem',
-                  fontWeight: 700,
-                  color: 'var(--text-muted)',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.04em'
-                }}>
-                  <div>Skill</div>
-                  <div>Category</div>
-                  <div>Importance</div>
-                  <div>Demand</div>
-                  <div>Industry Avg. Proficiency</div>
-                  <div>Description</div>
-                </div>
+                {/* Table Header & Rows (wrapped in responsive horizontal scroll) */}
+                <div className="responsive-table-scroll">
+                  <div style={{ minWidth: '650px' }}>
+                    {/* Table Header Row */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: '1.3fr 1.2fr 0.8fr 0.8fr 1.3fr 1.8fr',
+                      padding: '8px 12px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      color: 'var(--text-muted)',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.04em'
+                    }}>
+                      <div>Skill</div>
+                      <div>Category</div>
+                      <div>Importance</div>
+                      <div>Demand</div>
+                      <div>Industry Avg. Proficiency</div>
+                      <div>Description</div>
+                    </div>
 
-                {/* Table Body */}
-                {error ? (
-                  <div style={{ padding: '36px 16px', textAlign: 'center' }}>
-                    <AlertCircle size={32} color="#EF4444" style={{ margin: '0 auto 10px' }} />
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#EF4444' }}>{error}</div>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                      Failed to load target role mapping. Please select another role or try again.
-                    </p>
-                  </div>
-                ) : isLoading ? (
-                  <div style={{ padding: '48px 0', textAlign: 'center' }}>
-                    <Loader2 size={32} color="#C084FC" style={{ animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
-                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#F8FAFC' }}>Loading role requirements...</div>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                      Retrieving curated industry requirement benchmarks for {selectedRole}
-                    </p>
-                  </div>
-                ) : filteredRequirements.length === 0 ? (
-                  <div style={{ padding: '36px 16px', textAlign: 'center' }}>
-                    <AlertCircle size={32} color="#818CF8" style={{ margin: '0 auto 10px' }} />
-                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#F8FAFC' }}>No matching requirements found</div>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                      Try adjusting your search query or selecting a different category/level filter.
-                    </p>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {paginatedRequirements.map((req) => (
-                      <div
-                        key={req.id}
-                        onClick={() => setSelectedRequirement(req)}
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: '1.3fr 1.2fr 0.8fr 0.8fr 1.3fr 1.8fr',
-                          alignItems: 'center',
-                          padding: '12px 14px',
-                          background: 'rgba(15, 23, 42, 0.65)',
-                          border: '1px solid rgba(255, 255, 255, 0.06)',
-                          borderRadius: '12px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease'
-                        }}
-                        className="skill-table-row"
-                      >
-                        {/* Skill Name */}
-                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F8FAFC' }}>
-                          {req.skill}
-                        </div>
-
-                        {/* Category */}
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                          {req.category.replace(' Development', '').replace(' Important Skills', '')}
-                        </div>
-
-                        {/* Importance */}
-                        <div>
-                          {renderImportanceBadge(req.importance)}
-                        </div>
-
-                        {/* Demand */}
-                        <div>
-                          {renderDemandBadge(req.demand)}
-                        </div>
-
-                        {/* Industry Avg. Proficiency */}
-                        <div style={{ paddingRight: '16px' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ flex: 1, height: '5px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
-                              <div style={{ width: `${req.industry_avg_proficiency}%`, height: '100%', background: '#10B981', borderRadius: '3px' }} />
-                            </div>
-                            <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#F8FAFC', width: '30px', textAlign: 'right' }}>
-                              {req.industry_avg_proficiency}%
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Description */}
-                        <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {req.description}
-                        </div>
+                    {/* Table Body */}
+                    {error ? (
+                      <div style={{ padding: '36px 16px', textAlign: 'center' }}>
+                        <AlertCircle size={32} color="#EF4444" style={{ margin: '0 auto 10px' }} />
+                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#EF4444' }}>{error}</div>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          Failed to load target role mapping. Please select another role or try again.
+                        </p>
                       </div>
-                    ))}
+                    ) : isLoading ? (
+                      <div style={{ padding: '48px 0', textAlign: 'center' }}>
+                        <Loader2 size={32} color="#C084FC" style={{ animation: 'spin 1s linear infinite', margin: '0 auto 12px' }} />
+                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#F8FAFC' }}>Loading role requirements...</div>
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          Retrieving curated industry requirement benchmarks for {selectedRole}
+                        </p>
+                      </div>
+                    ) : filteredRequirements.length === 0 ? (
+                      <div style={{ padding: '36px 16px', textAlign: 'center' }}>
+                        <AlertCircle size={32} color="#818CF8" style={{ margin: '0 auto 10px' }} />
+                        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#F8FAFC' }}>No matching requirements found</div>
+                        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                          Try adjusting your search query or selecting a different category/level filter.
+                        </p>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {paginatedRequirements.map((req) => (
+                          <div
+                            key={req.id}
+                            onClick={() => setSelectedRequirement(req)}
+                            style={{
+                              display: 'grid',
+                              gridTemplateColumns: '1.3fr 1.2fr 0.8fr 0.8fr 1.3fr 1.8fr',
+                              alignItems: 'center',
+                              padding: '12px 14px',
+                              background: 'rgba(15, 23, 42, 0.65)',
+                              border: '1px solid rgba(255, 255, 255, 0.06)',
+                              borderRadius: '12px',
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease'
+                            }}
+                            className="skill-table-row"
+                          >
+                            {/* Skill Name */}
+                            <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F8FAFC' }}>
+                              {req.skill}
+                            </div>
+
+                            {/* Category */}
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                              {req.category.replace(' Development', '').replace(' Important Skills', '')}
+                            </div>
+
+                            {/* Importance */}
+                            <div>
+                              {renderImportanceBadge(req.importance)}
+                            </div>
+
+                            {/* Demand */}
+                            <div>
+                              {renderDemandBadge(req.demand)}
+                            </div>
+
+                            {/* Industry Avg. Proficiency */}
+                            <div style={{ paddingRight: '16px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <div style={{ flex: 1, height: '5px', background: 'rgba(255,255,255,0.08)', borderRadius: '3px', overflow: 'hidden' }}>
+                                  <div style={{ width: `${req.industry_avg_proficiency}%`, height: '100%', background: '#10B981', borderRadius: '3px' }} />
+                                </div>
+                                <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#F8FAFC', width: '30px', textAlign: 'right' }}>
+                                  {req.industry_avg_proficiency}%
+                                </span>
+                              </div>
+                            </div>
+
+                            {/* Description */}
+                            <div style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {req.description}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-                )}
+                </div>
 
                 {/* Pagination Controls */}
                 {filteredRequirements.length > pageSize && (

@@ -153,9 +153,18 @@ export const SkillTwinUpdatedPage: React.FC<SkillTwinUpdatedPageProps> = ({
   };
 
   return (
-    <div className="page-container">
+    <div style={{ maxWidth: '1440px', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: '16px 24px 32px' }}>
       {/* TOP HEADER & WORKFLOW STEPPER (1 to 8) */}
-      <header className="dashboard-header">
+      <header style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingBottom: '16px',
+        borderBottom: '1px solid var(--border-subtle)',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
         {/* Brand Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
@@ -569,14 +578,9 @@ export const SkillTwinUpdatedPage: React.FC<SkillTwinUpdatedPageProps> = ({
           </div>
 
           {/* MAIN TWO-COLUMN WORK AREA */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.45fr) minmax(0, 1fr)',
-            gap: '20px',
-            alignItems: 'start'
-          }}>
+          <div className="responsive-grid-split">
             {/* LEFT COLUMN: WHAT CHANGED TABLE + HOW YOUR SKILLTWIN WAS UPDATED */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
               <div ref={whatChangedRef} className="glass-panel" style={{ padding: '20px', borderRadius: '16px', border: '1px solid rgba(255, 255, 255, 0.08)' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <div>
@@ -589,26 +593,29 @@ export const SkillTwinUpdatedPage: React.FC<SkillTwinUpdatedPageProps> = ({
                 </div>
               </div>
 
-              {/* Table Header */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '110px 95px 95px 65px minmax(0, 1fr)',
-                gap: '10px',
-                padding: '8px 12px',
-                background: 'rgba(255, 255, 255, 0.03)',
-                borderRadius: '8px',
-                fontSize: '0.68rem',
-                fontWeight: 700,
-                color: 'var(--text-muted)',
-                letterSpacing: '0.04em',
-                marginBottom: '8px'
-              }}>
-                <span>SKILL</span>
-                <span>BEFORE</span>
-                <span>AFTER</span>
-                <span>CHANGE</span>
-                <span>REASON</span>
-              </div>
+              {/* Table Container with Horizontal Scroll on Mobile */}
+              <div className="responsive-table-scroll">
+                <div style={{ minWidth: '540px' }}>
+                  {/* Table Header */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '110px 95px 95px 65px minmax(0, 1fr)',
+                    gap: '10px',
+                    padding: '8px 12px',
+                    background: 'rgba(255, 255, 255, 0.03)',
+                    borderRadius: '8px',
+                    fontSize: '0.68rem',
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    letterSpacing: '0.04em',
+                    marginBottom: '8px'
+                  }}>
+                    <span>SKILL</span>
+                    <span>BEFORE</span>
+                    <span>AFTER</span>
+                    <span>CHANGE</span>
+                    <span>REASON</span>
+                  </div>
 
               {/* Skill Rows */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -775,6 +782,8 @@ export const SkillTwinUpdatedPage: React.FC<SkillTwinUpdatedPageProps> = ({
                   )}
                 </div>
               )}
+                </div>
+              </div>
             </div>
 
             {/* 🔮 HOW YOUR SKILLTWIN WAS UPDATED (4-STEP VISUAL PROCESS CARD UNDER WHAT CHANGED?) */}

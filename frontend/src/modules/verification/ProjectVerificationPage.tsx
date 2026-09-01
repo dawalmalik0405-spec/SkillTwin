@@ -313,9 +313,18 @@ export const ProjectVerificationPage: React.FC<ProjectVerificationPageProps> = (
   };
 
   return (
-    <div className="page-container">
+    <div style={{ maxWidth: '1440px', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: '16px 24px 32px' }}>
       {/* Top Header & Workflow Stepper (1 to 7) */}
-      <header className="dashboard-header">
+      <header style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingBottom: '16px',
+        borderBottom: '1px solid var(--border-subtle)',
+        marginBottom: '20px',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
         {/* Brand Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
@@ -566,9 +575,9 @@ export const ProjectVerificationPage: React.FC<ProjectVerificationPageProps> = (
             <form onSubmit={handleSubmitProject} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div style={{
                 display: 'grid',
-                gridTemplateColumns: 'minmax(0, 1.3fr) minmax(0, 1fr) auto',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))',
                 gap: '14px',
-                alignItems: 'start'
+                alignItems: 'end'
               }}>
                 {/* 1. GitHub Repository URL Input */}
                 <div>
@@ -617,7 +626,7 @@ export const ProjectVerificationPage: React.FC<ProjectVerificationPageProps> = (
                 </div>
 
                 {/* 3. Submit Button */}
-                <div style={{ paddingTop: '22px' }}>
+                <div>
                   <button
                     type="submit"
                     disabled={isAnalyzing}
@@ -630,8 +639,11 @@ export const ProjectVerificationPage: React.FC<ProjectVerificationPageProps> = (
                       boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)',
                       display: 'flex',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       gap: '8px',
-                      whiteSpace: 'nowrap'
+                      whiteSpace: 'nowrap',
+                      width: '100%',
+                      height: '38px'
                     }}
                   >
                     {isAnalyzing ? (

@@ -273,9 +273,18 @@ export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
   const gaugeOffset = gaugeCircumference - (overallScore / 100) * gaugeCircumference;
 
   return (
-    <div className="page-container">
+    <div style={{ maxWidth: '1440px', margin: '0 auto', minHeight: '100vh', display: 'flex', flexDirection: 'column', padding: '16px 24px 32px' }}>
       {/* Top Header & 5-Step Progress Stepper */}
-      <header className="dashboard-header">
+      <header style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingBottom: '16px',
+        borderBottom: '1px solid var(--border-subtle)',
+        marginBottom: '24px',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
         {/* Brand Logo */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{
@@ -440,26 +449,16 @@ export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
           </div>
 
           {/* Main 2-Column Grid: Skills Table (Left) + Analytical Summary Panel (Right) */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1fr) 340px',
-            gap: '24px',
-            alignItems: 'start'
-          }}>
+          <div className="responsive-grid-split">
             {/* Left Column: Filter Tabs, Controls & Skills Table */}
-            <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
               {/* Filter Tabs & Search / Sort Controls Bar */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '14px',
+              <div className="responsive-filter-bar" style={{
                 borderBottom: '1px solid var(--border-subtle)',
                 paddingBottom: '14px'
               }}>
                 {/* Category Filter Tabs */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     onClick={() => setSelectedCategory('All')}
@@ -536,7 +535,7 @@ export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
                 {/* Search & Sort Dropdowns */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   {/* Search Input */}
-                  <div style={{ position: 'relative', minWidth: '180px' }}>
+                  <div style={{ position: 'relative', minWidth: '160px', flex: 1 }}>
                     <Search size={14} color="var(--text-muted)" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
                     <input
                       type="text"
@@ -564,25 +563,28 @@ export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
                 </div>
               </div>
 
-              {/* Skills Table Header */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1.4fr 1.1fr 0.8fr 1.1fr 1.6fr',
-                padding: '8px 12px',
-                fontSize: '0.72rem',
-                fontWeight: 700,
-                color: 'var(--text-muted)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em'
-              }}>
-                <div>Skill</div>
-                <div>Proficiency</div>
-                <div>Confidence</div>
-                <div>Evidence</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  Reasoning <Info size={12} />
-                </div>
-              </div>
+              {/* Skills Table (with responsive horizontal scroll for small screens) */}
+              <div className="responsive-table-scroll">
+                <div style={{ minWidth: '600px' }}>
+                  {/* Skills Table Header */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1.4fr 1.1fr 0.8fr 1.1fr 1.6fr',
+                    padding: '8px 12px',
+                    fontSize: '0.72rem',
+                    fontWeight: 700,
+                    color: 'var(--text-muted)',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.04em'
+                  }}>
+                    <div>Skill</div>
+                    <div>Proficiency</div>
+                    <div>Confidence</div>
+                    <div>Evidence</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      Reasoning <Info size={12} />
+                    </div>
+                  </div>
 
               {/* Skills Table Body */}
               {isLoading ? (
@@ -751,6 +753,8 @@ export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
                   )}
                 </div>
               )}
+                </div>
+              </div>
             </div>
 
             {/* Right Column: Analytical Summary Panel */}
