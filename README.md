@@ -2,9 +2,40 @@
 
 ### Evidence-Based Skill Development Platform
 
+[![FastAPI](https://img.shields.io/badge/FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)](https://www.python.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-336791?style=flat-square&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![OpenRouter](https://img.shields.io/badge/AI-OpenRouter-7C3AED?style=flat-square)](https://openrouter.ai/)
+[![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
+
 SkillTwin is an evidence-based skill development platform designed to help students identify, measure, validate, and improve their skills using real-world evidence such as GitHub repositories, resumes, projects, certifications, and assessments.
 
 Instead of relying only on self-declared skills, SkillTwin aims to create a dynamic skill profile that evolves as students gain experience, identify skill gaps, and work toward industry-relevant career goals.
+
+---
+
+## Table of Contents
+
+- [Problem](#problem)
+- [Proposed Solution](#proposed-solution)
+- [Key Features](#key-features)
+- [Prototype Workflow & Architecture](#prototype-workflow)
+- [Evidence Used](#evidence-used)
+- [Team Members & Contributions](#team-members--contributions)
+- [Technology Stack](#technology-stack)
+- [Local Setup & Quick Start](#local-setup--quick-start)
+- [API Endpoints Overview](#api-endpoints-overview)
+- [Environment Configuration](#environment-configuration)
+- [Generative AI Disclosure](#generative-ai-disclosure)
+- [Research & Reference Resources](#research--reference-resources)
+- [Responsible Use](#responsible-use)
+- [Future Scope](#future-scope)
+- [Project Status](#project-status)
+- [Deployment](#deployment)
+- [License](#license)
 
 ---
 
@@ -62,6 +93,8 @@ The long-term goal is to continuously update the student's SkillTwin as new evid
 
 ## Prototype Workflow
 
+### Workflow Sequence
+
 ```text
 Student Onboarding
         ↓
@@ -84,8 +117,54 @@ Verification & New Evidence
 Updated SkillTwin
         ↓
 Career Readiness
-
 ```
+
+### Interactive Flowchart
+
+```mermaid
+flowchart TD
+    A[Student Onboarding] --> B[Evidence Collection]
+    B -->|Resume, GitHub, Certs| C[AI-Assisted Analysis]
+    C --> D[SkillTwin Profile Creation]
+    D --> E[Target Role Selection]
+    E --> F[Skill Gap Analysis]
+    F --> G[Personalized Roadmap]
+    G --> H[Learn → Practice → Build]
+    H --> I[AI Quizzes & Task Verification]
+    I -->|Verification Result| J[Updated SkillTwin Profile]
+    J --> K[Career Readiness Score]
+```
+
+### System Architecture Diagram
+
+```mermaid
+graph TD
+    subgraph Client ["Client Layer"]
+        Frontend["React SPA (TypeScript + Vite)"]
+    end
+
+    subgraph Server ["Server Layer (FastAPI Single-Service)"]
+        MainApp["backend/main.py"]
+        Routers["FastAPI Routers (Auth, Evidence, SkillTwin, Roadmap, Quiz)"]
+        DBEngine["SQLAlchemy 2.0 / PostgreSQL Handler"]
+        LLMClient["OpenRouter LLM Client"]
+    end
+
+    subgraph Integrations ["External APIs & Storage"]
+        Postgres[(PostgreSQL Database)]
+        OpenRouter["OpenRouter AI (Claude / Gemini / GPT)"]
+        GitHubAPI["GitHub REST API"]
+    end
+
+    Frontend -->|HTTP / REST API| MainApp
+    MainApp --> Routers
+    Routers --> DBEngine
+    Routers --> LLMClient
+    DBEngine --> Postgres
+    LLMClient --> OpenRouter
+    Routers --> GitHubAPI
+```
+
 ---
 
 
@@ -122,30 +201,125 @@ The project was developed collaboratively, with responsibilities divided accordi
 
 
 
- ## Technology Stack
+## Technology Stack
 
 ### Frontend
-- React
-- JavaScript
-- HTML
-- CSS
+- **Framework & Language**: React 18, TypeScript, HTML5, CSS3
+- **Build Tool**: Vite
+- **UI Components**: Custom CSS with glassmorphism design tokens & micro-animations
 
 ### Backend
-- Python
-- FastAPI
+- **Framework**: Python 3.11, FastAPI, Uvicorn
+- **ORM & DB**: SQLAlchemy 2.0, PostgreSQL
 
-### AI / ML
-- Large Language Model (LLM) based analysis
-- Natural Language Processing
-- Skill extraction and normalization
-- Evidence analysis
-- Recommendation and gap analysis
+### AI / ML & LLM Integration
+- **LLM Provider**: OpenRouter API (`anthropic/claude-3.5-sonnet`, `google/gemini-2.0-flash-thinking-exp`, `openai/gpt-4o`)
+- **Intelligence**: Skill extraction, natural language normalization, gap analysis, dynamic quiz generation, roadmap synthesis
 
-### Data & Integrations
-- GitHub REST API
-- Structured skill and occupation references
-- Resume text extraction
-- Database-backed application data
+### Integrations & Services
+- **GitHub REST API**: Repository verification, technology detection, commit activity analysis
+- **Document Processing**: PyPDF2 / pdfplumber for resume parsing
+- **Deployment**: Docker, Render (Single-service container architecture)
+
+---
+
+## Local Setup & Quick Start
+
+### Prerequisites
+- **Python 3.11+** installed
+- **Node.js 18+** & `npm` installed
+- **PostgreSQL** database instance running locally or remotely
+
+### 1. One-Command Start (Development)
+
+Run both the FastAPI backend and React frontend simultaneously using the root launcher:
+
+```bash
+python start.py
+```
+
+This starts:
+- **Backend API**: http://localhost:8000
+- **Frontend SPA**: http://localhost:5173
+
+---
+
+### 2. Manual Step-by-Step Setup
+
+#### Step A: Backend Setup
+
+```bash
+# 1. Create and activate a virtual environment
+python -m venv .venv
+
+# On Windows (PowerShell / CMD):
+.venv\Scripts\activate
+# On Linux / macOS:
+source .venv/bin/activate
+
+# 2. Install backend dependencies
+pip install -r backend/requirements.txt
+
+# 3. Configure environment variables
+cp .env.example .env
+
+# 4. Initialize PostgreSQL schema
+psql -U postgres -d skilltwin_db -f backend/schema.sql
+
+# 5. Run backend server
+python -m backend.main
+```
+
+#### Step B: Frontend Setup
+
+```bash
+# Navigate to frontend directory
+cd frontend
+
+# Install Node dependencies
+npm install
+
+# Start Vite development server
+npm run dev
+```
+
+---
+
+## API Endpoints Overview
+
+The FastAPI backend exposes structured REST endpoints divided into modular routers:
+
+| Router | Base Path | Description |
+|---|---|---|
+| **Auth Router** | `/api/auth` | User registration, authentication, session state (`/me`), JWT tokens |
+| **Evidence Router** | `/api/evidence` | Resume parsing, GitHub repo verification, project/cert submissions |
+| **Target Role Router** | `/api/target-role` | Career role selection (ESCO/O*NET aligned) and target skill goals |
+| **SkillTwin Router** | `/api/skilltwin` | Evidence-backed skill graph, proficiency levels, confidence scores |
+| **Gap Analysis Router** | `/api/gap-analysis` | Comparative matrix matching current skills against target role requirements |
+| **Roadmap Router** | `/api/roadmap` | Step-by-step personalized skill development roadmap generation |
+| **Quiz Router** | `/api/quiz` | AI-generated knowledge check quizzes per roadmap task & evaluation |
+| **Verification Router** | `/api/verification` | Task verification, quiz validation, and SkillTwin profile recalculation |
+| **Readiness Router** | `/api/readiness` | Quantitative Career Readiness Index score & strength breakdown |
+| **Health Router** | `/api/health` | System health status and PostgreSQL database connection check |
+
+Full interactive API documentation is available at `http://localhost:8000/docs` (Swagger UI) or `http://localhost:8000/redoc`.
+
+---
+
+## Environment Configuration
+
+Copy `.env.example` to `.env` and configure the following parameters:
+
+| Parameter | Required | Default / Description |
+|---|---|---|
+| `HOST` | No | Default `0.0.0.0` — Backend bind address |
+| `PORT` | No | Default `8000` — Backend port |
+| `SECRET_KEY` | Yes (Prod) | JWT signing secret. Auto-fallback used in local dev |
+| `DATABASE_URL` | Yes | PostgreSQL connection string (`postgresql://user:pass@localhost:5432/skilltwin_db`) |
+| `OPENROUTER_API_KEY` | Yes (AI) | Key from [OpenRouter](https://openrouter.ai/keys) for AI quizzes & gap analysis |
+| `OPENROUTER_MODEL` | No | Default `anthropic/claude-3.5-sonnet` |
+| `GITHUB_TOKEN` | No | Fine-grained GitHub token to increase API rate limit for repo analysis |
+| `VITE_API_URL` | No | Default `http://localhost:8000` for frontend API requests |
 
 ---
 
