@@ -296,8 +296,8 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
 
     try {
       await apiClient.finalizeEvidence({
-        email: userEmail,
-        user_id: userId
+        email: userEmail || "",
+        user_id: userId || ""
       });
     } catch (err: any) {
       console.warn('Finalize notice (continuing with analyzed evidence):', err);

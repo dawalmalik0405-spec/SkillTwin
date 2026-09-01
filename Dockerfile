@@ -12,7 +12,8 @@ WORKDIR /app/frontend
 
 # Copy manifests first so `npm ci` is cached until dependencies actually change.
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci
+# Use --legacy-peer-deps as a safety net for any peer dep conflicts
+RUN npm ci --legacy-peer-deps
 
 COPY frontend/ ./
 

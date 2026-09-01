@@ -100,7 +100,7 @@ export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
   const handleRecalculate = async () => {
     setIsRecalculating(true);
     try {
-      const updated = await apiClient.recalculateSkillTwin(userEmail, userId);
+      const updated = await apiClient.recalculateSkillTwin(userEmail || "", userId || "");
       setSkillTwinData(updated);
     } catch (err: any) {
       console.error('Recalculation error:', err);
