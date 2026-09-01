@@ -331,13 +331,35 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
     }
   };
 
+  // Determine actual analyzed state for each of the 3 evidence sources
+  const hasResume = Boolean(resumeData || summaryData?.resume_data);
+  const hasGithub = Boolean(githubData || summaryData?.github_data);
+  const hasProjects = Boolean((projectsData && projectsData.length > 0) || (summaryData?.projects_data && summaryData.projects_data.length > 0));
+
+  const analyzedSourcesCount = (hasResume ? 1 : 0) + (hasGithub ? 1 : 0) + (hasProjects ? 1 : 0);
+
+  // Exact 3-source progress mapping:
+  // 0 sources -> 0%
+  // 1 source  -> 33%
+  // 2 sources -> 66%
+  // 3 sources -> 100%
+  const completionPercentage =
+    analyzedSourcesCount === 3 ? 100 :
+    analyzedSourcesCount === 2 ? 66 :
+    analyzedSourcesCount === 1 ? 33 : 0;
+
   // Calculated Real Summary Values
-  const skillsCount = summaryData?.total_skills || 0;
-  const techCount = summaryData?.total_technologies || 0;
-  const projectsCount = summaryData?.total_projects || (resumeData?.projects.length || 0) + (projectsData.length || 0);
+  const skillsCount = summaryData?.total_skills || (
+    (resumeData?.skills_extracted?.length || 0) +
+    (projectsData?.reduce((acc, p) => acc + (p.detected_technologies?.length || 0), 0) || 0)
+  );
+  const techCount = summaryData?.total_technologies || (
+    (resumeData?.technologies?.length || 0) +
+    (projectsData?.reduce((acc, p) => acc + (p.detected_technologies?.length || 0), 0) || 0)
+  );
+  const projectsCount = summaryData?.total_projects || (resumeData?.projects?.length || 0) + (projectsData?.length || 0);
   const repoCount = githubData ? getRepoCount(githubData) : (summaryData?.total_repositories ?? 0);
-  const certCount = summaryData?.total_certifications || resumeData?.certifications.length || 0;
-  const completionPercentage = summaryData?.completion_percentage || 0;
+  const certCount = summaryData?.total_certifications || resumeData?.certifications?.length || 0;
   const canContinue = summaryData?.can_continue || Boolean(resumeData || githubData || projectsData.length > 0);
 
   // SVG Circular Ring Math
@@ -1157,6 +1179,8 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                         strokeDashoffset={strokeDashoffset}
                         strokeLinecap="round"
                         fill="transparent"
+                        transform="rotate(-90 50 50)"
+                        style={{ transition: 'stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1)' }}
                       />
                       <defs>
                         <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -1444,30 +1468,30 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
          ========================================================= */}
       {isDetailsModalOpen && (
         <div className="modal-backdrop" onClick={() => setIsDetailsModalOpen(false)}>
-          <div className="modal-container" style={{ maxWidth: '780px' }} onClick={(e) => e.stopPropagation()}>
+          <div className="modal-container" style={{ maxWidth: '800px' }} onClick={(e) => e.stopPropagation()}>
             {/* Modal Header */}
-            <div style={{ padding: '18px 24px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ padding: '24px 30px', borderBottom: '1px solid var(--border-subtle)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px' }}>
               <div>
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#FFFFFF' }}>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
                   Extracted Evidence & Skill Proof
                 </h3>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px', margin: '4px 0 0' }}>
                   Inspect the underlying sentences, repository files, and AI reasoning behind each detected skill.
                 </p>
               </div>
               <button
                 onClick={() => setIsDetailsModalOpen(false)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
 
             {/* Tab Filter */}
-            <div style={{ display: 'flex', gap: '8px', padding: '12px 24px', background: 'rgba(10, 15, 29, 0.7)', borderBottom: '1px solid var(--border-subtle)' }}>
+            <div style={{ display: 'flex', gap: '10px', padding: '16px 30px', background: 'rgba(10, 15, 29, 0.7)', borderBottom: '1px solid var(--border-subtle)', flexWrap: 'wrap' }}>
               <button
                 className={`btn ${detailsTab === 'all' ? 'btn-primary' : 'btn-outline'}`}
-                style={{ padding: '5px 12px', fontSize: '0.75rem' }}
+                style={{ padding: '7px 16px', fontSize: '0.78rem' }}
                 onClick={() => setDetailsTab('all')}
               >
                 All Skills ({summaryData?.skills.length || 0})
@@ -1475,7 +1499,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
               {resumeData && (
                 <button
                   className={`btn ${detailsTab === 'resume' ? 'btn-primary' : 'btn-outline'}`}
-                  style={{ padding: '5px 12px', fontSize: '0.75rem' }}
+                  style={{ padding: '7px 16px', fontSize: '0.78rem' }}
                   onClick={() => setDetailsTab('resume')}
                 >
                   Resume ({resumeData.skills_extracted.length})
@@ -1484,7 +1508,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
               {githubData && (
                 <button
                   className={`btn ${detailsTab === 'github' ? 'btn-primary' : 'btn-outline'}`}
-                  style={{ padding: '5px 12px', fontSize: '0.75rem' }}
+                  style={{ padding: '7px 16px', fontSize: '0.78rem' }}
                   onClick={() => setDetailsTab('github')}
                 >
                   GitHub ({githubData.skills_extracted.length})
@@ -1493,7 +1517,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
               {projectsData.length > 0 && (
                 <button
                   className={`btn ${detailsTab === 'projects' ? 'btn-primary' : 'btn-outline'}`}
-                  style={{ padding: '5px 12px', fontSize: '0.75rem' }}
+                  style={{ padding: '7px 16px', fontSize: '0.78rem' }}
                   onClick={() => setDetailsTab('projects')}
                 >
                   Projects ({projectsData.reduce((acc, p) => acc + p.skills_extracted.length, 0)})
@@ -1502,7 +1526,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
             </div>
 
             {/* Skill List Content */}
-            <div style={{ padding: '20px 24px', overflowY: 'auto', maxHeight: '55vh', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ padding: '24px 30px', overflowY: 'auto', maxHeight: '58vh', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {summaryData?.skills && summaryData.skills.length > 0 ? (
                 summaryData.skills
                   .filter((s: ExtractedSkillItem) => {
@@ -1515,41 +1539,44 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                     <div
                       key={idx}
                       style={{
-                        padding: '14px 16px',
+                        padding: '18px 20px',
                         background: 'rgba(15, 23, 42, 0.75)',
                         border: '1px solid rgba(255, 255, 255, 0.08)',
-                        borderRadius: '12px'
+                        borderRadius: '14px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '10px'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontWeight: 700, color: '#F8FAFC', fontSize: '0.9rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontWeight: 700, color: '#F8FAFC', fontSize: '0.95rem' }}>
                             {skill.canonical_name}
                           </span>
                           <span style={{
-                            padding: '2px 8px',
+                            padding: '3px 10px',
                             background: 'rgba(99, 102, 241, 0.15)',
                             color: '#C084FC',
                             borderRadius: '9999px',
-                            fontSize: '0.68rem',
+                            fontSize: '0.7rem',
                             fontWeight: 600
                           }}>
                             {skill.category}
                           </span>
                         </div>
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <span style={{
-                            padding: '2px 8px',
+                            padding: '3px 10px',
                             background: 'rgba(16, 185, 129, 0.15)',
                             color: '#34D399',
                             borderRadius: '6px',
-                            fontSize: '0.7rem',
+                            fontSize: '0.72rem',
                             fontWeight: 600
                           }}>
                             {skill.proficiency}
                           </span>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
                             {skill.confidence_score}% confidence
                           </span>
                         </div>
@@ -1557,34 +1584,34 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
 
                       {/* Source & Quote */}
                       <div style={{
-                        padding: '8px 12px',
+                        padding: '12px 16px',
                         background: 'rgba(10, 15, 29, 0.8)',
-                        borderRadius: '8px',
-                        fontSize: '0.75rem',
-                        color: '#94A3B8',
+                        borderRadius: '10px',
+                        fontSize: '0.78rem',
+                        color: '#CBD5E1',
                         fontStyle: 'italic',
-                        marginBottom: '6px'
+                        lineHeight: 1.55
                       }}>
                         &ldquo;{skill.context_snippet}&rdquo;
                       </div>
 
-                      <div style={{ fontSize: '0.72rem', color: '#64748B' }}>
-                        <strong>Reasoning:</strong> {skill.reasoning}
+                      <div style={{ fontSize: '0.76rem', color: '#94A3B8', padding: '4px 2px', lineHeight: 1.5 }}>
+                        <strong style={{ color: '#E2E8F0' }}>Reasoning:</strong> {skill.reasoning}
                       </div>
                     </div>
                   ))
               ) : (
-                <div style={{ textAlign: 'center', padding: '36px 0', color: 'var(--text-muted)' }}>
+                <div style={{ textAlign: 'center', padding: '48px 0', color: 'var(--text-muted)' }}>
                   No extracted skills found yet. Upload your resume or connect GitHub to view evidence.
                 </div>
               )}
             </div>
 
             {/* Footer */}
-            <div style={{ padding: '14px 24px', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ padding: '18px 30px', borderTop: '1px solid var(--border-subtle)', display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 className="btn btn-primary"
-                style={{ padding: '7px 18px', fontSize: '0.8rem' }}
+                style={{ padding: '8px 22px', fontSize: '0.82rem' }}
                 onClick={() => setIsDetailsModalOpen(false)}
               >
                 Close Details

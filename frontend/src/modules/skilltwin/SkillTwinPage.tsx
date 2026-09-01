@@ -1018,23 +1018,23 @@ export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
           {/* Modal: Interactive Skill Detail Inspector */}
           {selectedSkill && (
             <div className="modal-backdrop" onClick={() => setSelectedSkill(null)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '640px' }}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '680px', padding: '30px 32px' }}>
                 {/* Modal Header */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '16px', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                     {renderTechIcon(selectedSkill.name)}
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <h2 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#FFFFFF' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
                           {selectedSkill.name}
                         </h2>
-                        <span className="badge badge-purple" style={{ fontSize: '0.68rem' }}>
+                        <span className="badge badge-purple" style={{ fontSize: '0.7rem', padding: '3px 10px' }}>
                           {selectedSkill.category}
                         </span>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '2px' }}>
-                        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Evidence Status:</span>
-                        <span className="badge badge-analyzed" style={{ fontSize: '0.68rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                        <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>Evidence Status:</span>
+                        <span className="badge badge-analyzed" style={{ fontSize: '0.7rem' }}>
                           ● {selectedSkill.evidence_status}
                         </span>
                       </div>
@@ -1043,76 +1043,76 @@ export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
 
                   <button
                     onClick={() => setSelectedSkill(null)}
-                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
                   >
-                    <X size={18} />
+                    <X size={20} />
                   </button>
                 </div>
 
                 {/* Score & Confidence Overview Banner */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 1fr 1fr',
-                  gap: '12px',
-                  marginBottom: '18px',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                  gap: '16px',
+                  marginBottom: '22px',
                   background: 'rgba(15, 23, 42, 0.8)',
-                  padding: '14px',
-                  borderRadius: '12px',
-                  border: '1px solid rgba(255, 255, 255, 0.06)'
+                  padding: '18px 20px',
+                  borderRadius: '14px',
+                  border: '1px solid rgba(255, 255, 255, 0.08)'
                 }}>
                   <div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Estimated Proficiency</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: getProficiencyColor(selectedSkill.proficiency), marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' }}>ESTIMATED PROFICIENCY</div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 700, color: getProficiencyColor(selectedSkill.proficiency), marginTop: '4px' }}>
                       {selectedSkill.proficiency} ({selectedSkill.numeric_proficiency}/5)
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Evidence Confidence</div>
-                    <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#34D399', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' }}>EVIDENCE CONFIDENCE</div>
+                    <div style={{ fontSize: '1.15rem', fontWeight: 700, color: '#34D399', marginTop: '4px' }}>
                       {selectedSkill.confidence_score}%
                     </div>
                   </div>
                   <div>
-                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Evidence Sources</div>
-                    <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#C084FC', marginTop: '2px' }}>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' }}>EVIDENCE SOURCES</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#C084FC', marginTop: '4px' }}>
                       {selectedSkill.evidence_sources.join(', ')}
                     </div>
                   </div>
                 </div>
 
                 {/* Detailed Sections */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '55vh', overflowY: 'auto', paddingRight: '4px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', maxHeight: '58vh', overflowY: 'auto', paddingRight: '6px' }}>
                   {/* Reasoning */}
-                  <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '12px 14px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>
+                  <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '16px 18px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '8px' }}>
                       AI Assessment Reasoning
                     </div>
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0 }}>
                       {selectedSkill.reasoning}
                     </p>
                   </div>
 
                   {/* Exact Evidence Citations */}
-                  <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '12px 14px', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '8px' }}>
+                  <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '16px 18px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '12px' }}>
                       Traceable Evidence Citations
                     </div>
                     {selectedSkill.evidence_details.resume_quotes.length > 0 && (
-                      <div style={{ marginBottom: '8px' }}>
-                        <div style={{ fontSize: '0.7rem', color: '#818CF8', fontWeight: 600 }}>📄 Resume Citations:</div>
+                      <div style={{ marginBottom: '12px' }}>
+                        <div style={{ fontSize: '0.74rem', color: '#818CF8', fontWeight: 600, marginBottom: '4px' }}>📄 Resume Citations:</div>
                         {selectedSkill.evidence_details.resume_quotes.map((q, idx) => (
-                          <div key={idx} style={{ fontSize: '0.74rem', color: '#CBD5E1', fontStyle: 'italic', marginTop: '2px', paddingLeft: '8px', borderLeft: '2px solid #818CF8' }}>
+                          <div key={idx} style={{ fontSize: '0.76rem', color: '#CBD5E1', fontStyle: 'italic', marginTop: '4px', paddingLeft: '10px', borderLeft: '2px solid #818CF8', lineHeight: 1.5 }}>
                             "{q}"
                           </div>
                         ))}
                       </div>
                     )}
                     {selectedSkill.evidence_details.github_repos.length > 0 && (
-                      <div style={{ marginBottom: '8px' }}>
-                        <div style={{ fontSize: '0.7rem', color: '#34D399', fontWeight: 600 }}>🐙 GitHub Repositories:</div>
-                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                      <div style={{ marginBottom: '12px' }}>
+                        <div style={{ fontSize: '0.74rem', color: '#34D399', fontWeight: 600, marginBottom: '6px' }}>🐙 GitHub Repositories:</div>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           {selectedSkill.evidence_details.github_repos.map((r, idx) => (
-                            <span key={idx} className="badge badge-analyzed" style={{ fontSize: '0.68rem' }}>
+                            <span key={idx} className="badge badge-analyzed" style={{ fontSize: '0.72rem', padding: '4px 10px' }}>
                               {r}
                             </span>
                           ))}
@@ -1121,10 +1121,10 @@ export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
                     )}
                     {selectedSkill.evidence_details.project_refs.length > 0 && (
                       <div>
-                        <div style={{ fontSize: '0.7rem', color: '#38BDF8', fontWeight: 600 }}>📁 Verified Projects:</div>
-                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '4px' }}>
+                        <div style={{ fontSize: '0.74rem', color: '#38BDF8', fontWeight: 600, marginBottom: '6px' }}>📁 Verified Projects:</div>
+                        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                           {selectedSkill.evidence_details.project_refs.map((p, idx) => (
-                            <span key={idx} className="badge" style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', fontSize: '0.68rem' }}>
+                            <span key={idx} className="badge" style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38BDF8', fontSize: '0.72rem', padding: '4px 10px' }}>
                               {p}
                             </span>
                           ))}
@@ -1134,23 +1134,23 @@ export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
                   </div>
 
                   {/* Strengths & Limitations */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#34D399', marginBottom: '4px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+                    <div style={{ background: 'rgba(16, 185, 129, 0.08)', padding: '16px 18px', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#34D399', marginBottom: '8px' }}>
                         Strengths
                       </div>
-                      <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.72rem', color: '#CBD5E1', lineHeight: 1.4 }}>
+                      <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.76rem', color: '#CBD5E1', lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {selectedSkill.evidence_details.strengths.map((s, idx) => (
                           <li key={idx}>{s}</li>
                         ))}
                       </ul>
                     </div>
 
-                    <div style={{ background: 'rgba(245, 158, 11, 0.08)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(245, 158, 11, 0.2)' }}>
-                      <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#F59E0B', marginBottom: '4px' }}>
+                    <div style={{ background: 'rgba(245, 158, 11, 0.08)', padding: '16px 18px', borderRadius: '12px', border: '1px solid rgba(245, 158, 11, 0.25)' }}>
+                      <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#F59E0B', marginBottom: '8px' }}>
                         Evidence Gaps
                       </div>
-                      <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.72rem', color: '#CBD5E1', lineHeight: 1.4 }}>
+                      <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.76rem', color: '#CBD5E1', lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         {selectedSkill.evidence_details.limitations.map((l, idx) => (
                           <li key={idx}>{l}</li>
                         ))}
@@ -1159,18 +1159,18 @@ export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
                   </div>
 
                   {/* Recommendations */}
-                  <div style={{ background: 'rgba(99, 102, 241, 0.08)', padding: '10px 12px', borderRadius: '8px', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
-                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#818CF8', marginBottom: '4px' }}>
+                  <div style={{ background: 'rgba(99, 102, 241, 0.08)', padding: '16px 18px', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.25)' }}>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#818CF8', marginBottom: '8px' }}>
                       Recommended Action to Level Up
                     </div>
-                    <p style={{ fontSize: '0.72rem', color: '#E2E8F0', margin: 0 }}>
+                    <p style={{ fontSize: '0.78rem', color: '#E2E8F0', margin: 0, lineHeight: 1.55 }}>
                       {selectedSkill.evidence_details.recommendations[0] || `Build an end-to-end full stack component using ${selectedSkill.name}.`}
                     </p>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                  <button type="button" className="btn btn-primary" onClick={() => setSelectedSkill(null)} style={{ padding: '6px 18px', fontSize: '0.8rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                  <button type="button" className="btn btn-primary" onClick={() => setSelectedSkill(null)} style={{ padding: '8px 22px', fontSize: '0.82rem' }}>
                     Close Details
                   </button>
                 </div>

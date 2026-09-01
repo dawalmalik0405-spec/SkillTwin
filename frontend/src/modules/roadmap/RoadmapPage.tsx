@@ -1310,50 +1310,50 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
             </>
           )}
 
-          {/* PHASE DETAIL MODAL / DRAWER */}
+          {/* DETAIL MODAL FOR SELECTED PHASE */}
           {selectedPhaseForDetail && (
             <div className="modal-backdrop" onClick={() => setSelectedPhaseForDetail(null)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '640px', padding: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '34px', height: '34px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818CF8', fontWeight: 800 }}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '680px', padding: '30px 32px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818CF8', fontWeight: 800, fontSize: '1rem', flexShrink: 0 }}>
                       {selectedPhaseForDetail.phase_number}
                     </div>
                     <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
                         {selectedPhaseForDetail.title}
                       </h3>
-                      <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                      <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>
                         {selectedPhaseForDetail.subtitle}
                       </p>
                     </div>
                   </div>
 
-                  <button onClick={() => setSelectedPhaseForDetail(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <X size={18} />
+                  <button onClick={() => setSelectedPhaseForDetail(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>
+                    <X size={20} />
                   </button>
                 </div>
 
                 {/* Why Selected & Gap Addressed */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px', fontSize: '0.78rem' }}>
-                  <div style={{ padding: '12px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#C084FC', fontWeight: 700, marginBottom: '4px' }}>
-                      <Sparkles size={14} /> Why this phase was selected
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '20px', fontSize: '0.8rem' }}>
+                  <div style={{ padding: '16px 18px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C084FC', fontWeight: 700, marginBottom: '6px' }}>
+                      <Sparkles size={15} /> Why this phase was selected
                     </div>
-                    <p style={{ color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
+                    <p style={{ color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0 }}>
                       {selectedPhaseForDetail.why_it_matters}
                     </p>
-                    <div style={{ marginTop: '6px', fontSize: '0.72rem', color: '#38BDF8' }}>
+                    <div style={{ marginTop: '8px', fontSize: '0.74rem', color: '#38BDF8', fontWeight: 600 }}>
                       🎯 <strong>Gap Addressed:</strong> {selectedPhaseForDetail.exact_gap_addressed}
                     </div>
                   </div>
 
                   {/* Curated Resources */}
-                  <div style={{ padding: '12px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#34D399', fontWeight: 700, marginBottom: '8px' }}>
-                      <BookOpen size={14} /> Curated Learning Resources
+                  <div style={{ padding: '16px 18px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#34D399', fontWeight: 700, marginBottom: '10px' }}>
+                      <BookOpen size={15} /> Curated Learning Resources
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {selectedPhaseForDetail.tasks.flatMap(t => t.resources).slice(0, 4).map((res, idx) => (
                         <a
                           key={idx}
@@ -1364,27 +1364,28 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'space-between',
-                            padding: '6px 10px',
+                            padding: '8px 12px',
                             background: 'rgba(15, 23, 42, 0.5)',
-                            borderRadius: '6px',
+                            borderRadius: '8px',
                             color: '#F8FAFC',
                             textDecoration: 'none',
-                            fontSize: '0.74rem'
+                            fontSize: '0.76rem',
+                            border: '1px solid rgba(255, 255, 255, 0.04)'
                           }}
                         >
                           <span>{res.title}</span>
-                          <ExternalLink size={12} color="#818CF8" />
+                          <ExternalLink size={13} color="#818CF8" />
                         </a>
                       ))}
                     </div>
                   </div>
 
                   {/* Tasks & Practice Checkpoints */}
-                  <div style={{ padding: '12px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#FCD34D', fontWeight: 700, marginBottom: '8px' }}>
-                      <Zap size={14} /> Action Checklist & Practice
+                  <div style={{ padding: '16px 18px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#FCD34D', fontWeight: 700, marginBottom: '10px' }}>
+                      <Zap size={15} /> Action Checklist & Practice
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {selectedPhaseForDetail.tasks.map((task) => (
                         <div
                           key={task.id}
@@ -1392,15 +1393,16 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                           style={{
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '8px',
-                            padding: '6px 8px',
-                            background: task.is_completed ? 'rgba(16, 185, 129, 0.08)' : 'transparent',
-                            borderRadius: '6px',
-                            cursor: 'pointer'
+                            gap: '10px',
+                            padding: '8px 12px',
+                            background: task.is_completed ? 'rgba(16, 185, 129, 0.08)' : 'rgba(15, 23, 42, 0.4)',
+                            borderRadius: '8px',
+                            cursor: 'pointer',
+                            border: '1px solid rgba(255, 255, 255, 0.03)'
                           }}
                         >
                           {task.is_completed ? <CheckSquare size={16} color="#10B981" /> : <Square size={16} color="var(--text-muted)" />}
-                          <span style={{ fontSize: '0.74rem', color: task.is_completed ? '#34D399' : '#F8FAFC', textDecoration: task.is_completed ? 'line-through' : 'none' }}>
+                          <span style={{ fontSize: '0.76rem', color: task.is_completed ? '#34D399' : '#F8FAFC', textDecoration: task.is_completed ? 'line-through' : 'none', lineHeight: 1.4 }}>
                             [{task.type}] {task.title}
                           </span>
                         </div>
@@ -1410,8 +1412,8 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                 </div>
 
                 {/* Modal Footer */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '16px' }}>
-                  <button type="button" className="btn btn-outline" onClick={() => setSelectedPhaseForDetail(null)} style={{ padding: '6px 14px', fontSize: '0.78rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+                  <button type="button" className="btn btn-outline" onClick={() => setSelectedPhaseForDetail(null)} style={{ padding: '8px 18px', fontSize: '0.82rem' }}>
                     Close
                   </button>
                   <button
@@ -1425,7 +1427,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                         alert('Project deliverables from this phase are saved. You can submit them for Phase 7 Project Verification upon completion!');
                       }
                     }}
-                    style={{ padding: '6px 16px', fontSize: '0.78rem' }}
+                    style={{ padding: '8px 20px', fontSize: '0.82rem' }}
                   >
                     Prepare for Verification →
                   </button>
@@ -1437,53 +1439,54 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
           {/* FULL MILESTONES MODAL */}
           {isMilestonesModalOpen && roadmapData && (
             <div className="modal-backdrop" onClick={() => setIsMilestonesModalOpen(false)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '540px', padding: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Trophy size={20} color="#C084FC" />
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: '30px 32px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Trophy size={22} color="#C084FC" />
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
                       Career Milestones
                     </h3>
                   </div>
-                  <button onClick={() => setIsMilestonesModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <X size={18} />
+                  <button onClick={() => setIsMilestonesModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>
+                    <X size={20} />
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '55vh', overflowY: 'auto', paddingRight: '4px' }}>
                   {roadmapData.milestones.map((m) => (
                     <div
                       key={m.milestone_number}
                       style={{
-                        padding: '12px 14px',
+                        padding: '16px 18px',
                         background: m.is_achieved ? 'rgba(16, 185, 129, 0.08)' : 'rgba(15, 23, 42, 0.7)',
                         border: m.is_achieved ? '1px solid rgba(16, 185, 129, 0.3)' : '1px solid rgba(255, 255, 255, 0.06)',
-                        borderRadius: '10px',
+                        borderRadius: '12px',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '12px'
+                        gap: '14px'
                       }}
                     >
                       <div style={{
-                        width: '28px',
-                        height: '28px',
+                        width: '32px',
+                        height: '32px',
                         borderRadius: '50%',
                         background: m.is_achieved ? '#10B981' : 'rgba(255, 255, 255, 0.1)',
                         color: '#FFF',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        fontSize: '0.75rem',
-                        fontWeight: 700
+                        fontSize: '0.8rem',
+                        fontWeight: 700,
+                        flexShrink: 0
                       }}>
                         {m.is_achieved ? '✓' : m.milestone_number}
                       </div>
 
                       <div>
-                        <div style={{ fontSize: '0.82rem', fontWeight: 700, color: m.is_achieved ? '#34D399' : '#F8FAFC' }}>
+                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: m.is_achieved ? '#34D399' : '#F8FAFC' }}>
                           {m.title}
                         </div>
-                        <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                        <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: '4px 0 0', lineHeight: 1.45 }}>
                           {m.description}
                         </p>
                       </div>
@@ -1491,8 +1494,8 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                   ))}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '18px' }}>
-                  <button type="button" className="btn btn-primary" onClick={() => setIsMilestonesModalOpen(false)} style={{ padding: '6px 16px', fontSize: '0.78rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                  <button type="button" className="btn btn-primary" onClick={() => setIsMilestonesModalOpen(false)} style={{ padding: '8px 22px', fontSize: '0.82rem' }}>
                     Got it
                   </button>
                 </div>

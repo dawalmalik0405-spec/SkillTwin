@@ -848,7 +848,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* =========================================================
-   Modal Dialog Styles — Centered in Visible Viewport
+   Modal Dialog Styles — Centered, Spacious & Breathable
    ========================================================= */
 
 .modal-backdrop {
@@ -859,14 +859,14 @@ h1, h2, h3, h4, h5, h6 {
   bottom: 0 !important;
   width: 100vw !important;
   height: 100vh !important;
-  background: rgba(3, 7, 18, 0.82) !important;
-  backdrop-filter: blur(10px) !important;
-  -webkit-backdrop-filter: blur(10px) !important;
+  background: rgba(3, 7, 18, 0.84) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   z-index: 99999 !important;
-  padding: 24px 16px !important;
+  padding: 32px 20px !important;
   overflow-y: auto !important;
   overscroll-behavior: contain !important;
   box-sizing: border-box !important;
@@ -876,16 +876,17 @@ h1, h2, h3, h4, h5, h6 {
 .modal-content {
   background: #0B1120 !important;
   border: 1px solid rgba(255, 255, 255, 0.14) !important;
-  border-radius: 18px !important;
-  box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.9), 0 0 35px rgba(99, 102, 241, 0.22) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.95), 0 0 40px rgba(99, 102, 241, 0.22) !important;
   width: 100% !important;
-  max-width: 640px;
-  max-height: calc(100vh - 48px) !important;
+  max-width: 680px;
+  max-height: calc(100vh - 56px) !important;
   display: flex !important;
   flex-direction: column !important;
   overflow-y: auto !important;
   position: relative !important;
   margin: auto !important;
+  padding: 30px 32px !important;
   box-sizing: border-box !important;
   animation: modalFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
@@ -907,8 +908,9 @@ h1, h2, h3, h4, h5, h6 {
   }
   .modal-container,
   .modal-content {
+    padding: 20px 16px !important;
     max-height: calc(100vh - 32px) !important;
-    border-radius: 14px !important;
+    border-radius: 16px !important;
   }
 }
 
@@ -1826,35 +1828,35 @@ html {
 /* ---- Node detail drawer ---- */
 .vr-detail {
   width: 100%;
-  max-width: 640px;
-  max-height: 88vh;
+  max-width: 680px;
+  max-height: calc(100vh - 56px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 18px;
-  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   background: #0B1120;
-  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.8);
-  animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.95), 0 0 40px rgba(99, 102, 241, 0.22);
+  animation: modalFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .vr-detail-head {
   position: relative;
-  padding: 22px;
+  padding: 26px 30px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 18px;
 }
 
 .vr-detail-close {
   position: absolute;
-  top: 14px;
-  right: 14px;
+  top: 18px;
+  right: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border: none;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.28);
@@ -1869,8 +1871,8 @@ html {
 }
 
 .vr-detail-icon {
-  width: 58px;
-  height: 58px;
+  width: 60px;
+  height: 60px;
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -1882,28 +1884,28 @@ html {
 }
 
 .vr-detail-title {
-  font-size: 1.3rem;
-  font-weight: 700;
+  font-size: 1.35rem;
+  font-weight: 800;
   color: #fff;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
 
 .vr-detail-meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
-  font-size: 0.78rem;
+  gap: 14px;
+  font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.85);
 }
 
 .vr-detail-body {
   flex: 1;
   overflow-y: auto;
-  padding: 22px;
+  padding: 28px 30px;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 24px;
 }
 
 .vr-section-label {
@@ -2092,21 +2094,21 @@ html {
 
 .quiz-modal {
   width: 100%;
-  max-width: 660px;
-  max-height: 90vh;
+  max-width: 680px;
+  max-height: calc(100vh - 56px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-radius: 18px;
-  border: 1px solid var(--border-subtle);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   background: #0B1120;
-  box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.8), 0 0 30px rgba(99, 102, 241, 0.18);
-  animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.95), 0 0 40px rgba(99, 102, 241, 0.22);
+  animation: modalFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .quiz-head {
   position: relative;
-  padding: 20px 22px;
+  padding: 24px 30px;
   border-bottom: 1px solid var(--border-subtle);
   background: linear-gradient(100deg, rgba(76, 29, 149, 0.4) 0%, rgba(30, 58, 138, 0.4) 100%);
 }
@@ -2115,31 +2117,31 @@ html {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 16px;
+  margin-bottom: 14px;
 }
 
 .quiz-head-title {
   display: flex;
   align-items: center;
-  gap: 9px;
-  font-size: 1.05rem;
-  font-weight: 700;
+  gap: 10px;
+  font-size: 1.2rem;
+  font-weight: 800;
   color: var(--text-primary);
 }
 
 .quiz-head-sub {
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   color: var(--text-secondary);
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .quiz-close {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   border: none;
   border-radius: 999px;
   background: rgba(0, 0, 0, 0.28);
@@ -2173,15 +2175,15 @@ html {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 7px;
-  font-size: 0.72rem;
+  margin-top: 8px;
+  font-size: 0.74rem;
   color: var(--text-secondary);
 }
 
 .quiz-body {
   flex: 1;
   overflow-y: auto;
-  padding: 22px;
+  padding: 28px 30px;
 }
 
 .quiz-question {

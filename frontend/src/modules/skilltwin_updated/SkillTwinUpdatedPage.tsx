@@ -1607,50 +1607,52 @@ export const SkillTwinUpdatedPage: React.FC<SkillTwinUpdatedPageProps> = ({
           {/* DETAIL MODAL FOR CLICKED SKILL */}
           {selectedSkillForDetail && (
             <div className="modal-backdrop" onClick={() => setSelectedSkillForDetail(null)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '580px', padding: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    {getSkillIcon(selectedSkillForDetail.skill_name, selectedSkillForDetail.category)}
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '660px', padding: '30px 32px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {getSkillIcon(selectedSkillForDetail.skill_name, selectedSkillForDetail.category)}
+                    </div>
                     <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
                         {selectedSkillForDetail.skill_name}
                       </h3>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '3px' }}>
                         {selectedSkillForDetail.category} Skill Evolution
                       </span>
                     </div>
                   </div>
 
-                  <button onClick={() => setSelectedSkillForDetail(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <X size={18} />
+                  <button onClick={() => setSelectedSkillForDetail(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>
+                    <X size={20} />
                   </button>
                 </div>
 
                 {/* Before / After Delta Box */}
-                <div style={{ padding: '12px 16px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.08)', marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                <div style={{ padding: '16px 20px', background: 'rgba(15, 23, 42, 0.75)', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', marginBottom: '20px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
                     <div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Previous Level</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-secondary)' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' }}>PREVIOUS LEVEL</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-secondary)', marginTop: '3px' }}>
                         {selectedSkillForDetail.before_level} ({selectedSkillForDetail.before_pct}%)
                       </div>
                     </div>
 
                     <div style={{
-                      padding: '4px 10px',
-                      borderRadius: '8px',
+                      padding: '6px 14px',
+                      borderRadius: '10px',
                       background: 'rgba(16, 185, 129, 0.15)',
                       border: '1px solid rgba(16, 185, 129, 0.3)',
                       color: '#34D399',
-                      fontSize: '0.8rem',
+                      fontSize: '0.82rem',
                       fontWeight: 800
                     }}>
                       +{selectedSkillForDetail.change_pct}% Improvement
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Refreshed Level</div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#C084FC' }}>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' }}>REFRESHED LEVEL</div>
+                      <div style={{ fontSize: '0.95rem', fontWeight: 700, color: '#C084FC', marginTop: '3px' }}>
                         {selectedSkillForDetail.after_level} ({selectedSkillForDetail.after_pct}%)
                       </div>
                     </div>
@@ -1658,26 +1660,26 @@ export const SkillTwinUpdatedPage: React.FC<SkillTwinUpdatedPageProps> = ({
                 </div>
 
                 {/* Evidence & Reasoning */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                  <div style={{ padding: '12px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                    <strong style={{ color: '#F8FAFC' }}>Evidence-Based Reasoning:</strong>
-                    <p style={{ margin: '4px 0 0' }}>{selectedSkillForDetail.reason}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                  <div style={{ padding: '16px 18px', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <strong style={{ color: '#F8FAFC', display: 'block', marginBottom: '6px' }}>Evidence-Based Reasoning:</strong>
+                    <p style={{ margin: 0, lineHeight: 1.55 }}>{selectedSkillForDetail.reason}</p>
                   </div>
 
-                  <div style={{ padding: '12px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
-                    <strong style={{ color: '#F8FAFC' }}>Demonstrated Implementation:</strong>
-                    <p style={{ margin: '4px 0 0' }}>{selectedSkillForDetail.evidence_text}</p>
+                  <div style={{ padding: '16px 18px', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <strong style={{ color: '#F8FAFC', display: 'block', marginBottom: '6px' }}>Demonstrated Implementation:</strong>
+                    <p style={{ margin: 0, lineHeight: 1.55 }}>{selectedSkillForDetail.evidence_text}</p>
                   </div>
 
                   {selectedSkillForDetail.file_citations && selectedSkillForDetail.file_citations.length > 0 && (
-                    <div style={{ fontSize: '0.7rem', color: '#818CF8' }}>
+                    <div style={{ fontSize: '0.74rem', color: '#818CF8', padding: '6px 2px' }}>
                       📁 <strong>Verified File Citations:</strong> {selectedSkillForDetail.file_citations.join(', ')}
                     </div>
                   )}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                  <button type="button" className="btn btn-primary" onClick={() => setSelectedSkillForDetail(null)} style={{ padding: '6px 16px', fontSize: '0.78rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                  <button type="button" className="btn btn-primary" onClick={() => setSelectedSkillForDetail(null)} style={{ padding: '8px 22px', fontSize: '0.82rem' }}>
                     Close
                   </button>
                 </div>
@@ -1688,51 +1690,53 @@ export const SkillTwinUpdatedPage: React.FC<SkillTwinUpdatedPageProps> = ({
           {/* PROJECT EVIDENCE DETAILS MODAL */}
           {isEvidenceModalOpen && selectedProjectForEvidence && (
             <div className="modal-backdrop" onClick={() => setIsEvidenceModalOpen(false)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <FileCode size={22} color="#818CF8" />
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '680px', padding: '30px 32px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818CF8', flexShrink: 0 }}>
+                      <FileCode size={22} />
+                    </div>
                     <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
                         {selectedProjectForEvidence.name}
                       </h3>
-                      <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)', display: 'block', marginTop: '3px' }}>
                         Verified GitHub Repository Evidence
                       </span>
                     </div>
                   </div>
 
-                  <button onClick={() => setIsEvidenceModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <X size={18} />
+                  <button onClick={() => setIsEvidenceModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>
+                    <X size={20} />
                   </button>
                 </div>
 
-                <div style={{ padding: '12px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '8px', marginBottom: '12px', fontSize: '0.76rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <div style={{ padding: '16px 20px', background: 'rgba(15, 23, 42, 0.75)', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', marginBottom: '18px', fontSize: '0.8rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
                     <span style={{ color: 'var(--text-muted)' }}>Score: <strong style={{ color: '#34D399' }}>{selectedProjectForEvidence.score_pct}% ({selectedProjectForEvidence.score_label})</strong></span>
                     <span style={{ color: 'var(--text-muted)' }}>Commits: <strong style={{ color: '#F8FAFC' }}>{selectedProjectForEvidence.commits_count}</strong></span>
                   </div>
-                  <p style={{ color: 'var(--text-secondary)', margin: 0 }}>{selectedProjectForEvidence.description}</p>
+                  <p style={{ color: 'var(--text-secondary)', margin: 0, lineHeight: 1.55 }}>{selectedProjectForEvidence.description}</p>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '240px', overflowY: 'auto' }}>
-                  <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#F8FAFC' }}>Verified Skills in this Repository:</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '2px' }}>Verified Skills in this Repository:</div>
                   {selectedProjectForEvidence.verified_skills.map((vs, i) => (
-                    <div key={i} style={{ padding: '8px 12px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '6px', fontSize: '0.72rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#F8FAFC', fontWeight: 700 }}>
+                    <div key={i} style={{ padding: '12px 16px', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '10px', fontSize: '0.76rem', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', color: '#F8FAFC', fontWeight: 700, marginBottom: '4px' }}>
                         <span>{vs.skill_name}</span>
                         <span style={{ color: '#34D399' }}>{vs.status}</span>
                       </div>
-                      <p style={{ color: 'var(--text-secondary)', margin: '2px 0 0' }}>{vs.evidence}</p>
+                      <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0', lineHeight: 1.5 }}>{vs.evidence}</p>
                       {vs.file_locations && (
-                        <span style={{ fontSize: '0.66rem', color: '#818CF8' }}>📁 {vs.file_locations.join(', ')}</span>
+                        <div style={{ fontSize: '0.7rem', color: '#818CF8', marginTop: '6px' }}>📁 {vs.file_locations.join(', ')}</div>
                       )}
                     </div>
                   ))}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                  <button type="button" className="btn btn-primary" onClick={() => setIsEvidenceModalOpen(false)} style={{ padding: '6px 16px', fontSize: '0.78rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                  <button type="button" className="btn btn-primary" onClick={() => setIsEvidenceModalOpen(false)} style={{ padding: '8px 22px', fontSize: '0.82rem' }}>
                     Close
                   </button>
                 </div>

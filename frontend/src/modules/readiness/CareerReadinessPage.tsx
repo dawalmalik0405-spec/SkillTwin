@@ -1160,34 +1160,34 @@ export const CareerReadinessPage: React.FC<CareerReadinessPageProps> = ({
           {/* ALL SKILLS MODAL (FOR STRONG / DEVELOPING / GAPS) */}
           {activeSkillCategoryModal && (
             <div className="modal-backdrop" onClick={() => setActiveSkillCategoryModal(null)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '540px', padding: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#FFFFFF', margin: 0, textTransform: 'capitalize' }}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: '30px 32px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', gap: '16px' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF', margin: 0, textTransform: 'capitalize' }}>
                     {activeSkillCategoryModal === 'strong' ? 'Strong Demonstrated Skills' : (activeSkillCategoryModal === 'developing' ? 'Developing Skills' : 'Critical Gaps')}
                   </h3>
-                  <button onClick={() => setActiveSkillCategoryModal(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <X size={18} />
+                  <button onClick={() => setActiveSkillCategoryModal(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>
+                    <X size={20} />
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '320px', overflowY: 'auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '55vh', overflowY: 'auto', paddingRight: '4px' }}>
                   {(
                     activeSkillCategoryModal === 'strong'
                       ? readinessData?.strong_skills
                       : (activeSkillCategoryModal === 'developing' ? readinessData?.developing_skills : readinessData?.critical_gaps)
                   )?.map((s, idx) => (
-                    <div key={idx} style={{ padding: '10px 12px', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.76rem' }}>
+                    <div key={idx} style={{ padding: '14px 18px', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.04)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8rem', gap: '12px', flexWrap: 'wrap' }}>
                       <span style={{ fontWeight: 700, color: '#F8FAFC' }}>{s.name} ({s.category})</span>
-                      <div style={{ display: 'flex', gap: '12px' }}>
-                        <span style={{ color: '#34D399' }}>Proficiency: {s.proficiency_pct}%</span>
-                        <span style={{ color: '#38BDF8' }}>Confidence: {s.confidence_pct}%</span>
+                      <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                        <span style={{ color: '#34D399', fontWeight: 600 }}>Proficiency: {s.proficiency_pct}%</span>
+                        <span style={{ color: '#38BDF8', fontWeight: 600 }}>Confidence: {s.confidence_pct}%</span>
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                  <button type="button" className="btn btn-primary" onClick={() => setActiveSkillCategoryModal(null)} style={{ padding: '6px 16px', fontSize: '0.78rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                  <button type="button" className="btn btn-primary" onClick={() => setActiveSkillCategoryModal(null)} style={{ padding: '8px 22px', fontSize: '0.82rem' }}>
                     Close
                   </button>
                 </div>
