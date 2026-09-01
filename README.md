@@ -10,13 +10,16 @@
 [![OpenRouter](https://img.shields.io/badge/AI-OpenRouter-7C3AED?style=flat-square)](https://openrouter.ai/)
 [![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-Render-00E599?style=flat-square&logo=render&logoColor=white)](https://skilltwin-vx3z.onrender.com)
+[![Demo Video](https://img.shields.io/badge/Demo%20Video-Google%20Drive-FFC107?style=flat-square&logo=googledrive&logoColor=white)](https://drive.google.com/file/d/1Dvh-mgq0wrQ5PmRUXhPIHPS-WDh7QJuU/view?usp=sharing)
 [![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
 
 SkillTwin is an evidence-based skill development platform designed to help students identify, measure, validate, and improve their skills using real-world evidence such as GitHub repositories, resumes, projects, certifications, and assessments.
 
 Instead of relying only on self-declared skills, SkillTwin aims to create a dynamic skill profile that evolves as students gain experience, identify skill gaps, and work toward industry-relevant career goals.
 
-> 🌐 **Live Deployed Demo**: [https://skilltwin-vx3z.onrender.com](https://skilltwin-vx3z.onrender.com)
+> 🌐 **Live Deployed Demo**: [https://skilltwin-vx3z.onrender.com](https://skilltwin-vx3z.onrender.com)  
+> 🎬 **Demo Video**: [Watch Demo Video on Google Drive](https://drive.google.com/file/d/1Dvh-mgq0wrQ5PmRUXhPIHPS-WDh7QJuU/view?usp=sharing)
+
 
 ---
 
