@@ -450,29 +450,72 @@
     "verified_at": "2026-08-30 01:54:24"
   },
   "https://github.com/dawalmalik0405-spec/skilltwin": {
-    "id": "proj-fa586a21",
-    "name": "Skill Twin",
+    "id": "proj-916db5be",
+    "name": "Skilltwin",
     "repo_url": "https://github.com/dawalmalik0405-spec/SkillTwin",
-    "primary_skill": "TypeScript",
+    "primary_skill": "React.js",
     "detected_technologies": [
+      "React.js",
       "TypeScript",
       "Python",
       "CSS",
       "HTML"
     ],
-    "description": "Implementation repository for Skill Twin.",
+    "description": "Implementation repository for Skilltwin.",
     "status": "Verified",
     "score_pct": 93,
     "score_label": "Excellent",
-    "score_explanation": "Well-structured implementation and traceable evidence verified across 17 real commits in 'dawalmalik0405-spec/SkillTwin'.",
+    "score_explanation": "Well-structured implementation and traceable evidence verified across 23 real commits in 'dawalmalik0405-spec/SkillTwin'.",
     "submission_date": "Verified recently",
-    "commits_count": 17,
-    "branches_count": 1,
+    "commits_count": 23,
+    "branches_count": 2,
     "has_readme": true,
     "has_tests": false,
     "has_live_demo": false,
     "live_demo_url": null,
     "recent_commits": [
+      {
+        "sha": "e3982f2",
+        "message": "Merge branch 'main' of https://github.com/dawalmalik0405-spec/SkillTwin",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-30T19:06:33Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/e3982f2fd6075195dd6e2f4789f5cbea1463af6c"
+      },
+      {
+        "sha": "3b1be4f",
+        "message": "feat: integrate OpenRouter LLM client with test endpoint and structured JSON extraction",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-30T19:06:31Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/3b1be4fddf0a3071d2a495932adddb55d0c9d24c"
+      },
+      {
+        "sha": "c83c668",
+        "message": "Merge pull request #2 from dawalmalik0405-spec/feature/skilltwin-pages",
+        "author": "Daval malik sayad ali makandar",
+        "date": "2026-08-30T19:04:32Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/c83c66817cb691b9d591f9818717f0ad0a2c00f1"
+      },
+      {
+        "sha": "df1d5f5",
+        "message": "Merge remote-tracking branch 'upstream/main' into feature/skilltwin-pages",
+        "author": "layeebaharam14",
+        "date": "2026-08-30T17:59:06Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/df1d5f5b7d133521858911ad5185445131a90d8d"
+      },
+      {
+        "sha": "ee21476",
+        "message": "chore: update vite dependency to version 8.2.2 in package.json",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-30T17:40:50Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/ee2147651ac6d6c605edda18f8d79f889e52c51d"
+      },
+      {
+        "sha": "406c681",
+        "message": "feat: SkillTwin core implementation",
+        "author": "layeebaharam14",
+        "date": "2026-08-30T17:15:26Z",
+        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/406c6816ea0636e4bd2714a3f9e463b0530a99ec"
+      },
       {
         "sha": "a78097d",
         "message": "Enhance README with comprehensive project details",
@@ -535,64 +578,34 @@
         "author": "layeebaharam14",
         "date": "2026-08-24T18:56:41Z",
         "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/b64b4ab0d73595ddb0f1a158c55c2c298b420d47"
-      },
-      {
-        "sha": "002a67d",
-        "message": "Update README to remove content reference",
-        "author": "layeebaharam14",
-        "date": "2026-08-20T16:13:37Z",
-        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/002a67d4f32ff4ea35455db9974c5b201450a035"
-      },
-      {
-        "sha": "7666937",
-        "message": " Fixed the capitalization README.md",
-        "author": "layeebaharam14",
-        "date": "2026-08-20T15:59:37Z",
-        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/76669374c1a3e49469beb7a9d602430851411a56"
-      },
-      {
-        "sha": "acb404b",
-        "message": "Revise team member roles in README",
-        "author": "layeebaharam14",
-        "date": "2026-08-20T15:57:42Z",
-        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/acb404bd5729b09f0cd02c11ca94e3298fbaf89d"
-      },
-      {
-        "sha": "de9ba21",
-        "message": "Add details to README",
-        "author": "layeebaharam14",
-        "date": "2026-08-20T15:55:10Z",
-        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/de9ba21bb5f690fc9f411d9e6bbc1ac67fc45593"
-      },
-      {
-        "sha": "f9f11bd",
-        "message": "Update team member table in README",
-        "author": "Daval malik sayad ali makandar",
-        "date": "2026-08-20T15:47:47Z",
-        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/f9f11bde6c0c40627e60d9b95e255e6f6297c91d"
-      },
-      {
-        "sha": "a344cd8",
-        "message": "Update README.md",
-        "author": "Daval malik sayad ali makandar",
-        "date": "2026-08-20T15:46:58Z",
-        "url": "https://github.com/dawalmalik0405-spec/SkillTwin/commit/a344cd81e594ea0741776f12bb668719edc744ea"
       }
     ],
-    "latest_commit_message": "Enhance README with comprehensive project details",
-    "latest_commit_date": "2026-08-27T18:42:54Z",
-    "latest_commit_author": "layeebaharam14",
+    "latest_commit_message": "Merge branch 'main' of https://github.com/dawalmalik0405-spec/SkillTwin",
+    "latest_commit_date": "2026-08-30T19:06:33Z",
+    "latest_commit_author": "dawalmalik0405-spec",
     "verified_skills": [
       {
-        "skill_name": "TypeScript",
+        "skill_name": "React.js",
         "category": "Core Implementation",
         "status": "Demonstrated",
-        "evidence": "Core architecture and functional modules for TypeScript implemented in repository 'SkillTwin' across 17 commits.",
+        "evidence": "Core architecture and functional modules for React.js implemented in repository 'SkillTwin' across 23 commits.",
         "file_locations": [
-          "src/typescript/",
+          "src/reactjs/",
           "src/App.tsx"
         ],
-        "reasoning": "Practical patterns, component/module structure, and implementation logic corresponding to TypeScript verified from real repository code."
+        "reasoning": "Practical patterns, component/module structure, and implementation logic corresponding to React.js verified from real repository code."
+      },
+      {
+        "skill_name": "React.js",
+        "category": "Frontend",
+        "status": "Demonstrated",
+        "evidence": "React component hierarchy, custom hooks, and stateful UI bindings verified in 'SkillTwin'.",
+        "file_locations": [
+          "src/components/",
+          "src/hooks/",
+          "src/App.jsx"
+        ],
+        "reasoning": "Clean component composition, props flow, and lifecycle event handlers verified."
       },
       {
         "skill_name": "Python / FastAPI",
@@ -610,7 +623,7 @@
         "skill_name": "Git & Version Control",
         "category": "DevOps",
         "status": "Demonstrated",
-        "evidence": "Structured commit history across 17 real commits in repository 'dawalmalik0405-spec/SkillTwin'. Latest commit by layeebaharam14: 'Enhance README with comprehensive project details'. Default branch 'main', 1 active branch(es).",
+        "evidence": "Structured commit history across 23 real commits in repository 'dawalmalik0405-spec/SkillTwin'. Latest commit by dawalmalik0405-spec: 'Merge branch 'main' of https://github.com/dawalmalik0405-spec/SkillTwin'. Default branch 'main', 2 active branch(es).",
         "file_locations": [
           "README.md",
           ".gitignore"
@@ -627,7 +640,7 @@
       "Set up a GitHub Actions CI/CD workflow to run automated linting and build validation on pull requests.",
       "Deploy a live interactive demonstration instance and link it in the repository README."
     ],
-    "verified_at": "2026-08-30 15:25:03.358980"
+    "verified_at": "2026-08-30 20:53:26.957116"
   },
   "https://github.com/layeebaharam14/phishing-detective": {
     "id": "proj-41700054",
@@ -1049,5 +1062,377 @@
       "Deploy a live interactive demonstration instance and link it in the repository README."
     ],
     "verified_at": "2026-08-30 15:25:15.720320"
+  },
+  "https://github.com/dawalmalik0405-spec/ai-agentic-designer": {
+    "id": "proj-d7f64247",
+    "name": "ai-agentic-designer",
+    "repo_url": "https://github.com/dawalmalik0405-spec/ai-agentic-designer",
+    "primary_skill": "Python",
+    "detected_technologies": [
+      "Python",
+      "TypeScript",
+      "CSS",
+      "JavaScript",
+      "HTML"
+    ],
+    "description": "Implementation repository for ai-agentic-designer.",
+    "status": "Verified",
+    "score_pct": 93,
+    "score_label": "Excellent",
+    "score_explanation": "Well-structured implementation and traceable evidence verified across 9900 real commits in 'dawalmalik0405-spec/ai-agentic-designer'.",
+    "submission_date": "Verified recently",
+    "commits_count": 9900,
+    "branches_count": 1,
+    "has_readme": true,
+    "has_tests": false,
+    "has_live_demo": false,
+    "live_demo_url": null,
+    "recent_commits": [
+      {
+        "sha": "9755e86",
+        "message": "Revise status section in README.md",
+        "author": "Daval malik sayad ali makandar",
+        "date": "2026-08-20T15:23:57Z",
+        "url": "https://github.com/dawalmalik0405-spec/ai-agentic-designer/commit/9755e86677fc313817fee4d6657d11c1d8a46cbc"
+      },
+      {
+        "sha": "1509e53",
+        "message": "Update README with next version agent details",
+        "author": "Daval malik sayad ali makandar",
+        "date": "2026-08-19T13:43:02Z",
+        "url": "https://github.com/dawalmalik0405-spec/ai-agentic-designer/commit/1509e531694845b0cb486512a1b66ad269f5d57c"
+      },
+      {
+        "sha": "f1f6fbb",
+        "message": "feat: Extend AddPageOutput and AddPageState with repair status and logging fields",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-18T04:52:37Z",
+        "url": "https://github.com/dawalmalik0405-spec/ai-agentic-designer/commit/f1f6fbbc8ce53c6c9f6c21c1bb69c140fbd82389"
+      },
+      {
+        "sha": "93f5da9",
+        "message": "feat: Add BuildChecker for parsing TypeScript and Vite compile errors during build process",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-18T04:52:22Z",
+        "url": "https://github.com/dawalmalik0405-spec/ai-agentic-designer/commit/93f5da9d64f32baec2b7f35edb340c6ece75086e"
+      },
+      {
+        "sha": "ffd1fa6",
+        "message": "feat: Enhance build logging in PreviewPanel for better status updates during preview server startup",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-18T04:52:09Z",
+        "url": "https://github.com/dawalmalik0405-spec/ai-agentic-designer/commit/ffd1fa60e5cf5d975ba42e69983273c522baf9d8"
+      },
+      {
+        "sha": "20e9761",
+        "message": "feat: Improve error handling in ChatPanel for page generation failures",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-18T04:51:59Z",
+        "url": "https://github.com/dawalmalik0405-spec/ai-agentic-designer/commit/20e9761f844a1294282d1af72d648a4cc69d1f5a"
+      },
+      {
+        "sha": "54d2b0b",
+        "message": "feat: Add repair agent for fixing compile errors in generated TSX files and enhance page code generation",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-17T14:58:47Z",
+        "url": "https://github.com/dawalmalik0405-spec/ai-agentic-designer/commit/54d2b0b877762b7043765d4e0b4ac0b439dcbfa5"
+      },
+      {
+        "sha": "9e41b99",
+        "message": "feat: Implement build repair logic and enhance error handling in project generation and page addition",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-17T14:57:01Z",
+        "url": "https://github.com/dawalmalik0405-spec/ai-agentic-designer/commit/9e41b996ec9fc9fc0380fb1f52328cd1d2368caa"
+      },
+      {
+        "sha": "3fa381f",
+        "message": "feat: Enhance PreviewPanel and WorkspaceOverview components for improved asset generation and page management",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-16T10:56:16Z",
+        "url": "https://github.com/dawalmalik0405-spec/ai-agentic-designer/commit/3fa381f8cde9d88fb50e7a6e7f130293df79ca14"
+      },
+      {
+        "sha": "3f077ab",
+        "message": "Refactor ResearchAgent to use reason_llm instead of deepseek_llm",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-16T10:55:44Z",
+        "url": "https://github.com/dawalmalik0405-spec/ai-agentic-designer/commit/3f077ab6e3069a9131b9248723a8713be0d5ddd6"
+      },
+      {
+        "sha": "a403ed1",
+        "message": "Ignore test files",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-16T10:53:22Z",
+        "url": "https://github.com/dawalmalik0405-spec/ai-agentic-designer/commit/a403ed1530b0cda117099d1817306560c335382f"
+      },
+      {
+        "sha": "5aa8ca2",
+        "message": "Refactor AssetAgent to enhance asset planning logic and improve documentation; update keywords and prompts for better as",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-16T10:44:33Z",
+        "url": "https://github.com/dawalmalik0405-spec/ai-agentic-designer/commit/5aa8ca281c35fd8cd0dea27aa5c794480e9c720a"
+      },
+      {
+        "sha": "8afec59",
+        "message": "Add output requirements for JSON response format in architect_agent.py",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-16T10:44:16Z",
+        "url": "https://github.com/dawalmalik0405-spec/ai-agentic-designer/commit/8afec59cca551ba8815e14317f4449ee7961735a"
+      },
+      {
+        "sha": "2900797",
+        "message": "Enhance main.py with asset management features, including asset generation, approval, and retrieval endpoints; add suppo",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-16T10:43:59Z",
+        "url": "https://github.com/dawalmalik0405-spec/ai-agentic-designer/commit/29007979b643da286ab93ebc14f51ba7894c6299"
+      },
+      {
+        "sha": "1d0643b",
+        "message": "Refactor README.md to update project name and enhance documentation on capabilities, architecture, and user workflows",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-16T10:42:57Z",
+        "url": "https://github.com/dawalmalik0405-spec/ai-agentic-designer/commit/1d0643bc25ef7015467c1e986990a751aec159c6"
+      }
+    ],
+    "latest_commit_message": "Revise status section in README.md",
+    "latest_commit_date": "2026-08-20T15:23:57Z",
+    "latest_commit_author": "Daval malik sayad ali makandar",
+    "verified_skills": [
+      {
+        "skill_name": "Python",
+        "category": "Core Implementation",
+        "status": "Demonstrated",
+        "evidence": "Core architecture and functional modules for Python implemented in repository 'ai-agentic-designer' across 9900 commits.",
+        "file_locations": [
+          "src/python/",
+          "src/App.tsx"
+        ],
+        "reasoning": "Practical patterns, component/module structure, and implementation logic corresponding to Python verified from real repository code."
+      },
+      {
+        "skill_name": "JavaScript",
+        "category": "Frontend",
+        "status": "Demonstrated",
+        "evidence": "Modern JavaScript syntax, asynchronous handlers, and modular functions verified in 'ai-agentic-designer'.",
+        "file_locations": [
+          "src/index.js",
+          "src/utils/"
+        ],
+        "reasoning": "Modular structure, promises, and functional transformations verified."
+      },
+      {
+        "skill_name": "Python / FastAPI",
+        "category": "Backend",
+        "status": "Demonstrated",
+        "evidence": "Python architecture, backend logic, and structured modules verified in repository 'ai-agentic-designer'.",
+        "file_locations": [
+          "app/main.py",
+          "app/routers/",
+          "app/schemas.py"
+        ],
+        "reasoning": "Idiomatic Python asynchronous handlers, request validations, and API documentation structure verified."
+      },
+      {
+        "skill_name": "Git & Version Control",
+        "category": "DevOps",
+        "status": "Demonstrated",
+        "evidence": "Structured commit history across 9900 real commits in repository 'dawalmalik0405-spec/ai-agentic-designer'. Latest commit by Daval malik sayad ali makandar: 'Revise status section in README.md'. Default branch 'main', 1 active branch(es).",
+        "file_locations": [
+          "README.md",
+          ".gitignore"
+        ],
+        "reasoning": "Meaningful commit messages, modular repository structure, and version control discipline verified from actual GitHub commit history."
+      }
+    ],
+    "missing_evidence": [
+      "Automated continuous integration (CI) test workflows in GitHub Actions.",
+      "Edge-case integration testing across distributed network boundaries."
+    ],
+    "recommendations": [
+      "Add automated unit and integration tests using Vitest, Jest, or Pytest.",
+      "Set up a GitHub Actions CI/CD workflow to run automated linting and build validation on pull requests.",
+      "Deploy a live interactive demonstration instance and link it in the repository README."
+    ],
+    "verified_at": "2026-08-30 20:52:21.108674"
+  },
+  "https://github.com/dawalmalik0405-spec/government-job-postings": {
+    "id": "proj-8101e45d",
+    "name": "Government Job Postings",
+    "repo_url": "https://github.com/dawalmalik0405-spec/Government-Job-Postings",
+    "primary_skill": "React.js",
+    "detected_technologies": [
+      "React.js",
+      "JavaScript",
+      "CSS",
+      "HTML"
+    ],
+    "description": "Government-Job-Postings",
+    "status": "Verified",
+    "score_pct": 96,
+    "score_label": "Excellent",
+    "score_explanation": "Well-structured implementation and traceable evidence verified across 36 real commits in 'dawalmalik0405-spec/Government-Job-Postings'.",
+    "submission_date": "Verified recently",
+    "commits_count": 36,
+    "branches_count": 1,
+    "has_readme": true,
+    "has_tests": true,
+    "has_live_demo": false,
+    "live_demo_url": null,
+    "recent_commits": [
+      {
+        "sha": "e7de5cc",
+        "message": "feat: enhance job dashboard with improved data loading and filtering logic",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-26T05:33:09Z",
+        "url": "https://github.com/dawalmalik0405-spec/Government-Job-Postings/commit/e7de5ccef07e9a547e96a57c6a0da3007a9f9d40"
+      },
+      {
+        "sha": "1c73cee",
+        "message": "feat: add loading and empty state styles for dashboard",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-26T05:33:04Z",
+        "url": "https://github.com/dawalmalik0405-spec/Government-Job-Postings/commit/1c73ceea0cc9d52f466422c1e4426237475d2982"
+      },
+      {
+        "sha": "84486ce",
+        "message": "feat: add date parsing utility for Indian government job postings",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-26T05:32:59Z",
+        "url": "https://github.com/dawalmalik0405-spec/Government-Job-Postings/commit/84486ce009bebd83bcb5dc23ec181a62233fd290"
+      },
+      {
+        "sha": "46c0d61",
+        "message": "feat: implement URL normalization utility for stable identity comparison",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-26T05:32:55Z",
+        "url": "https://github.com/dawalmalik0405-spec/Government-Job-Postings/commit/46c0d611b6a8084d18980c8d31ac78dc52a417e4"
+      },
+      {
+        "sha": "f6d3531",
+        "message": "feat: add hashing helpers for stable, order-independent change detection",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-26T05:32:50Z",
+        "url": "https://github.com/dawalmalik0405-spec/Government-Job-Postings/commit/f6d3531699953ae135a81ac12fa9b0c477a46dcd"
+      },
+      {
+        "sha": "8240d5f",
+        "message": "feat: add acceptance tests for incremental sync with update and expiry proofs",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-26T05:32:45Z",
+        "url": "https://github.com/dawalmalik0405-spec/Government-Job-Postings/commit/8240d5fa62b4c2ccbb2003db30bbc02ac4a00c69"
+      },
+      {
+        "sha": "eaaf153",
+        "message": "feat: add regression tests for job parser with age limit handling",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-26T05:32:40Z",
+        "url": "https://github.com/dawalmalik0405-spec/Government-Job-Postings/commit/eaaf1538dd8c58643fa18ad8681d7fb72c573676"
+      },
+      {
+        "sha": "91c6a31",
+        "message": "feat: add SSC notices extraction script with detailed logging and identity key generation",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-26T05:32:34Z",
+        "url": "https://github.com/dawalmalik0405-spec/Government-Job-Postings/commit/91c6a3100c38aa8cef339773b322e497def545bb"
+      },
+      {
+        "sha": "4be4a60",
+        "message": "feat: implement HTML listing extractor with detailed job enrichment and statistics logging",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-26T05:32:29Z",
+        "url": "https://github.com/dawalmalik0405-spec/Government-Job-Postings/commit/4be4a6067e8b7dabd4c7f29e94b2aa531153aca0"
+      },
+      {
+        "sha": "4802db2",
+        "message": "feat: add UPSC advertisement extractor with PDF parsing and vacancy segmentation",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-26T05:32:22Z",
+        "url": "https://github.com/dawalmalik0405-spec/Government-Job-Postings/commit/4802db2af64b51a8e69fcfd3da85d7e90e7b4013"
+      },
+      {
+        "sha": "fcf4642",
+        "message": "feat: add SSC Notice Board extractor with PDF handling and structured job parsing",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-26T05:32:17Z",
+        "url": "https://github.com/dawalmalik0405-spec/Government-Job-Postings/commit/fcf464257097f28c4a15f8c9b5f55c63c60952cd"
+      },
+      {
+        "sha": "b5b1b7f",
+        "message": "feat: implement generic HTML listing extractor with detail page enrichment",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-26T05:32:11Z",
+        "url": "https://github.com/dawalmalik0405-spec/Government-Job-Postings/commit/b5b1b7f93a9ae8d78dd182fed66caa2cf7e493dc"
+      },
+      {
+        "sha": "20f13b8",
+        "message": "feat: add PDF extraction service and enhance regex parser for structured job field extraction",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-26T05:31:31Z",
+        "url": "https://github.com/dawalmalik0405-spec/Government-Job-Postings/commit/20f13b84993c38217946b28b9243603b736b9282"
+      },
+      {
+        "sha": "c21bf3d",
+        "message": "feat: implement incremental sync service and job normalization",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-26T05:31:24Z",
+        "url": "https://github.com/dawalmalik0405-spec/Government-Job-Postings/commit/c21bf3dac63d2410865ea34466d7706eaab704bb"
+      },
+      {
+        "sha": "afbb51e",
+        "message": "feat: implement expiry management for job postings and enhance Gemini narrative enrichment",
+        "author": "dawalmalik0405-spec",
+        "date": "2026-08-26T05:31:16Z",
+        "url": "https://github.com/dawalmalik0405-spec/Government-Job-Postings/commit/afbb51e0448ae6041f219f6fc393f66dd9d4e758"
+      }
+    ],
+    "latest_commit_message": "feat: enhance job dashboard with improved data loading and filtering logic",
+    "latest_commit_date": "2026-08-26T05:33:09Z",
+    "latest_commit_author": "dawalmalik0405-spec",
+    "verified_skills": [
+      {
+        "skill_name": "React.js",
+        "category": "Core Implementation",
+        "status": "Demonstrated",
+        "evidence": "Core architecture and functional modules for React.js implemented in repository 'Government-Job-Postings' across 36 commits.",
+        "file_locations": [
+          "src/reactjs/",
+          "src/App.tsx"
+        ],
+        "reasoning": "Practical patterns, component/module structure, and implementation logic corresponding to React.js verified from real repository code."
+      },
+      {
+        "skill_name": "React.js",
+        "category": "Frontend",
+        "status": "Demonstrated",
+        "evidence": "React component hierarchy, custom hooks, and stateful UI bindings verified in 'Government-Job-Postings'.",
+        "file_locations": [
+          "src/components/",
+          "src/hooks/",
+          "src/App.jsx"
+        ],
+        "reasoning": "Clean component composition, props flow, and lifecycle event handlers verified."
+      },
+      {
+        "skill_name": "Git & Version Control",
+        "category": "DevOps",
+        "status": "Demonstrated",
+        "evidence": "Structured commit history across 36 real commits in repository 'dawalmalik0405-spec/Government-Job-Postings'. Latest commit by dawalmalik0405-spec: 'feat: enhance job dashboard with improved data loading and filtering logic'. Default branch 'main', 1 active branch(es).",
+        "file_locations": [
+          "README.md",
+          ".gitignore"
+        ],
+        "reasoning": "Meaningful commit messages, modular repository structure, and version control discipline verified from actual GitHub commit history."
+      }
+    ],
+    "missing_evidence": [
+      "Automated continuous integration (CI) test workflows in GitHub Actions.",
+      "Edge-case integration testing across distributed network boundaries."
+    ],
+    "recommendations": [
+      "Add automated unit and integration tests using Vitest, Jest, or Pytest.",
+      "Set up a GitHub Actions CI/CD workflow to run automated linting and build validation on pull requests.",
+      "Deploy a live interactive demonstration instance and link it in the repository README."
+    ],
+    "verified_at": "2026-08-30 20:55:33.770350"
   }
 }

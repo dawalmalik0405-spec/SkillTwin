@@ -466,27 +466,54 @@ Daily Time Available: {daily_effort_hours}
 User's Current Skill Gaps:
 {gaps_context}
 
-CRITICAL: The roadmap MUST be 100% specific to the role "{role_name}". Do NOT include generic web development content unless it directly serves the role.
+CRITICAL RULE: The roadmap MUST be 100% specific to the role "{role_name}".
+
+For NON-WEB-DEV roles (Data Scientist, ML Engineer, DevOps, Mobile, Data Engineer, Cybersecurity, Game Dev, etc.):
+- DO NOT include HTML, CSS, JavaScript, React, or any web frontend content
+- DO NOT start with "Web Foundations" or "HTML5 & CSS3" unless the role is explicitly a web role
+- The first phase should cover the ACTUAL prerequisites for the role
+
+For ML Engineer specifically, the roadmap MUST start with:
+- Python (not web dev)
+- Statistics and Math foundations
+- Data manipulation (Pandas, NumPy)
+- Then move to ML frameworks (scikit-learn, PyTorch, TensorFlow)
+- Then MLOps, model deployment, Docker, cloud
+
+For Data Scientist, the roadmap MUST start with:
+- Python
+- Statistics & Probability
+- Data manipulation (Pandas, NumPy, SQL)
+- Then visualization
+- Then ML algorithms
+
+For DevOps Engineer, the roadmap MUST start with:
+- Linux fundamentals
+- Networking
+- Bash scripting
+- Then Docker, Kubernetes, Terraform, Cloud
+- Then CI/CD, monitoring
 
 ROLE-SPECIFIC EXAMPLES:
-- Data Scientist: Python, Pandas, NumPy, Matplotlib, Scikit-learn, TensorFlow, SQL, Statistics, Jupyter, ML algorithms
-- ML Engineer: Python, PyTorch, TensorFlow, MLOps, Docker, Kubernetes, Cloud (AWS/GCP), Model deployment, APIs
-- Frontend Developer: HTML, CSS, JavaScript, React, TypeScript, Vue/Angular, Webpack, Responsive design, Browser APIs
-- Backend Developer: Python/Java/Go, REST APIs, Databases, Authentication, Docker, Microservices, Caching
-- Full-Stack Developer: HTML/CSS, JavaScript, React, Node.js, Python, SQL, Docker, Git, CI/CD
-- DevOps Engineer: Linux, Docker, Kubernetes, Terraform, AWS/Azure, CI/CD pipelines, Monitoring, Bash scripting
+- ML Engineer: Python, Statistics, Pandas, NumPy, scikit-learn, PyTorch, TensorFlow, MLOps, Docker, Kubernetes, AWS/GCP/Azure, FastAPI for model serving, Model deployment, MLflow
+- Data Scientist: Python, Statistics, Pandas, NumPy, Matplotlib, Seaborn, scikit-learn, SQL, A/B Testing, Jupyter, ML algorithms, Deep Learning
+- Data Engineer: Python, SQL, Apache Spark, Airflow, Kafka, ETL pipelines, Data warehousing, BigQuery/Snowflake, dbt
+- DevOps Engineer: Linux, Bash, Docker, Kubernetes, Terraform, AWS, CI/CD pipelines, Monitoring (Prometheus/Grafana), Ansible
+- Cybersecurity: Networking, Linux, Python, Penetration testing, OWASP, SIEM, Cryptography, Firewalls
 - Mobile Developer: Swift/Kotlin, React Native, Flutter, iOS/Android SDK, Mobile UI/UX, App Store deployment
-- Data Engineer: Python, SQL, Apache Spark, Airflow, Kafka, ETL pipelines, Data warehousing, BigQuery/Snowflake
-- Cybersecurity Analyst: Networking, Linux, Python, SIEM tools, Penetration testing, OWASP, Cryptography
-- Game Developer: C++, Unity/Unreal, Game physics, 3D graphics, OpenGL, Game design patterns
+- Game Developer: C++, Unity/Unreal, Game physics, 3D graphics, OpenGL/DirectX, Game design patterns
+- Frontend Developer: HTML, CSS, JavaScript, React, TypeScript, Vue/Angular, Webpack, Responsive design
+- Backend Developer: Python/Java/Go/Node, REST APIs, Databases, Authentication, Docker, Microservices
+- Full-Stack Developer: HTML/CSS, JavaScript, React, Node.js, Python, SQL, Docker, Git, CI/CD
 
 Requirements:
-1. Phases MUST be specific to {role_name} - no generic web dev if it's not a web dev role
-2. First phase covers prerequisites for the SPECIFIC role
-3. Each phase has 2-4 tasks
-4. Task IDs: "task-p1-1", "task-p1-2", etc.
-5. Skill names should be REAL technologies for this role
-6. The roadmap should be UNIQUE to {role_name} - completely different from other roles
+1. Phases MUST be specific to {role_name}
+2. First phase covers the ACTUAL prerequisites for this role
+3. Do NOT use web dev fundamentals as a default starting point
+4. Each phase has 2-4 tasks
+5. Task IDs: "task-p1-1", "task-p1-2", etc.
+6. Skill names should be REAL technologies for this role
+7. The roadmap should be UNIQUE to {role_name}
 
 Return ONLY the JSON."""
 
@@ -1163,6 +1190,27 @@ async def build_personalized_roadmap(
         if cached_tasks_status:
             _apply_task_status_to_phases(cached.phases, cached_tasks_status)
         return cached
+
+    # Check database for persisted roadmap (survives server restarts)
+    try:
+        from backend.shared.user_data_db import get_active_roadmap
+        persisted_roadmap = get_active_roadmap(user_id or "default_user")
+        if persisted_roadmap and persisted_roadmap.get("target_role") == role_name:
+            # Reconstruct PersonalizedRoadmapResponse from persisted data
+            try:
+                cached_roadmap = PersonalizedRoadmapResponse(**persisted_roadmap)
+                # Apply current task status
+                cached_tasks_status = _get_cached_task_status(user_id)
+                if cached_tasks_status:
+                    _apply_task_status_to_phases(cached_roadmap.phases, cached_tasks_status)
+                # Store in cache for next request
+                _store_in_cache(cache_key, cached_roadmap)
+                print(f"[Roadmap] Loaded persisted roadmap for user {user_id}, role {role_name}")
+                return cached_roadmap
+            except Exception as e:
+                print(f"[Roadmap] Error reconstructing persisted roadmap: {e}")
+    except Exception as e:
+        print(f"[Roadmap] Error loading persisted roadmap: {e}")
     uid = user_id or "default_user"
 
     # Get user progress from database (persistent storage)
@@ -1331,11 +1379,28 @@ async def build_personalized_roadmap(
 
     # (All phase construction is now dynamic and AI-generated above)
 
-    # Stamp the authoritative skill onto every task so the UI never has to infer
-    # it from the title (title-based guessing mislabelled 13 of 21 nodes).
+    # AI-generated tasks already have skill_name set correctly from the LLM
+    # (or from build_fallback_roadmap_structure). Do NOT overwrite them with
+    # the static TASK_SKILL_MAP -- it was designed for the old hardcoded
+    # Full-Stack Developer roadmap and would mislabel every other role.
+    # If skill_name is missing, try to derive from title as a last resort.
     for _phase in all_phases:
         for _task in _phase.tasks:
-            _task.skill_name = TASK_SKILL_MAP.get(_task.id, "")
+            if not _task.skill_name:
+                # Fallback: infer from title keywords
+                title_lower = _task.title.lower()
+                if "python" in title_lower:
+                    _task.skill_name = "Python"
+                elif "sql" in title_lower or "postgres" in title_lower:
+                    _task.skill_name = "Database"
+                elif "react" in title_lower:
+                    _task.skill_name = "React"
+                elif "docker" in title_lower or "kubernetes" in title_lower:
+                    _task.skill_name = "DevOps"
+                elif "pytorch" in title_lower or "tensorflow" in title_lower or "machine learning" in title_lower:
+                    _task.skill_name = "ML"
+                else:
+                    _task.skill_name = _task.title.split(":")[0].split(" - ")[0].strip()[:30]
 
     # Calculate overall completion percentage
     total_phase_progress = sum(p.progress_pct for p in all_phases)
@@ -1450,6 +1515,19 @@ async def build_personalized_roadmap(
 
     # Store in cache (without user-specific task completion)
     _store_in_cache(cache_key, final_roadmap)
+
+    # PERSIST to database so user's roadmap survives server restarts
+    try:
+        from backend.shared.user_data_db import save_user_roadmap
+        save_user_roadmap(
+            user_id=uid,
+            target_role=role_name,
+            experience_level=experience_level,
+            daily_effort=daily_effort_hours,
+            roadmap_data=final_roadmap.model_dump(mode='json')
+        )
+    except Exception as e:
+        print(f"[Roadmap] Warning: Could not persist roadmap to DB: {e}")
 
     return final_roadmap
 

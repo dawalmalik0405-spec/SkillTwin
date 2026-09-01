@@ -155,6 +155,77 @@ CREATE TABLE IF NOT EXISTS quiz_attempts (
     CONSTRAINT unique_user_quiz_attempt UNIQUE (user_id, quiz_question_id)
 );
 
+-- 13. User Evidence Data Table (Persistent storage for resume, github, projects)
+CREATE TABLE IF NOT EXISTS user_evidence (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    evidence_type VARCHAR(50) NOT NULL, -- 'resume', 'github', 'project'
+    source_identifier VARCHAR(500), -- filename or username
+    raw_data JSONB NOT NULL, -- Full analysis result stored as JSON
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_user_evidence_type UNIQUE (user_id, evidence_type)
+);
+
+-- 14. User Skills Table (Extracted skills per user from evidence)
+CREATE TABLE IF NOT EXISTS user_skills (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    skill_name VARCHAR(100) NOT NULL,
+    canonical_name VARCHAR(100) NOT NULL,
+    category VARCHAR(100),
+    proficiency VARCHAR(50) DEFAULT 'Beginner',
+    confidence_score NUMERIC(5, 2) DEFAULT 0.00,
+    evidence_source VARCHAR(50), -- 'resume', 'github', 'project'
+    context_snippet TEXT,
+    reasoning TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_user_skill_name UNIQUE (user_id, canonical_name)
+);
+
+-- 15. Skill Twin State Table (Cached computed SkillTwin profile per user)
+CREATE TABLE IF NOT EXISTS skill_twin_state (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    overall_score INTEGER DEFAULT 0,
+    rating_label VARCHAR(50) DEFAULT 'Emerging',
+    skills_data JSONB NOT NULL, -- Full skill twin data
+    breakdown_data JSONB,
+    insights_data JSONB,
+    last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_user_skilltwin UNIQUE (user_id)
+);
+
+-- 16. User Projects Table (For evidence and project verification)
+CREATE TABLE IF NOT EXISTS user_projects (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    project_id VARCHAR(100) NOT NULL, -- Frontend-friendly id
+    title VARCHAR(255) NOT NULL,
+    url VARCHAR(500) NOT NULL,
+    description TEXT,
+    detected_technologies JSONB,
+    project_data JSONB, -- Full project analysis
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_user_project UNIQUE (user_id, project_id)
+);
+
+-- 17. User Saved Roadmaps Table (One per user - the active roadmap)
+CREATE TABLE IF NOT EXISTS user_roadmaps (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    target_role VARCHAR(150) NOT NULL,
+    experience_level VARCHAR(100),
+    daily_effort VARCHAR(50),
+    roadmap_data JSONB NOT NULL, -- Full PersonalizedRoadmapResponse
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_active_user_roadmap UNIQUE (user_id, is_active)
+);
+
 -- Seed sample quiz questions for key skills
 -- Collapse any duplicate rows created by earlier startups that ran this seed
 -- without a conflict guard, then enforce uniqueness so it cannot recur.

@@ -159,6 +159,99 @@ class QuizAttemptModel(Base):
 
 
 # =========================================================
+# Persistent User Data Models (Survive server restarts)
+# =========================================================
+
+class UserEvidenceModel(Base):
+    """
+    Persistent storage for user evidence data (resume, github, projects).
+    Each user can have ONE record per evidence_type (resume, github, project).
+    """
+    __tablename__ = "user_evidence"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    evidence_type = Column(String(50), nullable=False)  # 'resume', 'github', 'project'
+    source_identifier = Column(String(500), nullable=True)  # filename or username
+    raw_data = Column(JSON, nullable=False)  # Full analysis result stored as JSON
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class UserSkillModel(Base):
+    """
+    Persistent storage for skills extracted from user's evidence.
+    """
+    __tablename__ = "user_skills"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    skill_name = Column(String(100), nullable=False)
+    canonical_name = Column(String(100), nullable=False)
+    category = Column(String(100), nullable=True)
+    proficiency = Column(String(50), default="Beginner")
+    confidence_score = Column(Numeric(5, 2), default=0.00)
+    evidence_source = Column(String(50), nullable=True)  # 'resume', 'github', 'project'
+    context_snippet = Column(Text, nullable=True)
+    reasoning = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class SkillTwinStateModel(Base):
+    """
+    Cached SkillTwin state per user.
+    One row per user.
+    """
+    __tablename__ = "skill_twin_state"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    overall_score = Column(Integer, default=0)
+    rating_label = Column(String(50), default="Emerging")
+    skills_data = Column(JSON, nullable=False)  # Full skill twin data
+    breakdown_data = Column(JSON, nullable=True)
+    insights_data = Column(JSON, nullable=True)
+    last_updated = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class UserProjectModel(Base):
+    """
+    Persistent storage for user's project entries.
+    """
+    __tablename__ = "user_projects"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    project_id = Column(String(100), nullable=False)
+    title = Column(String(255), nullable=False)
+    url = Column(String(500), nullable=False)
+    description = Column(Text, nullable=True)
+    detected_technologies = Column(JSON, nullable=True)
+    project_data = Column(JSON, nullable=True)  # Full project analysis
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+class UserRoadmapModel(Base):
+    """
+    Persistent storage for the user's active roadmap.
+    One active roadmap per user (latest target role).
+    """
+    __tablename__ = "user_roadmaps"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    target_role = Column(String(150), nullable=False)
+    experience_level = Column(String(100), nullable=True)
+    daily_effort = Column(String(50), nullable=True)
+    roadmap_data = Column(JSON, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    updated_at = Column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
+# =========================================================
 # Pydantic Schemas / Contracts
 # =========================================================
 

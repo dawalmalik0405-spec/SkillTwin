@@ -595,6 +595,34 @@ async def upload_resume(
     except Exception as e:
         print(f"[Resume DB Persistence Notice] Using cached state: {e}")
 
+    # Also persist skills to user_skills table for cross-restart persistence
+    if user_id:
+        try:
+            from backend.shared.user_data_db import save_user_evidence, save_user_skills
+            save_user_evidence(
+                user_id=user_id,
+                evidence_type="resume",
+                raw_data=response_data.model_dump(mode="json"),
+                source_identifier=filename
+            )
+            # Save extracted skills
+            skills_to_save = []
+            for s in extracted_skills:
+                skills_to_save.append({
+                    "skill_name": s.skill_name,
+                    "canonical_name": s.canonical_name,
+                    "category": s.category,
+                    "proficiency": s.proficiency,
+                    "confidence_score": s.confidence_score,
+                    "evidence_source": "Resume",
+                    "context_snippet": s.context_snippet,
+                    "reasoning": s.reasoning
+                })
+            if skills_to_save:
+                save_user_skills(user_id, skills_to_save)
+        except Exception as e:
+            print(f"[Resume DB Skills Persistence Notice]: {e}")
+
     return response_data
 
 
@@ -887,6 +915,33 @@ async def connect_github(
             db.commit()
     except Exception as e:
         print(f"[GitHub DB Persistence Notice] Using cached state: {e}")
+
+    # Persist GitHub skills to user_skills table for cross-restart persistence
+    if payload.user_id:
+        try:
+            from backend.shared.user_data_db import save_user_evidence, save_user_skills
+            save_user_evidence(
+                user_id=payload.user_id,
+                evidence_type="github",
+                raw_data=response.model_dump(mode="json"),
+                source_identifier=username
+            )
+            skills_to_save = []
+            for s in unique_skills:
+                skills_to_save.append({
+                    "skill_name": s.skill_name,
+                    "canonical_name": s.canonical_name,
+                    "category": s.category,
+                    "proficiency": s.proficiency,
+                    "confidence_score": s.confidence_score,
+                    "evidence_source": "GitHub",
+                    "context_snippet": s.context_snippet,
+                    "reasoning": s.reasoning
+                })
+            if skills_to_save:
+                save_user_skills(payload.user_id, skills_to_save)
+        except Exception as e:
+            print(f"[GitHub DB Skills Persistence Notice]: {e}")
 
     return response
 

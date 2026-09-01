@@ -167,22 +167,46 @@ def compute_skill_gap_analysis(
     # 2. Ingest Candidate's Demonstrated Skills from Living SkillTwin Store
     candidate_skills_dict: Dict[str, Dict[str, Any]] = {}
 
-    # Check in-memory evidence store
-    user_store = _get_user_evidence_store(user_id) if user_id else None
-    if user_store and user_store.get("skills_extracted"):
-        for item in user_store["skills_extracted"]:
-            name = item.get("canonical_name") or item.get("skill_name")
-            if name:
-                candidate_skills_dict[name.lower()] = {
-                    "name": name,
-                    "proficiency": item.get("proficiency", "Beginner"),
-                    "numeric": 3.0 if item.get("proficiency") == "Intermediate" else (4.5 if item.get("proficiency") == "Advanced" else 2.0),
-                    "confidence": item.get("confidence_score", 70),
-                    "sources": [item.get("evidence_source", "Resume")],
-                    "reasoning": item.get("reasoning", "")
-                }
-    else:
-        # Use default fallback skills for default demo/initial profile
+    # FIRST: Try the persistent database (user_skills table) for user's saved skills
+    if user_id:
+        try:
+            from backend.shared.user_data_db import get_user_skills
+            persistent_skills = get_user_skills(user_id)
+            for item in persistent_skills:
+                name = item.get("canonical_name") or item.get("skill_name")
+                if name:
+                    candidate_skills_dict[name.lower()] = {
+                        "name": name,
+                        "proficiency": item.get("proficiency", "Beginner"),
+                        "numeric": 3.0 if item.get("proficiency") == "Intermediate" else (4.5 if item.get("proficiency") == "Advanced" else 2.0),
+                        "score": item.get("confidence_score", 60),
+                        "confidence": item.get("confidence_score", 70),
+                        "sources": [item.get("evidence_source", "Resume")],
+                        "reasoning": item.get("reasoning", "")
+                    }
+            if candidate_skills_dict:
+                print(f"[GapAnalysis] Loaded {len(candidate_skills_dict)} skills from DB for user {user_id}")
+        except Exception as e:
+            print(f"[GapAnalysis] Note: Could not load from DB ({e}), using fallback")
+
+    # SECOND: Check in-memory evidence store (current session)
+    if not candidate_skills_dict:
+        user_store = _get_user_evidence_store(user_id) if user_id else None
+        if user_store and user_store.get("skills_extracted"):
+            for item in user_store["skills_extracted"]:
+                name = item.get("canonical_name") or item.get("skill_name")
+                if name:
+                    candidate_skills_dict[name.lower()] = {
+                        "name": name,
+                        "proficiency": item.get("proficiency", "Beginner"),
+                        "numeric": 3.0 if item.get("proficiency") == "Intermediate" else (4.5 if item.get("proficiency") == "Advanced" else 2.0),
+                        "confidence": item.get("confidence_score", 70),
+                        "sources": [item.get("evidence_source", "Resume")],
+                        "reasoning": item.get("reasoning", "")
+                    }
+
+    # THIRD: Use default fallback skills if no data found
+    if not candidate_skills_dict:
         for item in DEFAULT_FALLBACK_SKILLS:
             candidate_skills_dict[item["name"].lower()] = item
 
