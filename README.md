@@ -19,7 +19,7 @@ Instead of relying only on self-declared skills, SkillTwin aims to create a dyna
 
 > 🌐 **Live Deployed Demo**: [https://skilltwin-vx3z.onrender.com](https://skilltwin-vx3z.onrender.com)  
 > 🎬 **Demo Video**: [Watch Demo Video on Google Drive](https://drive.google.com/file/d/1Dvh-mgq0wrQ5PmRUXhPIHPS-WDh7QJuU/view?usp=sharing)
-> 📂 **github repo**: [clone this repo](https://github.com/dawalmalik0405-spec/SkillTwin)]
+> 📂 **github repo**: [clone this repo](https://github.com/dawalmalik0405-spec/SkillTwin)
 
 
 ---
