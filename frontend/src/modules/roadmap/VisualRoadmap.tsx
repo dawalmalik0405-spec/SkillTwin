@@ -380,6 +380,9 @@ export const VisualRoadmap: React.FC<VisualRoadmapProps> = ({
   }
 
   const completedCount = allNodes.filter(n => n.status === 'completed').length;
+  const overallPct = allNodes.length > 0
+    ? Math.round((completedCount / allNodes.length) * 100)
+    : (roadmapData.summary?.overall_completion_pct || 0);
 
   return (
     <div className="vr-container">
@@ -500,13 +503,13 @@ export const VisualRoadmap: React.FC<VisualRoadmapProps> = ({
             Overall Progress
           </h3>
           <div className="vr-progress-pct">
-            {roadmapData.summary.overall_completion_pct}%
+            {overallPct}%
           </div>
         </div>
         <div className="vr-progress-track">
           <div
             className="vr-progress-fill"
-            style={{ width: `${roadmapData.summary.overall_completion_pct}%` }}
+            style={{ width: `${overallPct}%` }}
           />
         </div>
         <p className="vr-progress-caption">

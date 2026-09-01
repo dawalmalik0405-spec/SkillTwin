@@ -158,11 +158,34 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
     }
   };
 
-  // Derive task counts and completion status across all roadmap phases
+  // Derive task & phase counts dynamically across all roadmap phases
   const allTasks = roadmapData?.phases.flatMap(p => p.tasks) || [];
   const totalTasksCount = allTasks.length;
   const completedTasksCount = allTasks.filter(t => t.is_completed).length;
   const isAllCompleted = totalTasksCount > 0 && completedTasksCount === totalTasksCount;
+
+  // Determine active/unlocked in-progress tasks dynamically
+  const inProgressTasksCount = ((): number => {
+    let count = 0;
+    let foundActive = false;
+    allTasks.forEach((task, idx) => {
+      if (!task.is_completed && !foundActive) {
+        const prevCompleted = idx === 0 || allTasks[idx - 1].is_completed;
+        if (prevCompleted) {
+          count++;
+          foundActive = true;
+        }
+      }
+    });
+    return count > 0 ? count : (completedTasksCount < totalTasksCount ? 1 : 0);
+  })();
+
+  const notStartedTasksCount = Math.max(0, totalTasksCount - completedTasksCount - inProgressTasksCount);
+
+  // Overall completion percentage computed dynamically from completed tasks
+  const overallCompletionPct = totalTasksCount > 0
+    ? Math.round((completedTasksCount / totalTasksCount) * 100)
+    : (roadmapData?.summary?.overall_completion_pct || 0);
 
   // Sync completion state to localStorage
   useEffect(() => {
@@ -1103,7 +1126,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                             fill="none"
                             stroke="#10B981"
                             strokeWidth="3.8"
-                            strokeDasharray={`${roadmapData.summary.overall_completion_pct}, 100`}
+                            strokeDasharray={`${overallCompletionPct}, 100`}
                             strokeLinecap="round"
                           />
                         </svg>
@@ -1116,7 +1139,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                           textAlign: 'center'
                         }}>
                           <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#FFFFFF', lineHeight: 1 }}>
-                            {roadmapData.summary.overall_completion_pct}%
+                            {overallCompletionPct}%
                           </div>
                           <div style={{ fontSize: '0.55rem', color: 'var(--text-muted)' }}>
                             Completed
@@ -1131,7 +1154,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                             <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#10B981' }} />
                             <span style={{ color: '#F8FAFC' }}>Completed</span>
                           </div>
-                          <span style={{ color: 'var(--text-muted)' }}>{roadmapData.summary.completed_phases_count}</span>
+                          <span style={{ color: '#34D399', fontWeight: 700 }}>{completedTasksCount}</span>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1139,7 +1162,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                             <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#38BDF8' }} />
                             <span style={{ color: '#F8FAFC' }}>In Progress</span>
                           </div>
-                          <span style={{ color: 'var(--text-muted)' }}>{roadmapData.summary.in_progress_phases_count}</span>
+                          <span style={{ color: '#38BDF8', fontWeight: 700 }}>{inProgressTasksCount}</span>
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1147,7 +1170,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                             <div style={{ width: '8px', height: '8px', borderRadius: '2px', background: '#64748B' }} />
                             <span style={{ color: '#F8FAFC' }}>Not Started</span>
                           </div>
-                          <span style={{ color: 'var(--text-muted)' }}>{roadmapData.summary.not_started_phases_count}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>{notStartedTasksCount}</span>
                         </div>
                       </div>
                     </div>
