@@ -223,6 +223,820 @@ def get_fallback_questions(skill_name: str) -> Tuple[str, List[Dict[str, Any]]]:
     Returns ("", []) when nothing on-topic exists.
     """
     fallback_questions = {
+        "Python": [
+            {
+                "question_text": "Which keyword is used to define a function in Python?",
+                "options": ["function", "def", "func", "define"],
+                "correct_answer_index": 1,
+                "explanation": "The `def` keyword is used to define a function in Python.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What data type is the result of: `type([])` in Python?",
+                "options": ["<class 'array'>", "<class 'list'>", "<class 'tuple'>", "<class 'dict'>"],
+                "correct_answer_index": 1,
+                "explanation": "Empty square brackets create a Python list. type() returns the class name.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "How do you create a virtual environment in Python?",
+                "options": ["python install venv", "python -m venv myenv", "pip install virtualenv", "python create env"],
+                "correct_answer_index": 1,
+                "explanation": "The standard way to create a virtual environment is `python -m venv <name>`.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "What is the output of `len('hello')` in Python?",
+                "options": ["4", "5", "6", "Error"],
+                "correct_answer_index": 1,
+                "explanation": "len() counts the characters. 'hello' has 5 characters.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "Which method adds an element to the end of a Python list?",
+                "options": ["push()", "append()", "add()", "insert()"],
+                "correct_answer_index": 1,
+                "explanation": "Python lists use .append() to add elements. push() is JavaScript, insert() inserts at a position.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is a Python decorator?",
+                "options": [
+                    "A function that wraps another function to extend its behavior",
+                    "A way to declare variables",
+                    "A type of class",
+                    "A package manager"
+                ],
+                "correct_answer_index": 0,
+                "explanation": "A decorator is a function that takes another function and extends its behavior without modifying it.",
+                "difficulty": "Medium"
+            }
+        ],
+        "Excel": [
+            {
+                "question_text": "Which function in Excel returns the number of cells that contain numbers?",
+                "options": ["COUNT", "SUM", "NUMBERS", "TOTAL"],
+                "correct_answer_index": 0,
+                "explanation": "The COUNT function counts cells containing numeric values. COUNTA counts non-empty cells.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What does the VLOOKUP function do?",
+                "options": [
+                    "Validates vertical data",
+                    "Looks up a value in the leftmost column and returns a value from the same row",
+                    "Calculates vertical sums",
+                    "Creates vertical charts"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "VLOOKUP searches for a value in the first column of a range and returns a value in the same row from another column.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "What is the keyboard shortcut to insert a SUM formula in Excel?",
+                "options": ["Ctrl+S", "Alt+= (Alt + equals)", "Ctrl+Shift+S", "F2"],
+                "correct_answer_index": 1,
+                "explanation": "Alt + = (Alt and the equals sign) automatically inserts SUM formula for the selected range.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is the difference between a Workbook and a Worksheet in Excel?",
+                "options": [
+                    "They are the same thing",
+                    "A workbook is a file, a worksheet is a single sheet inside it",
+                    "A worksheet is a file, a workbook is a sheet",
+                    "A workbook is a chart, a worksheet is a table"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "A workbook is the entire Excel file (.xlsx). A worksheet is one of the tabs/sheets within that workbook.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "Which chart type is BEST for showing parts of a whole?",
+                "options": ["Line chart", "Pie chart", "Scatter plot", "Histogram"],
+                "correct_answer_index": 1,
+                "explanation": "Pie charts are ideal for showing proportions of a whole. Line charts are for trends over time.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What does the IF function do?",
+                "options": [
+                    "Imports a file",
+                    "Returns one value if a condition is true, another if false",
+                    "Filters data",
+                    "Creates a chart"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "IF(condition, value_if_true, value_if_false) performs conditional logic in Excel.",
+                "difficulty": "Easy"
+            }
+        ],
+        "SQL": [
+            {
+                "question_text": "Which SQL command is used to retrieve data from a database?",
+                "options": ["GET", "SELECT", "FETCH", "READ"],
+                "correct_answer_index": 1,
+                "explanation": "SELECT is the standard SQL command to retrieve data from tables.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What does the WHERE clause do?",
+                "options": [
+                    "Specifies which table to query",
+                    "Filters rows based on a condition",
+                    "Groups rows together",
+                    "Sorts the results"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "WHERE filters rows by a condition. HAVING filters groups, ORDER BY sorts.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "Which SQL JOIN returns only rows that have matches in BOTH tables?",
+                "options": ["LEFT JOIN", "RIGHT JOIN", "INNER JOIN", "OUTER JOIN"],
+                "correct_answer_index": 2,
+                "explanation": "INNER JOIN returns only rows where the join condition is true in both tables.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "What is the difference between WHERE and HAVING?",
+                "options": [
+                    "No difference",
+                    "WHERE filters rows before grouping, HAVING filters groups after",
+                    "HAVING is for SELECT only",
+                    "WHERE is faster"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "WHERE filters individual rows before GROUP BY. HAVING filters aggregated groups after GROUP BY.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "Which aggregate function returns the average value?",
+                "options": ["SUM", "AVG", "COUNT", "MEAN"],
+                "correct_answer_index": 1,
+                "explanation": "AVG() returns the average. SQL uses AVG, not MEAN. SUM adds, COUNT counts rows.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What does the PRIMARY KEY constraint ensure?",
+                "options": [
+                    "The column is hidden",
+                    "Each value is unique and not null",
+                    "The column is encrypted",
+                    "The column is first"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "PRIMARY KEY ensures each row has a unique, non-null identifier.",
+                "difficulty": "Easy"
+            }
+        ],
+        "Statistics": [
+            {
+                "question_text": "What is the median of the values [2, 4, 6, 8, 10]?",
+                "options": ["4", "6", "8", "5"],
+                "correct_answer_index": 1,
+                "explanation": "The median is the middle value. For 5 numbers, it's the 3rd one, which is 6.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What does a p-value of 0.03 typically mean?",
+                "options": [
+                    "The probability of the null hypothesis being true is 3%",
+                    "There is a 3% chance the result is due to random variation",
+                    "The effect size is 3%",
+                    "The sample size is 3"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "A p-value of 0.03 means if the null hypothesis were true, you'd see this result (or more extreme) only 3% of the time by chance.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "What is standard deviation a measure of?",
+                "options": [
+                    "The center of the data",
+                    "The spread of the data around the mean",
+                    "The most common value",
+                    "The total range"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "Standard deviation measures the typical distance of values from the mean - a measure of spread/variability.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is the difference between population and sample standard deviation?",
+                "options": [
+                    "No difference",
+                    "Population uses n, sample uses n-1 in the denominator (Bessel's correction)",
+                    "Population is always larger",
+                    "Sample has no variance"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "Sample standard deviation uses n-1 (Bessel's correction) to give an unbiased estimate of the population std.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "What is correlation?",
+                "options": [
+                    "Causation between variables",
+                    "A statistical measure of how two variables move together",
+                    "The difference between two means",
+                    "A type of test"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "Correlation measures the strength of a relationship between two variables. Correlation != causation.",
+                "difficulty": "Easy"
+            }
+        ],
+        "Machine Learning": [
+            {
+                "question_text": "What is supervised learning?",
+                "options": [
+                    "Learning with labeled training data",
+                    "Learning without any data",
+                    "Learning with no labels",
+                    "Learning from reinforcement"
+                ],
+                "correct_answer_index": 0,
+                "explanation": "Supervised learning uses labeled examples to learn a mapping from inputs to outputs.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is overfitting?",
+                "options": [
+                    "Model is too simple",
+                    "Model memorizes training data but fails on new data",
+                    "Model trains too slowly",
+                    "Model uses too little data"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "Overfitting is when a model learns the training data too well, including its noise, so it generalizes poorly.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "Which metric is used for classification accuracy?",
+                "options": ["MSE", "RMSE", "Accuracy", "R-squared"],
+                "correct_answer_index": 2,
+                "explanation": "Accuracy = (correct predictions) / (total predictions). MSE and RMSE are for regression.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is the purpose of a train/test split?",
+                "options": [
+                    "To make training faster",
+                    "To evaluate model performance on unseen data",
+                    "To reduce data size",
+                    "To increase accuracy"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "Train/test split ensures we evaluate the model on data it has never seen during training.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What does cross-validation do?",
+                "options": [
+                    "Validates cross-platform code",
+                    "Tests the model on multiple data splits for robust evaluation",
+                    "Combines different models",
+                    "Reduces training time"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "Cross-validation splits data into k folds and trains/tests on different combinations for more reliable performance estimates.",
+                "difficulty": "Medium"
+            }
+        ],
+        "Docker": [
+            {
+                "question_text": "What is a Docker container?",
+                "options": [
+                    "A physical box",
+                    "A lightweight, portable executable package of an application and its dependencies",
+                    "A type of database",
+                    "A cloud service"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "A container packages an app with its dependencies so it runs the same anywhere - your laptop or production.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is the difference between a Docker image and a container?",
+                "options": [
+                    "No difference",
+                    "An image is a blueprint; a container is a running instance of that image",
+                    "A container is a blueprint; an image is a running instance",
+                    "They are different operating systems"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "An image is the template (like a class). A container is a running instance of that image (like an object).",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "Which command builds a Docker image from a Dockerfile?",
+                "options": ["docker run", "docker build", "docker pull", "docker push"],
+                "correct_answer_index": 1,
+                "explanation": "`docker build -t name .` creates an image from the Dockerfile in the current directory.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is the purpose of a Dockerfile?",
+                "options": [
+                    "To store user files",
+                    "To define instructions for building a Docker image",
+                    "To run a container",
+                    "To document a project"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "A Dockerfile contains step-by-step instructions (FROM, RUN, COPY, etc.) for building a Docker image.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What does `docker-compose` do?",
+                "options": [
+                    "Compresses Docker images",
+                    "Defines and runs multi-container Docker applications",
+                    "Creates Dockerfiles",
+                    "Pushes images to registries"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "docker-compose uses a YAML file to define and start multiple containers together (e.g. web + database).",
+                "difficulty": "Medium"
+            }
+        ],
+        "Git": [
+            {
+                "question_text": "What does `git clone` do?",
+                "options": [
+                    "Creates a new repository",
+                    "Makes a local copy of a remote repository",
+                    "Deletes a repository",
+                    "Renames a repository"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "git clone copies a remote repository (e.g. from GitHub) to your local machine.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is the difference between `git pull` and `git fetch`?",
+                "options": [
+                    "No difference",
+                    "fetch downloads changes; pull downloads AND merges them",
+                    "pull only works locally",
+                    "fetch is for tags only"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "fetch downloads remote changes but doesn't merge. pull does both - fetch + merge in one step.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "What is a Git branch?",
+                "options": [
+                    "A copy of the repo on a different server",
+                    "An independent line of development",
+                    "A type of commit",
+                    "A file backup"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "A branch is a parallel line of development. main/master is the default, feature branches let you work without affecting main.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What does `git merge` do?",
+                "options": [
+                    "Combines changes from one branch into another",
+                    "Deletes a branch",
+                    "Creates a new repository",
+                    "Forces a push"
+                ],
+                "correct_answer_index": 0,
+                "explanation": "git merge combines the history of a source branch into the current branch.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is a merge conflict?",
+                "options": [
+                    "Two files with the same name",
+                    "When Git cannot automatically merge because the same lines changed differently",
+                    "A failed push",
+                    "A missing file"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "A conflict happens when two branches modify the same lines, requiring manual resolution.",
+                "difficulty": "Medium"
+            }
+        ],
+        "Linux": [
+            {
+                "question_text": "Which command lists files in the current directory in Linux?",
+                "options": ["dir", "ls", "list", "show"],
+                "correct_answer_index": 1,
+                "explanation": "`ls` lists files and directories. Use `ls -l` for detailed list, `ls -a` to show hidden files.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What does the `cd` command do?",
+                "options": [
+                    "Copies a directory",
+                    "Changes the current directory",
+                    "Creates a directory",
+                    "Deletes a directory"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "`cd` (change directory) moves you to a different directory. `cd ..` goes up one level.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "Which command shows the current directory path?",
+                "options": ["whereami", "path", "pwd", "cwd"],
+                "correct_answer_index": 2,
+                "explanation": "`pwd` (print working directory) shows your current location in the file system.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What does `chmod 755 file.txt` do?",
+                "options": [
+                    "Deletes the file",
+                    "Sets permissions: owner can read/write/execute, others can read/execute",
+                    "Changes ownership",
+                    "Encrypts the file"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "755 = rwxr-xr-x: owner has full access (7), group and others have read+execute (5).",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "Which command shows the contents of a text file?",
+                "options": ["cat", "open", "view", "show"],
+                "correct_answer_index": 0,
+                "explanation": "`cat` (concatenate) displays file contents. `less` or `more` for paginated viewing.",
+                "difficulty": "Easy"
+            }
+        ],
+        "Pandas": [
+            {
+                "question_text": "How do you read a CSV file into a Pandas DataFrame?",
+                "options": ["pd.load('file.csv')", "pd.read_csv('file.csv')", "pd.import_csv('file.csv')", "pd.open('file.csv')"],
+                "correct_answer_index": 1,
+                "explanation": "`pd.read_csv('file.csv')` is the standard way to load CSV data into a DataFrame.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What does `df.head()` do?",
+                "options": [
+                    "Returns the first 5 rows by default",
+                    "Returns the column names",
+                    "Removes the first row",
+                    "Counts the rows"
+                ],
+                "correct_answer_index": 0,
+                "explanation": "df.head() shows the first 5 rows. Pass a number like df.head(10) to see 10 rows.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "How do you get summary statistics of a DataFrame?",
+                "options": ["df.summary()", "df.stats()", "df.describe()", "df.info()"],
+                "correct_answer_index": 2,
+                "explanation": "df.describe() shows count, mean, std, min, max, and quartiles for numeric columns.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "How do you filter rows where column 'age' is greater than 30?",
+                "options": ["df[df.age > 30]", "df.filter('age > 30')", "df.where('age > 30')", "df.select(age>30)"],
+                "correct_answer_index": 0,
+                "explanation": "Boolean indexing df[df.age > 30] is the standard way to filter rows in Pandas.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "What is a Pandas DataFrame?",
+                "options": [
+                    "A 1D labeled array",
+                    "A 2D labeled data structure (like a spreadsheet)",
+                    "A type of database",
+                    "A visualization library"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "A DataFrame is a 2D table with labeled rows and columns, similar to a spreadsheet or SQL table.",
+                "difficulty": "Easy"
+            }
+        ],
+        "NumPy": [
+            {
+                "question_text": "How do you create a NumPy array from a Python list?",
+                "options": ["np.array([1, 2, 3])", "np.list([1, 2, 3])", "np.create([1, 2, 3])", "np.from([1, 2, 3])"],
+                "correct_answer_index": 0,
+                "explanation": "`np.array([1, 2, 3])` converts a Python list to a NumPy ndarray.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What does `np.zeros((3, 4))` create?",
+                "options": [
+                    "A 1D array of 12 zeros",
+                    "A 3x4 matrix filled with zeros",
+                    "An array of 3 zeros, repeated 4 times",
+                    "A 4x3 matrix filled with zeros"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "np.zeros((rows, cols)) creates a matrix of that shape filled with zeros. (3, 4) means 3 rows, 4 columns.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is the difference between a list and a NumPy array?",
+                "options": [
+                    "No difference",
+                    "NumPy arrays are faster, more memory-efficient, and support vectorized operations",
+                    "Lists are faster",
+                    "Arrays can only hold numbers"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "NumPy arrays are optimized for numerical computation, support vectorized operations, and are much faster than lists for math.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "How do you get the shape of a NumPy array?",
+                "options": ["arr.size()", "arr.shape", "arr.dim()", "arr.dimensions"],
+                "correct_answer_index": 1,
+                "explanation": "arr.shape returns a tuple of dimensions, e.g. (3, 4) for a 3x4 matrix.",
+                "difficulty": "Easy"
+            }
+        ],
+        "PostgreSQL": [
+            {
+                "question_text": "Which command creates a new database in PostgreSQL?",
+                "options": ["CREATE DB mydb", "CREATE DATABASE mydb", "NEW DATABASE mydb", "DATABASE CREATE mydb"],
+                "correct_answer_index": 1,
+                "explanation": "CREATE DATABASE mydb is the standard PostgreSQL command to create a new database.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is a primary key in PostgreSQL?",
+                "options": [
+                    "The first column in a table",
+                    "A column or set of columns that uniquely identifies each row",
+                    "A password",
+                    "The most important column"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "A primary key uniquely identifies each row in a table. It must be unique and not null.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is the difference between CHAR and VARCHAR in PostgreSQL?",
+                "options": [
+                    "No difference",
+                    "CHAR is fixed length, VARCHAR is variable length",
+                    "VARCHAR is for numbers only",
+                    "CHAR is faster"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "CHAR(n) always uses exactly n characters (padding with spaces). VARCHAR(n) uses up to n characters.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "What is an index in PostgreSQL?",
+                "options": [
+                    "A list of table names",
+                    "A data structure that speeds up data retrieval at the cost of writes",
+                    "A type of constraint",
+                    "A table backup"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "An index is a separate data structure that lets PostgreSQL find rows quickly without scanning the whole table.",
+                "difficulty": "Medium"
+            }
+        ],
+        "Authentication": [
+            {
+                "question_text": "What does JWT stand for?",
+                "options": ["Java Web Token", "JSON Web Token", "JavaScript Web Tool", "JSON Wrapper Type"],
+                "correct_answer_index": 1,
+                "explanation": "JWT = JSON Web Token. A compact, signed token format for authentication.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "Which is more secure for storing passwords: plain text or bcrypt hash?",
+                "options": [
+                    "Plain text is faster",
+                    "bcrypt hash",
+                    "Both are equally secure",
+                    "Plain text is fine if encrypted at rest"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "bcrypt is a slow, salted hashing algorithm designed for password storage. Plain text is never secure.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is OAuth 2.0?",
+                "options": [
+                    "A programming language",
+                    "An authorization framework that lets apps act on behalf of users without sharing passwords",
+                    "A type of database",
+                    "A frontend framework"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "OAuth 2.0 is an authorization standard. 'Sign in with Google' is a common use case.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "What is the difference between authentication and authorization?",
+                "options": [
+                    "They are the same",
+                    "Authentication = who you are; Authorization = what you can do",
+                    "Authentication = password; Authorization = username",
+                    "Authorization is faster"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "Authentication verifies identity (login). Authorization determines permissions (what you can access).",
+                "difficulty": "Easy"
+            }
+        ],
+        "TypeScript": [
+            {
+                "question_text": "What is TypeScript?",
+                "options": [
+                    "A separate programming language",
+                    "A typed superset of JavaScript that compiles to plain JavaScript",
+                    "A CSS framework",
+                    "A database query language"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "TypeScript adds static types to JavaScript. It compiles to plain JS that runs anywhere JS runs.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "How do you declare a typed variable in TypeScript?",
+                "options": ["var x: int = 5", "let x: number = 5", "int x = 5", "x: number = 5"],
+                "correct_answer_index": 1,
+                "explanation": "`let x: number = 5` is the standard syntax. The type `number` (lowercase) is TS-specific.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is the difference between `interface` and `type` in TypeScript?",
+                "options": [
+                    "No difference at all",
+                    "Both define types, with some syntactic differences; interface is extendable, type supports unions",
+                    "interface is faster",
+                    "type is for JavaScript only"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "Both define object shapes. interface uses `extends`, type supports `|` unions and `&` intersections.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "What does `any` type mean in TypeScript?",
+                "options": [
+                    "The variable doesn't exist",
+                    "The variable can be any type - bypasses type checking",
+                    "The variable is always null",
+                    "The variable is an array"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "`any` opts out of type checking for that variable. Use sparingly as it defeats TypeScript's purpose.",
+                "difficulty": "Easy"
+            }
+        ],
+        "Node.js": [
+            {
+                "question_text": "What is Node.js?",
+                "options": [
+                    "A JavaScript framework",
+                    "A runtime that executes JavaScript on the server side",
+                    "A database",
+                    "A frontend library"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "Node.js is a JavaScript runtime built on Chrome's V8 engine. It lets you run JS outside the browser.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is npm?",
+                "options": [
+                    "Node Programming Method",
+                    "Node Package Manager - the default package manager for Node.js",
+                    "New Project Module",
+                    "Network Protocol Manager"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "npm (Node Package Manager) is the world's largest software registry for JavaScript packages.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is the difference between require and import in Node.js?",
+                "options": [
+                    "No difference",
+                    "require is CommonJS (old), import is ES Modules (modern)",
+                    "import is faster",
+                    "require is for React only"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "require() is CommonJS (older Node.js). import is ES Modules (modern JS, also used in frontend).",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "What is Express.js?",
+                "options": [
+                    "A database",
+                    "A minimal and flexible Node.js web application framework",
+                    "A testing library",
+                    "A frontend framework"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "Express is the most popular Node.js framework for building web servers and APIs.",
+                "difficulty": "Easy"
+            }
+        ],
+        "AWS": [
+            {
+                "question_text": "What does AWS stand for?",
+                "options": ["Advanced Web Services", "Amazon Web Services", "Amazon Web Solutions", "Applied Web Systems"],
+                "correct_answer_index": 1,
+                "explanation": "AWS = Amazon Web Services. The world's largest cloud computing platform.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is Amazon EC2?",
+                "options": [
+                    "Email service",
+                    "Elastic Compute Cloud - provides resizable virtual servers in the cloud",
+                    "A database service",
+                    "A content delivery network"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "EC2 (Elastic Compute Cloud) provides scalable virtual machines in AWS.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "What is Amazon S3?",
+                "options": [
+                    "A serverless compute service",
+                    "Simple Storage Service - object storage with high availability",
+                    "A SQL database",
+                    "A monitoring tool"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "S3 (Simple Storage Service) is object storage for files, images, backups, etc.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "What is the AWS Free Tier?",
+                "options": [
+                    "A paid trial",
+                    "Free usage limits of many AWS services for new accounts (12 months or always free)",
+                    "A free VPN service",
+                    "A one-time signup bonus"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "AWS Free Tier offers limited free usage of many services, either for 12 months or always free tier (e.g. Lambda).",
+                "difficulty": "Easy"
+            }
+        ],
+        "Cybersecurity": [
+            {
+                "question_text": "What does HTTPS provide that HTTP does not?",
+                "options": [
+                    "Faster loading",
+                    "Encryption of data in transit",
+                    "Better SEO",
+                    "Mobile compatibility"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "HTTPS adds TLS/SSL encryption so data in transit can't be read by attackers.",
+                "difficulty": "Easy"
+            },
+            {
+                "question_text": "What is a SQL injection?",
+                "options": [
+                    "A type of database",
+                    "An attack where malicious SQL code is inserted into a query to manipulate the database",
+                    "A way to optimize SQL",
+                    "A type of index"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "SQL injection is when attackers insert SQL commands into user input fields, e.g. login forms.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "What is XSS (Cross-Site Scripting)?",
+                "options": [
+                    "A way to style web pages",
+                    "An attack where malicious scripts are injected into web pages viewed by other users",
+                    "A JavaScript framework",
+                    "A type of database"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "XSS attacks inject malicious JavaScript into web pages, often through user input.",
+                "difficulty": "Medium"
+            },
+            {
+                "question_text": "What is the principle of least privilege?",
+                "options": [
+                    "Always give admin access",
+                    "Give users only the minimum permissions needed to do their job",
+                    "Use strong passwords",
+                    "Encrypt all data"
+                ],
+                "correct_answer_index": 1,
+                "explanation": "Least privilege means giving users only the permissions they need - reduces attack surface.",
+                "difficulty": "Easy"
+            }
+        ],
         # HTML/CSS is the very first node in the roadmap, so it is the one skill
         # that must never dead-end: if the model is rate-limited here the user
         # cannot start at all.
@@ -533,6 +1347,7 @@ async def generate_quiz(
     task_id: str,
     question_count: int = Query(5, ge=3, le=10),
     user_level: str = Query("intermediate", description="User's skill level: beginner, intermediate, advanced"),
+    user_id: Optional[str] = Query(None, description="Optional user ID"),
     authorization: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
@@ -540,7 +1355,15 @@ async def generate_quiz(
     Generate a quiz for a specific roadmap task using AI.
     Creates contextual questions based on the skill and user's level.
     """
-    skill_name = _get_skill_for_task(task_id)
+    # Use authenticated user_id if not provided
+    if not user_id and authorization:
+        from backend.routers.auth import get_user_id_from_token
+        auth_user_id = get_user_id_from_token(authorization)
+        if auth_user_id:
+            user_id = auth_user_id
+
+    # Get the actual skill for this task from the user's roadmap (not hardcoded)
+    skill_name = _get_skill_for_task(task_id, user_id)
 
     print(f"[Quiz] Generating quiz for task: {task_id}, skill: {skill_name}, level: {user_level}")
 
@@ -838,6 +1661,30 @@ def _get_previous_task_id(task_id: str) -> Optional[str]:
     return None
 
 
-def _get_skill_for_task(task_id: str) -> str:
-    """Map task_id to skill name."""
+def _get_skill_for_task(task_id: str, user_id: Optional[str] = None) -> str:
+    """
+    Map task_id to skill name.
+
+    Priority:
+    1. Look up the task in the user's actual persisted roadmap (has real skill_name)
+    2. Fall back to the hardcoded TASK_SKILL_MAP
+    3. Default to "JavaScript" if nothing found
+    """
+    # First, try to get the actual skill from the user's active roadmap
+    if user_id:
+        try:
+            from backend.shared.user_data_db import get_active_roadmap
+            persisted_roadmap = get_active_roadmap(user_id)
+            if persisted_roadmap:
+                # Search through all phases and tasks
+                for phase in persisted_roadmap.get("phases", []):
+                    for task in phase.get("tasks", []):
+                        if task.get("id") == task_id:
+                            skill = task.get("skill_name")
+                            if skill:
+                                return skill
+        except Exception as e:
+            print(f"[Quiz] Note: Could not load from persisted roadmap ({e})")
+
+    # Fall back to the static map
     return TASK_SKILL_MAP.get(task_id, "JavaScript")
