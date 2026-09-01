@@ -17,8 +17,8 @@ _backend_path = Path(__file__).resolve().parent.parent
 if str(_backend_path) not in sys.path:
     sys.path.insert(0, str(_backend_path))
 
-from database import SessionLocal
-from shared.models import (
+from backend.database import SessionLocal
+from backend.shared.models import (
     UserEvidenceModel,
     UserSkillModel,
     SkillTwinStateModel,

@@ -206,16 +206,19 @@ def synthesize_living_skilltwin(
                 })
 
             # Get user profile from DB to find target_role
-            from backend.shared.models import UserModel
+            # Use the existing db session if provided
             if db:
-                user_obj = db.query(UserModel).filter(UserModel.id == uuid.UUID(user_id)).first()
-                if user_obj:
-                    persistent_target_role = user_obj.target_role
+                from sqlalchemy import text as sql_text
+                user_result = db.execute(sql_text("""
+                    SELECT id, name, email, target_role FROM users WHERE id = :uid
+                """), {"uid": user_id}).fetchone()
+                if user_result:
+                    persistent_target_role = user_result[3]
                     persistent_user_profile = {
-                        "id": str(user_obj.id),
-                        "email": user_obj.email,
-                        "name": user_obj.name,
-                        "target_role": user_obj.target_role
+                        "id": str(user_result[0]),
+                        "email": user_result[2],
+                        "name": user_result[1],
+                        "target_role": user_result[3]
                     }
         except Exception as e:
             print(f"[SkillTwin] Note: Could not load from DB ({e})")
@@ -263,14 +266,14 @@ def synthesize_living_skilltwin(
             from backend.shared.models import ResumeAnalysisResponse, ExtractedSkillItem
             resume_skills = [
                 ExtractedSkillItem(
-                    skill_name=s.get("skill_name", ""),
-                    canonical_name=s.get("canonical_name", s.get("skill_name", "")),
-                    category=s.get("category", "Technical"),
-                    proficiency=s.get("proficiency", "Intermediate"),
-                    confidence_score=s.get("confidence_score", 70.0),
+                    skill_name=s.get("skill_name", "") or s.get("canonical_name", ""),
+                    canonical_name=s.get("canonical_name") or s.get("skill_name", ""),
+                    category=s.get("category") or "Technical",
+                    proficiency=s.get("proficiency") or "Intermediate",
+                    confidence_score=s.get("confidence_score") or 70.0,
                     evidence_source="Resume",
-                    context_snippet=s.get("context_snippet", ""),
-                    reasoning=s.get("reasoning", "")
+                    context_snippet=s.get("context_snippet") or "",
+                    reasoning=s.get("reasoning") or ""
                 )
                 for s in persistent_skills if s.get("evidence_source") == "Resume"
             ]
@@ -293,14 +296,14 @@ def synthesize_living_skilltwin(
             from backend.shared.models import GitHubAnalysisResponse, ExtractedSkillItem
             github_skills = [
                 ExtractedSkillItem(
-                    skill_name=s.get("skill_name", ""),
-                    canonical_name=s.get("canonical_name", s.get("skill_name", "")),
-                    category=s.get("category", "Technical"),
-                    proficiency=s.get("proficiency", "Intermediate"),
-                    confidence_score=s.get("confidence_score", 70.0),
+                    skill_name=s.get("skill_name", "") or s.get("canonical_name", ""),
+                    canonical_name=s.get("canonical_name") or s.get("skill_name", ""),
+                    category=s.get("category") or "Technical",
+                    proficiency=s.get("proficiency") or "Intermediate",
+                    confidence_score=s.get("confidence_score") or 70.0,
                     evidence_source="GitHub",
-                    context_snippet=s.get("context_snippet", ""),
-                    reasoning=s.get("reasoning", "")
+                    context_snippet=s.get("context_snippet") or "",
+                    reasoning=s.get("reasoning") or ""
                 )
                 for s in persistent_skills if s.get("evidence_source") == "GitHub"
             ]

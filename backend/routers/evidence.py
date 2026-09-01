@@ -1073,7 +1073,26 @@ def get_evidence_summary(
     """
     Dynamically calculates real aggregated metrics across Resume,
     GitHub, and Projects for the student.
+
+    Reads from persistent DB first (survives restarts), then falls back to in-memory.
     """
+    # FIRST: Try to load from persistent database
+    persistent_resume = None
+    persistent_github = None
+    persistent_projects = []
+    persistent_skills = []
+
+    if user_id:
+        try:
+            from backend.shared.user_data_db import get_user_evidence, get_user_projects, get_user_skills
+            persistent_resume = get_user_evidence(user_id, "resume")
+            persistent_github = get_user_evidence(user_id, "github")
+            persistent_projects = get_user_projects(user_id)
+            persistent_skills = get_user_skills(user_id)
+        except Exception as e:
+            print(f"[Evidence Summary] Note: Could not load from DB ({e})")
+
+    # SECOND: Try in-memory for current session
     user_key = _normalize_user_key(email or user_id or "default_user")
     store = _get_user_evidence_store(user_key)
 
@@ -1087,9 +1106,90 @@ def get_evidence_summary(
                     store = cand_store
                     break
 
-    resume_data = store.get("resume")
-    github_data = store.get("github")
-    projects_data = store.get("projects") or []
+    # Use persistent if available, else in-memory
+    has_persistent = bool(persistent_resume) or bool(persistent_github) or len(persistent_projects) > 0
+
+    if has_persistent:
+        # Reconstruct evidence objects from persistent data
+        from backend.shared.models import (
+            ResumeAnalysisResponse, ExtractedSkillItem,
+            GitHubAnalysisResponse, GitHubRepoItem, ProjectItem
+        )
+
+        if persistent_resume:
+            resume_skills = [
+                ExtractedSkillItem(
+                    skill_name=s.get("skill_name", "") or s.get("canonical_name", ""),
+                    canonical_name=s.get("canonical_name") or s.get("skill_name", ""),
+                    category=s.get("category") or "Technical",
+                    proficiency=s.get("proficiency") or "Intermediate",
+                    confidence_score=s.get("confidence_score") or 70.0,
+                    evidence_source="Resume",
+                    context_snippet=s.get("context_snippet") or "",
+                    reasoning=s.get("reasoning") or ""
+                )
+                for s in persistent_skills if s.get("evidence_source") == "Resume"
+            ]
+            resume_data = ResumeAnalysisResponse(
+                filename=persistent_resume.get("filename", "resume.pdf"),
+                file_size_kb=persistent_resume.get("file_size_kb", 0),
+                file_type=persistent_resume.get("file_type", "pdf"),
+                status="analyzed",
+                skills_extracted=resume_skills,
+                technologies=persistent_resume.get("technologies", []),
+                education=persistent_resume.get("education"),
+                experience_years=persistent_resume.get("experience_years"),
+                projects=persistent_resume.get("projects", []),
+                certifications=persistent_resume.get("certifications", []),
+                summary=persistent_resume.get("summary", "")
+            )
+        else:
+            resume_data = None
+
+        if persistent_github:
+            github_skills = [
+                ExtractedSkillItem(
+                    skill_name=s.get("skill_name", "") or s.get("canonical_name", ""),
+                    canonical_name=s.get("canonical_name") or s.get("skill_name", ""),
+                    category=s.get("category") or "Technical",
+                    proficiency=s.get("proficiency") or "Intermediate",
+                    confidence_score=s.get("confidence_score") or 70.0,
+                    evidence_source="GitHub",
+                    context_snippet=s.get("context_snippet") or "",
+                    reasoning=s.get("reasoning") or ""
+                )
+                for s in persistent_skills if s.get("evidence_source") == "GitHub"
+            ]
+            github_data = GitHubAnalysisResponse(
+                username=persistent_github.get("username", ""),
+                profile_url=persistent_github.get("profile_url", ""),
+                status="analyzed",
+                total_repositories=persistent_github.get("total_repositories", 0),
+                repos=[],
+                detected_languages=persistent_github.get("detected_languages", []),
+                detected_frameworks=persistent_github.get("detected_frameworks", []),
+                skills_extracted=github_skills
+            )
+        else:
+            github_data = None
+
+        projects_data = []
+        for proj in persistent_projects:
+            techs = proj.get("detected_technologies", [])
+            if isinstance(techs, str):
+                techs = [techs]
+            projects_data.append(ProjectItem(
+                id=str(uuid.uuid4()),
+                title=proj.get("title", "Project"),
+                url=proj.get("url", ""),
+                description=proj.get("description", ""),
+                status="analyzed",
+                detected_technologies=techs
+            ))
+    else:
+        resume_data = store.get("resume")
+        github_data = store.get("github")
+        projects_data = store.get("projects") or []
 
     # Calculate real status
     sources_status = {
@@ -1109,12 +1209,35 @@ def get_evidence_summary(
 
     can_continue = (resume_data is not None) or (github_data is not None) or (len(projects_data) > 0)
 
-    all_skills = list(store["skills"].values())
-    total_skills = len(all_skills)
-    total_technologies = len(store["technologies"])
-    total_projects = len(store["projects_found"])
-    total_repositories = len(github_data.repos) if (github_data and hasattr(github_data, "repos") and github_data.repos is not None) else (github_data.total_repositories if github_data else 0)
-    total_certifications = len(store["certifications"])
+    # Use persistent skills if available, else in-memory
+    if has_persistent:
+        # Convert persistent skills to ExtractedSkillItem for response
+        from backend.shared.models import ExtractedSkillItem
+        all_skills = [
+            ExtractedSkillItem(
+                skill_name=s.get("skill_name", "") or s.get("canonical_name", ""),
+                canonical_name=s.get("canonical_name") or s.get("skill_name", ""),
+                category=s.get("category") or "Technical",
+                proficiency=s.get("proficiency") or "Intermediate",
+                confidence_score=s.get("confidence_score") or 70.0,
+                evidence_source=s.get("evidence_source") or "Resume",
+                context_snippet=s.get("context_snippet") or "",
+                reasoning=s.get("reasoning") or ""
+            )
+            for s in persistent_skills
+        ]
+        total_skills = len(all_skills)
+        total_technologies = len(set(persistent_resume.get("technologies", []) if persistent_resume else []) | set(persistent_github.get("detected_languages", []) if persistent_github else []) | set(persistent_github.get("detected_frameworks", []) if persistent_github else []))
+        total_projects = len(projects_data)
+        total_repositories = persistent_github.get("total_repositories", 0) if persistent_github else 0
+        total_certifications = len(persistent_resume.get("certifications", []) if persistent_resume else [])
+    else:
+        all_skills = list(store["skills"].values())
+        total_skills = len(all_skills)
+        total_technologies = len(store["technologies"])
+        total_projects = len(store["projects_found"])
+        total_repositories = len(github_data.repos) if (github_data and hasattr(github_data, "repos") and github_data.repos is not None) else (github_data.total_repositories if github_data else 0)
+        total_certifications = len(store["certifications"])
 
     return EvidenceSummaryResponse(
         total_skills=total_skills,
