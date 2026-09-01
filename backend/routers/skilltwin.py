@@ -176,7 +176,51 @@ def synthesize_living_skilltwin(
     Core Evidence Synthesis Engine.
     Aggregates Resume text extractions, GitHub API repository metadata, and Registered Projects
     into a verified Living SkillTwin profile with dynamic score breakdown and insights.
+
+    Reads from persistent DB tables (user_skills, user_evidence, user_projects) first,
+    then falls back to in-memory for current session data.
     """
+    # FIRST: Try to load from persistent database (survives restarts)
+    persistent_skills = []
+    persistent_resume = None
+    persistent_github = None
+    persistent_projects = []
+    persistent_target_role = None
+    persistent_user_profile = {}
+
+    if user_id:
+        try:
+            from backend.shared.user_data_db import get_user_skills, get_user_evidence, get_user_projects
+            # Load skills from DB
+            persistent_skills = get_user_skills(user_id)
+            # Load evidence (resume, github) from DB
+            persistent_resume = get_user_evidence(user_id, "resume")
+            persistent_github = get_user_evidence(user_id, "github")
+            # Load projects from DB
+            projects_data = get_user_projects(user_id)
+            for proj in projects_data:
+                persistent_projects.append({
+                    "title": proj.get("title", ""),
+                    "detected_technologies": proj.get("detected_technologies", []),
+                    "url": proj.get("url", "")
+                })
+
+            # Get user profile from DB to find target_role
+            from backend.shared.models import UserModel
+            if db:
+                user_obj = db.query(UserModel).filter(UserModel.id == uuid.UUID(user_id)).first()
+                if user_obj:
+                    persistent_target_role = user_obj.target_role
+                    persistent_user_profile = {
+                        "id": str(user_obj.id),
+                        "email": user_obj.email,
+                        "name": user_obj.name,
+                        "target_role": user_obj.target_role
+                    }
+        except Exception as e:
+            print(f"[SkillTwin] Note: Could not load from DB ({e})")
+
+    # SECOND: Try in-memory store for current session data
     user_key = _normalize_user_key(email or user_id or "default_user")
     store = _get_user_evidence_store(user_key)
 
@@ -190,17 +234,115 @@ def synthesize_living_skilltwin(
                     store = cand_store
                     break
 
+    # Merge: prefer persistent DB data, fall back to in-memory
+    has_persistent_data = len(persistent_skills) > 0 or persistent_resume or persistent_github or len(persistent_projects) > 0
+
     user_profile = _in_memory_users.get(_normalize_user_key(email or ""), {})
+    if not user_profile and persistent_user_profile:
+        user_profile = persistent_user_profile
 
     # Determine target role
-    target_role = target_role_override or user_profile.get("target_role") or "Full-Stack Developer"
+    target_role = (
+        target_role_override
+        or persistent_target_role
+        or user_profile.get("target_role")
+        or "Full-Stack Developer"
+    )
 
-    # 1. Gather all evidence sources
-    resume_data = store.get("resume")
-    github_data = store.get("github")
-    projects_data = store.get("projects", [])
-    extracted_skills_dict = store.get("skills", {})
+    # Determine evidence data: persistent DB if available, else in-memory
+    resume_data = None
+    github_data = None
+    projects_data = []
+    extracted_skills_dict = {}
 
+    if has_persistent_data:
+        # Use persistent data
+        # Reconstruct resume data structure
+        if persistent_resume:
+            # Build a resume-like object from stored data
+            from backend.shared.models import ResumeAnalysisResponse, ExtractedSkillItem
+            resume_skills = [
+                ExtractedSkillItem(
+                    skill_name=s.get("skill_name", ""),
+                    canonical_name=s.get("canonical_name", s.get("skill_name", "")),
+                    category=s.get("category", "Technical"),
+                    proficiency=s.get("proficiency", "Intermediate"),
+                    confidence_score=s.get("confidence_score", 70.0),
+                    evidence_source="Resume",
+                    context_snippet=s.get("context_snippet", ""),
+                    reasoning=s.get("reasoning", "")
+                )
+                for s in persistent_skills if s.get("evidence_source") == "Resume"
+            ]
+            resume_data = ResumeAnalysisResponse(
+                filename=persistent_resume.get("filename", "resume.pdf"),
+                file_size_kb=persistent_resume.get("file_size_kb", 0),
+                file_type=persistent_resume.get("file_type", "pdf"),
+                status="analyzed",
+                skills_extracted=resume_skills,
+                technologies=persistent_resume.get("technologies", []),
+                education=persistent_resume.get("education"),
+                experience_years=persistent_resume.get("experience_years"),
+                projects=persistent_resume.get("projects", []),
+                certifications=persistent_resume.get("certifications", []),
+                summary=persistent_resume.get("summary", "")
+            )
+
+        # Build GitHub data structure
+        if persistent_github:
+            from backend.shared.models import GitHubAnalysisResponse, ExtractedSkillItem
+            github_skills = [
+                ExtractedSkillItem(
+                    skill_name=s.get("skill_name", ""),
+                    canonical_name=s.get("canonical_name", s.get("skill_name", "")),
+                    category=s.get("category", "Technical"),
+                    proficiency=s.get("proficiency", "Intermediate"),
+                    confidence_score=s.get("confidence_score", 70.0),
+                    evidence_source="GitHub",
+                    context_snippet=s.get("context_snippet", ""),
+                    reasoning=s.get("reasoning", "")
+                )
+                for s in persistent_skills if s.get("evidence_source") == "GitHub"
+            ]
+            github_data = GitHubAnalysisResponse(
+                username=persistent_github.get("username", ""),
+                profile_url=persistent_github.get("profile_url", ""),
+                status="analyzed",
+                total_repositories=persistent_github.get("total_repositories", 0),
+                repos=[],
+                detected_languages=persistent_github.get("detected_languages", []),
+                detected_frameworks=persistent_github.get("detected_frameworks", []),
+                skills_extracted=github_skills
+            )
+
+        # Use persistent projects
+        from backend.shared.models import ProjectItem
+        for proj in persistent_projects:
+            techs = proj.get("detected_technologies", [])
+            if isinstance(techs, str):
+                techs = [techs]
+            projects_data.append(ProjectItem(
+                id=str(uuid.uuid4()),
+                title=proj.get("title", "Project"),
+                url=proj.get("url", ""),
+                description=proj.get("description", ""),
+                status="analyzed",
+                detected_technologies=techs
+            ))
+
+        # Build extracted_skills_dict from persistent skills
+        for s in persistent_skills:
+            cn = s.get("canonical_name") or s.get("skill_name")
+            if cn:
+                extracted_skills_dict[cn] = s
+    else:
+        # Fall back to in-memory
+        resume_data = store.get("resume")
+        github_data = store.get("github")
+        projects_data = store.get("projects", [])
+        extracted_skills_dict = store.get("skills", {})
+
+    # 1. Gather all evidence sources (already set above from DB or in-memory)
     skill_items: List[SkillTwinSkillItem] = []
     seen_canonical = set()
 
@@ -243,7 +385,11 @@ def synthesize_living_skilltwin(
             # Calculate source counts
             source_count = len(sources_set)
             if source_count == 0:
-                sources_set.add(raw_skill.evidence_source or "Resume")
+                # Handle both dict (from DB) and Pydantic object (from in-memory)
+                if isinstance(raw_skill, dict):
+                    sources_set.add(raw_skill.get("evidence_source") or "Resume")
+                else:
+                    sources_set.add(raw_skill.evidence_source or "Resume")
                 source_count = 1
 
             # Determine Evidence Status
