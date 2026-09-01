@@ -1,4 +1,5 @@
 import os
+import sys
 import time
 from pathlib import Path
 from typing import Generator, Dict, Any
@@ -6,15 +7,36 @@ from dotenv import load_dotenv
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# Load environment variables from project root .env
+# Load environment variables from project root .env (only for local dev)
+# In production (Render), env vars are set directly by the platform.
 root_dir = Path(__file__).resolve().parent.parent
 env_path = root_dir / ".env"
-load_dotenv(dotenv_path=env_path)
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
+    print(f"[Database] Loaded .env from {env_path}")
 
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://postgres:skilltwin_password@localhost:5432/skilltwin_db"
-)
+# CRITICAL: DATABASE_URL must come from env vars in production
+# If not set, we fail loud instead of falling back to localhost (which doesn't exist in production)
+DATABASE_URL = os.getenv("DATABASE_URL")
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
+print(f"[Database] ENVIRONMENT={ENVIRONMENT}")
+print(f"[Database] DATABASE_URL from env: {'SET' if DATABASE_URL else 'NOT SET'}")
+
+if not DATABASE_URL:
+    # Only use localhost fallback if we're clearly in development
+    if ENVIRONMENT != "production":
+        DATABASE_URL = "postgresql://postgres:skilltwin_password@localhost:5432/skilltwin_db"
+        print(f"[Database] No DATABASE_URL set, using local dev fallback: {DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else 'localhost'}")
+    else:
+        # In production, fail loud so the operator knows
+        print("=" * 60)
+        print("[Database CRITICAL] No DATABASE_URL set in production environment!")
+        print("Please set DATABASE_URL in Render's Environment tab.")
+        print("If using Blueprint, ensure the database is provisioned.")
+        print("=" * 60)
+        # Use a sentinel that will fail clearly on first query
+        DATABASE_URL = "postgresql://missing:missing@missing-db.render.com:5432/missing"
 
 
 def _normalize_database_url(url: str) -> str:
@@ -39,6 +61,7 @@ def _normalize_database_url(url: str) -> str:
 
 
 DATABASE_URL = _normalize_database_url(DATABASE_URL)
+print(f"[Database] Using connection: {DATABASE_URL.split('@')[-1] if '@' in DATABASE_URL else 'INVALID'}")
 
 # Create SQLAlchemy engine
 # Set connect_timeout so connection attempts fail fast if DB is unreachable
