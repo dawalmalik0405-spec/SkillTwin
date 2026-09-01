@@ -1537,13 +1537,22 @@ async def validate_quiz(
                 )
                 db.add(new_progress)
 
-            # Determine next task
-            next_task_id = _get_next_task_id(task_id)
+            # Determine next task from the user's actual roadmap
+            next_task_id = _get_next_task_id_for_user(db, user_id, task_id)
 
             if next_task_id:
                 task_unlocked = True
 
             db.commit()
+
+            # CRITICAL: Invalidate the in-memory roadmap cache so the next
+            # request rebuilds the roadmap with the new task completion status.
+            _invalidate_roadmap_cache(user_id)
+
+            # Update the persisted roadmap so the completion state survives
+            # server restarts.
+            _update_persisted_roadmap_progress(user_id, task_id, is_completed=True)
+
         except Exception as e:
             db.rollback()
             print(f"[Quiz] Error updating progress: {e}")
@@ -1561,7 +1570,7 @@ async def validate_quiz(
 
 
 def _get_next_task_id(current_task_id: str) -> Optional[str]:
-    """Determine the next task in the roadmap sequence."""
+    """Determine the next task in the roadmap sequence (fallback - static)."""
     task_sequence = TASK_SEQUENCE
 
     try:
@@ -1572,6 +1581,112 @@ def _get_next_task_id(current_task_id: str) -> Optional[str]:
         pass
 
     return None
+
+
+def _get_next_task_id_for_user(db: Session, user_id: str, current_task_id: str) -> Optional[str]:
+    """
+    Determine the next task in the user's actual persisted roadmap.
+
+    The AI-generated roadmap may have different task IDs than the static
+    TASK_SQUENCE, so we must look at the user's actual roadmap to find the
+    next task after the one that was just completed.
+    """
+    try:
+        from backend.shared.user_data_db import get_active_roadmap
+        persisted_roadmap = get_active_roadmap(user_id)
+        if persisted_roadmap:
+            all_task_ids = []
+            for phase in persisted_roadmap.get("phases", []):
+                for task in phase.get("tasks", []):
+                    task_id = task.get("id")
+                    if task_id:
+                        all_task_ids.append(task_id)
+
+            if current_task_id in all_task_ids:
+                current_index = all_task_ids.index(current_task_id)
+                if current_index < len(all_task_ids) - 1:
+                    return all_task_ids[current_index + 1]
+    except Exception as e:
+        print(f"[Quiz] Note: Could not determine next task from roadmap ({e})")
+
+    # Fall back to static sequence
+    return _get_next_task_id(current_task_id)
+
+
+def _invalidate_roadmap_cache(user_id: str) -> None:
+    """
+    Invalidate the in-memory roadmap cache for a user.
+    This forces the next request to rebuild the roadmap with fresh data.
+    """
+    try:
+        from backend.routers.roadmap import _ROADMAP_CACHE
+        keys_to_remove = [key for key in _ROADMAP_CACHE.keys() if key.startswith(f"{user_id}::")]
+        for key in keys_to_remove:
+            del _ROADMAP_CACHE[key]
+            print(f"[Quiz] Invalidated roadmap cache key: {key}")
+    except Exception as e:
+        print(f"[Quiz] Note: Could not invalidate cache ({e})")
+
+
+def _update_persisted_roadmap_progress(user_id: str, task_id: str, is_completed: bool) -> None:
+    """
+    Update the user's persisted roadmap to mark a task as completed.
+    This ensures the next-page-load shows the right state.
+    """
+    try:
+        from backend.shared.user_data_db import get_active_roadmap
+        from backend.database import SessionLocal
+        from backend.shared.models import UserRoadmapModel
+        import json
+
+        persisted_roadmap = get_active_roadmap(user_id)
+        if not persisted_roadmap:
+            return
+
+        # Find and update the task in the persisted roadmap
+        for phase in persisted_roadmap.get("phases", []):
+            for task in phase.get("tasks", []):
+                if task.get("id") == task_id:
+                    task["is_completed"] = is_completed
+                    task["progress_pct"] = 100 if is_completed else 0
+                    break
+
+        # Recalculate phase progress
+        for phase in persisted_roadmap.get("phases", []):
+            tasks = phase.get("tasks", [])
+            if tasks:
+                completed_count = sum(1 for t in tasks if t.get("is_completed"))
+                phase["progress_pct"] = int((completed_count / len(tasks)) * 100)
+                if completed_count == len(tasks):
+                    phase["status"] = "Completed"
+                elif completed_count > 0:
+                    phase["status"] = "In Progress"
+
+        # Recalculate overall completion
+        all_phases = persisted_roadmap.get("phases", [])
+        if all_phases:
+            overall = int(sum(p.get("progress_pct", 0) for p in all_phases) / len(all_phases))
+            summary = persisted_roadmap.get("summary", {})
+            summary["overall_completion_pct"] = overall
+
+        # Save the updated roadmap back to DB
+        db = SessionLocal()
+        try:
+            user_uuid = uuid.UUID(user_id)
+            record = db.query(UserRoadmapModel).filter(
+                UserRoadmapModel.user_id == user_uuid,
+                UserRoadmapModel.is_active == True
+            ).first()
+
+            if record:
+                record.roadmap_data = persisted_roadmap
+                record.updated_at = datetime.utcnow()
+                db.commit()
+                print(f"[Quiz] Updated persisted roadmap for user {user_id}")
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"[Quiz] Note: Could not update persisted roadmap ({e})")
 
 
 def _get_pass_message(passed: bool, score: int, next_task: Optional[str]) -> str:
