@@ -1361,56 +1361,56 @@ export const ProjectVerificationPage: React.FC<ProjectVerificationPageProps> = (
           {/* VIEW DETAILS MODAL */}
           {selectedProjectForDetail && (
             <div className="modal-backdrop" onClick={() => setSelectedProjectForDetail(null)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '640px', padding: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818CF8' }}>
-                      <FileCode size={20} />
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '680px', padding: '30px 32px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'rgba(99, 102, 241, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#818CF8', flexShrink: 0 }}>
+                      <FileCode size={22} />
                     </div>
                     <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
                         {selectedProjectForDetail.name}
                       </h3>
-                      <a href={selectedProjectForDetail.repo_url} target="_blank" rel="noreferrer" style={{ fontSize: '0.72rem', color: '#818CF8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <a href={selectedProjectForDetail.repo_url} target="_blank" rel="noreferrer" style={{ fontSize: '0.76rem', color: '#818CF8', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
                         <span>{selectedProjectForDetail.repo_url}</span>
-                        <ExternalLink size={12} />
+                        <ExternalLink size={13} />
                       </a>
                     </div>
                   </div>
 
-                  <button onClick={() => setSelectedProjectForDetail(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <X size={18} />
+                  <button onClick={() => setSelectedProjectForDetail(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>
+                    <X size={20} />
                   </button>
                 </div>
 
                 {/* Score & Assessment Explanation */}
-                <div style={{ padding: '12px 14px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.06)', marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: getScoreColor(selectedProjectForDetail.score_pct, selectedProjectForDetail.status) }}>
+                <div style={{ padding: '16px 20px', background: 'rgba(15, 23, 42, 0.75)', borderRadius: '14px', border: '1px solid rgba(255, 255, 255, 0.08)', marginBottom: '18px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px', flexWrap: 'wrap', gap: '8px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 700, color: getScoreColor(selectedProjectForDetail.score_pct, selectedProjectForDetail.status) }}>
                       {selectedProjectForDetail.score_label} ({selectedProjectForDetail.score_pct}%)
                     </span>
-                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                       {selectedProjectForDetail.commits_count} commits analyzed
                     </span>
                   </div>
-                  <p style={{ fontSize: '0.74rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.35 }}>
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.5 }}>
                     {selectedProjectForDetail.score_explanation}
                   </p>
                 </div>
 
                 {/* Verified Skills Breakdown */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#F8FAFC' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '18px' }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#F8FAFC' }}>
                     Demonstrated Skills & Evidence
                   </div>
                   {selectedProjectForDetail.verified_skills.map((skill, idx) => (
-                    <div key={idx} style={{ padding: '10px 12px', background: 'rgba(15, 23, 42, 0.5)', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.04)', fontSize: '0.74rem' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <strong style={{ color: '#F8FAFC' }}>{skill.skill_name}</strong>
+                    <div key={idx} style={{ padding: '14px 18px', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)', fontSize: '0.76rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                        <strong style={{ color: '#F8FAFC', fontSize: '0.82rem' }}>{skill.skill_name}</strong>
                         <span style={{
-                          padding: '1px 6px',
-                          borderRadius: '4px',
-                          fontSize: '0.65rem',
+                          padding: '2px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.68rem',
                           fontWeight: 700,
                           background: skill.status === 'Demonstrated' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
                           color: skill.status === 'Demonstrated' ? '#34D399' : '#FCD34D'
@@ -1418,11 +1418,11 @@ export const ProjectVerificationPage: React.FC<ProjectVerificationPageProps> = (
                           {skill.status}
                         </span>
                       </div>
-                      <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0', lineHeight: 1.3 }}>
+                      <p style={{ color: 'var(--text-secondary)', margin: '6px 0 0', lineHeight: 1.5 }}>
                         {skill.evidence}
                       </p>
                       {skill.file_locations && skill.file_locations.length > 0 && (
-                        <div style={{ fontSize: '0.68rem', color: '#818CF8', marginTop: '4px' }}>
+                        <div style={{ fontSize: '0.72rem', color: '#818CF8', marginTop: '6px' }}>
                           📁 <strong>Files:</strong> {skill.file_locations.join(', ')}
                         </div>
                       )}
@@ -1432,13 +1432,13 @@ export const ProjectVerificationPage: React.FC<ProjectVerificationPageProps> = (
 
                 {/* Real Commits from Submitted Repository */}
                 {selectedProjectForDetail.recent_commits && selectedProjectForDetail.recent_commits.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '14px' }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <GitCommit size={14} color="#818CF8" />
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '18px' }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#F8FAFC', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '6px' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <GitCommit size={15} color="#818CF8" />
                         <span>Analyzed Repository Commits ({selectedProjectForDetail.commits_count})</span>
                       </span>
-                      <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                         Latest {selectedProjectForDetail.recent_commits.length} commits
                       </span>
                     </div>
@@ -1446,8 +1446,8 @@ export const ProjectVerificationPage: React.FC<ProjectVerificationPageProps> = (
                     <div style={{
                       display: 'flex',
                       flexDirection: 'column',
-                      gap: '6px',
-                      maxHeight: '170px',
+                      gap: '8px',
+                      maxHeight: '200px',
                       overflowY: 'auto',
                       paddingRight: '4px'
                     }}>
@@ -1455,25 +1455,25 @@ export const ProjectVerificationPage: React.FC<ProjectVerificationPageProps> = (
                         <div
                           key={idx}
                           style={{
-                            padding: '8px 10px',
+                            padding: '10px 14px',
                             background: 'rgba(15, 23, 42, 0.6)',
-                            borderRadius: '8px',
+                            borderRadius: '10px',
                             border: '1px solid rgba(255, 255, 255, 0.04)',
-                            fontSize: '0.72rem'
+                            fontSize: '0.74rem'
                           }}
                         >
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <span style={{ fontFamily: 'monospace', color: '#818CF8', fontWeight: 700, fontSize: '0.68rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{ fontFamily: 'monospace', color: '#818CF8', fontWeight: 700, fontSize: '0.7rem' }}>
                                 {commit.sha}
                               </span>
                               <strong style={{ color: '#F8FAFC' }}>{commit.author}</strong>
                             </div>
-                            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                            <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
                               {commit.date ? new Date(commit.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : ''}
                             </span>
                           </div>
-                          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.7rem', lineHeight: 1.3 }}>
+                          <p style={{ color: 'var(--text-secondary)', margin: 0, fontSize: '0.72rem', lineHeight: 1.45 }}>
                             {commit.message}
                           </p>
                         </div>
@@ -1484,9 +1484,9 @@ export const ProjectVerificationPage: React.FC<ProjectVerificationPageProps> = (
 
                 {/* Recommendations */}
                 {selectedProjectForDetail.recommendations && selectedProjectForDetail.recommendations.length > 0 && (
-                  <div style={{ padding: '10px 12px', background: 'rgba(99, 102, 241, 0.08)', borderRadius: '8px', border: '1px solid rgba(99, 102, 241, 0.2)', marginBottom: '14px', fontSize: '0.74rem' }}>
-                    <strong style={{ color: '#C084FC' }}>Recommendations:</strong>
-                    <ul style={{ margin: '4px 0 0', paddingLeft: '16px', color: 'var(--text-secondary)' }}>
+                  <div style={{ padding: '16px 18px', background: 'rgba(99, 102, 241, 0.08)', borderRadius: '12px', border: '1px solid rgba(99, 102, 241, 0.25)', marginBottom: '18px', fontSize: '0.76rem' }}>
+                    <strong style={{ color: '#C084FC', display: 'block', marginBottom: '6px' }}>Recommendations:</strong>
+                    <ul style={{ margin: 0, paddingLeft: '18px', color: 'var(--text-secondary)', lineHeight: 1.55, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {selectedProjectForDetail.recommendations.map((rec, idx) => (
                         <li key={idx}>{rec}</li>
                       ))}
@@ -1494,8 +1494,8 @@ export const ProjectVerificationPage: React.FC<ProjectVerificationPageProps> = (
                   </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                  <button type="button" className="btn btn-primary" onClick={() => setSelectedProjectForDetail(null)} style={{ padding: '6px 16px', fontSize: '0.78rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                  <button type="button" className="btn btn-primary" onClick={() => setSelectedProjectForDetail(null)} style={{ padding: '8px 22px', fontSize: '0.82rem' }}>
                     Close Details
                   </button>
                 </div>
@@ -1506,40 +1506,40 @@ export const ProjectVerificationPage: React.FC<ProjectVerificationPageProps> = (
           {/* VIEW FEEDBACK MODAL (NEEDS IMPROVEMENT) */}
           {selectedProjectForFeedback && (
             <div className="modal-backdrop" onClick={() => setSelectedProjectForFeedback(null)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '580px', padding: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(245, 158, 11, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F59E0B' }}>
-                      <AlertCircle size={20} />
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '640px', padding: '30px 32px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                    <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'rgba(245, 158, 11, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F59E0B', flexShrink: 0 }}>
+                      <AlertCircle size={22} />
                     </div>
                     <div>
-                      <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
+                      <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
                         Improvement Feedback
                       </h3>
-                      <p style={{ fontSize: '0.72rem', color: '#FCD34D', margin: '1px 0 0' }}>
+                      <p style={{ fontSize: '0.76rem', color: '#FCD34D', margin: '3px 0 0' }}>
                         {selectedProjectForFeedback.name}
                       </p>
                     </div>
                   </div>
 
-                  <button onClick={() => setSelectedProjectForFeedback(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <X size={18} />
+                  <button onClick={() => setSelectedProjectForFeedback(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>
+                    <X size={20} />
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                  <div style={{ padding: '12px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '8px', border: '1px solid rgba(239, 68, 68, 0.25)' }}>
-                    <strong style={{ color: '#F87171' }}>Missing Evidence:</strong>
-                    <ul style={{ margin: '4px 0 0', paddingLeft: '16px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.55 }}>
+                  <div style={{ padding: '16px 18px', background: 'rgba(239, 68, 68, 0.08)', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.25)' }}>
+                    <strong style={{ color: '#F87171', display: 'block', marginBottom: '6px' }}>Missing Evidence:</strong>
+                    <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {selectedProjectForFeedback.missing_evidence.map((item, idx) => (
                         <li key={idx}>{item}</li>
                       ))}
                     </ul>
                   </div>
 
-                  <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.08)', borderRadius: '8px', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-                    <strong style={{ color: '#34D399' }}>Actionable Next Steps:</strong>
-                    <ul style={{ margin: '4px 0 0', paddingLeft: '16px' }}>
+                  <div style={{ padding: '16px 18px', background: 'rgba(16, 185, 129, 0.08)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                    <strong style={{ color: '#34D399', display: 'block', marginBottom: '6px' }}>Actionable Next Steps:</strong>
+                    <ul style={{ margin: 0, paddingLeft: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                       {selectedProjectForFeedback.recommendations.map((item, idx) => (
                         <li key={idx}>{item}</li>
                       ))}
@@ -1547,8 +1547,8 @@ export const ProjectVerificationPage: React.FC<ProjectVerificationPageProps> = (
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '18px' }}>
-                  <button type="button" className="btn btn-outline" onClick={() => setSelectedProjectForFeedback(null)} style={{ padding: '6px 14px', fontSize: '0.78rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+                  <button type="button" className="btn btn-outline" onClick={() => setSelectedProjectForFeedback(null)} style={{ padding: '8px 18px', fontSize: '0.82rem' }}>
                     Close
                   </button>
                   <button
@@ -1558,7 +1558,7 @@ export const ProjectVerificationPage: React.FC<ProjectVerificationPageProps> = (
                       setSelectedProjectForFeedback(null);
                       onNavigateToRoadmap?.();
                     }}
-                    style={{ padding: '6px 16px', fontSize: '0.78rem' }}
+                    style={{ padding: '8px 20px', fontSize: '0.82rem' }}
                   >
                     Return to Roadmap
                   </button>

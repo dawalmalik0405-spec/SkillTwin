@@ -1,6 +1,7 @@
 import uuid
+import re
 from datetime import datetime
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from fastapi import APIRouter, Depends, Query, HTTPException, status, Header
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
@@ -15,10 +16,15 @@ from backend.shared.models import (
 )
 from backend.routers.evidence import (
     _get_user_evidence_store,
+    _normalize_user_key,
     _in_memory_evidence,
-    _in_memory_users
+    _in_memory_users,
+    SKILL_TAXONOMY
 )
-from backend.routers.skilltwin import DEFAULT_FALLBACK_SKILLS
+from backend.routers.skilltwin import (
+    synthesize_living_skilltwin,
+    DEFAULT_FALLBACK_SKILLS
+)
 from backend.routers.target_role import (
     build_target_role_benchmark,
     CURATED_ROLE_BENCHMARKS
@@ -114,48 +120,287 @@ SKILL_GAP_METADATA: Dict[str, Dict[str, Any]] = {
     }
 }
 
+# Alias & Keyword mapping for cross-referencing target role requirements with evidence skills
+SKILL_SYNONYMS: Dict[str, List[str]] = {
+    "react": ["react.js", "reactjs", "react", "react native"],
+    "typescript": ["typescript", "ts"],
+    "javascript": ["javascript", "js", "es6", "ecmascript"],
+    "html5 & css3": ["html5 & css3", "html / css", "html5", "css3", "html", "css", "html5 & semantic markup", "css3 / modern layouts"],
+    "html5": ["html5", "html", "html5 & semantic markup", "html5 & css3"],
+    "css3": ["css3", "css", "css3 / modern layouts", "html5 & css3"],
+    "tailwind css": ["tailwind css", "tailwind", "tailwindcss"],
+    "next.js": ["next.js", "nextjs", "next.js & ssr"],
+    "state management": ["state management", "redux", "redux toolkit", "zustand", "state management (redux/zustand)"],
+    "redux": ["redux", "redux toolkit", "state management", "state management (redux/zustand)"],
+    "node.js": ["node.js", "nodejs", "node"],
+    "python": ["python", "python3", "py"],
+    "fastapi": ["fastapi", "fastapi / django"],
+    "django": ["django", "django rest framework", "fastapi / django"],
+    "express.js": ["express.js", "express", "expressjs"],
+    "restful apis": ["restful apis", "restful api design", "rest api", "rest apis", "rest & graphql integration", "api integration"],
+    "sql": ["sql", "postgresql", "mysql", "sqlite", "relational databases"],
+    "postgresql": ["postgresql", "postgres", "psql", "sql"],
+    "mongodb": ["mongodb", "mongo", "nosql"],
+    "redis": ["redis", "redis caching", "redis & caching"],
+    "sqlalchemy": ["sqlalchemy", "sqlalchemy orm", "orm"],
+    "git": ["git", "git & github", "git & version control", "github workflows & prs", "version control"],
+    "github": ["github", "git & github", "github workflows & prs", "git"],
+    "docker": ["docker", "docker containerization", "containers"],
+    "ci/cd": ["ci/cd", "ci / cd pipelines", "github actions", "continuous integration"],
+    "linux": ["linux", "linux & shell scripting", "bash", "shell scripting"],
+    "cloud": ["cloud", "aws", "aws / cloud basics", "cloud infrastructure"],
+    "postman": ["postman", "postman & api testing", "api testing"],
+    "testing": ["testing", "frontend testing (jest/vitest)", "unit testing", "pytest", "jest", "vitest"],
+    "graphql": ["graphql", "apollo"],
+    "machine learning": ["machine learning", "machine learning & ai", "ml", "data science"],
+    "pandas": ["pandas", "pandas & numpy", "data analysis (pandas/numpy)"]
+}
 
-def _level_to_pct(level_str: str) -> int:
-    """Convert qualitative proficiency level to benchmark percentage."""
-    normalized = (level_str or "").strip().lower()
-    if "advanced" in normalized:
-        return 80
-    if "intermediate" in normalized:
-        return 70
-    if "beginner" in normalized or "basic" in normalized:
-        return 60
-    return 65
+
+def _normalize_skill_string(s: str) -> str:
+    """Lowercase and clean skill strings for fuzzy matching."""
+    if not s:
+        return ""
+    # Strip punctuation and normalize spaces
+    cleaned = re.sub(r"[^\w\s\+\#\/\.\-]", " ", s.lower())
+    return re.sub(r"\s+", " ", cleaned).strip()
 
 
-def _candidate_skill_to_pct(skill_data: Dict[str, Any]) -> int:
-    """Convert candidate's skill item into a 0-100 percentage."""
-    if not skill_data:
-        return 20  # Insufficient evidence baseline
+def _match_candidate_skill(
+    req_skill: str,
+    req_canonical: str,
+    candidate_skills: Dict[str, Dict[str, Any]]
+) -> Optional[Dict[str, Any]]:
+    """
+    Intelligently cross-reference a required benchmark skill against
+    the candidate's living evidence skills.
+    """
+    req_s_norm = _normalize_skill_string(req_skill)
+    req_c_norm = _normalize_skill_string(req_canonical)
 
-    numeric = skill_data.get("numeric", 0)
-    if numeric > 0:
-        # Scale 1-5 to percentage (1.0 -> 20%, 3.0 -> 60%, 4.5 -> 90%, 5.0 -> 100%)
-        return min(100, max(15, int(numeric * 20)))
+    # 1. Direct match on canonical name or skill name
+    for key, data in candidate_skills.items():
+        cand_s_norm = _normalize_skill_string(data.get("skill_name", ""))
+        cand_c_norm = _normalize_skill_string(data.get("canonical_name", ""))
+        cand_name_norm = _normalize_skill_string(data.get("name", ""))
 
-    prof = (skill_data.get("proficiency") or "").lower()
-    if "advanced" in prof:
-        return 85
-    elif "intermediate" in prof:
-        return 60
-    elif "beginner" in prof:
-        return 40
-    return 20
+        if req_c_norm and req_c_norm in [cand_c_norm, cand_s_norm, cand_name_norm, key]:
+            return data
+        if req_s_norm and req_s_norm in [cand_c_norm, cand_s_norm, cand_name_norm, key]:
+            return data
+
+    # 2. Synonym dictionary lookup
+    for syn_key, synonyms in SKILL_SYNONYMS.items():
+        # Check if the requirement matches any synonym group
+        syn_matches_req = (
+            req_c_norm == syn_key or
+            req_s_norm == syn_key or
+            any(_normalize_skill_string(syn) in [req_s_norm, req_c_norm] for syn in synonyms)
+        )
+        if syn_matches_req:
+            # Look for candidate skills in this synonym group
+            for key, data in candidate_skills.items():
+                cand_c_norm = _normalize_skill_string(data.get("canonical_name", ""))
+                cand_s_norm = _normalize_skill_string(data.get("skill_name", ""))
+                cand_name_norm = _normalize_skill_string(data.get("name", ""))
+
+                for syn in synonyms:
+                    syn_norm = _normalize_skill_string(syn)
+                    if syn_norm in [cand_c_norm, cand_s_norm, cand_name_norm, key]:
+                        return data
+
+    # 3. Substring word match for multi-word skills (e.g. "Docker Containerization" -> "Docker")
+    req_words = [w for w in req_s_norm.split() if len(w) > 2 and w not in ["and", "for", "the", "with"]]
+    for key, data in candidate_skills.items():
+        cand_text = f"{data.get('canonical_name', '')} {data.get('skill_name', '')} {data.get('name', '')}".lower()
+        for word in req_words:
+            if word in cand_text:
+                return data
+
+    return None
+
+
+def _calculate_evidence_proficiency_pct(skill_data: Dict[str, Any]) -> int:
+    """
+    Calculate realistic 0-100% proficiency based on genuine evidence quality,
+    multi-source confirmation, and confidence score.
+    """
+    prof = (skill_data.get("proficiency") or "Intermediate").capitalize()
+
+    # 1. Base score from qualitative proficiency
+    if prof == "Advanced":
+        base_pct = 84
+    elif prof == "Intermediate":
+        base_pct = 68
+    elif prof == "Beginner":
+        base_pct = 48
+    else:
+        base_pct = 60
+
+    # 2. Adjust using numeric proficiency (1.0 to 5.0 scale) if present
+    numeric = skill_data.get("numeric_proficiency") or skill_data.get("numeric")
+    if numeric and float(numeric) > 0:
+        # Numeric 1.0 -> 38%, 2.0 -> 52%, 3.0 -> 68%, 4.0 -> 84%, 5.0 -> 96%
+        numeric_pct = int(22 + (float(numeric) * 15))
+        base_pct = int((base_pct * 0.35) + (numeric_pct * 0.65))
+
+    # 3. Multi-source confirmation bonus
+    sources = skill_data.get("sources") or skill_data.get("evidence_sources") or []
+    source_count = len(sources)
+    if source_count >= 3:
+        source_bonus = 8
+    elif source_count == 2:
+        source_bonus = 4
+    elif source_count == 1 and "Resume" in sources:
+        source_bonus = -3  # Single resume mention has less proven technical depth
+    else:
+        source_bonus = 0
+
+    # 4. Confidence score adjustment
+    conf = skill_data.get("confidence_score") or skill_data.get("confidence") or 75
+    conf_adj = (float(conf) - 75) * 0.12
+
+    # 5. Depth bonus from verified repos and project deliverables
+    repos = skill_data.get("repos") or skill_data.get("github_repos") or []
+    projects = skill_data.get("projects") or skill_data.get("project_refs") or []
+    depth_bonus = min(len(repos) * 1.5 + len(projects) * 2.0, 6.0)
+
+    final_pct = round(base_pct + source_bonus + conf_adj + depth_bonus)
+    return max(25, min(98, final_pct))
+
+
+def _ingest_all_user_evidence_skills(
+    user_id: Optional[str] = None,
+    email: Optional[str] = None,
+    db: Optional[Session] = None
+) -> Tuple[Dict[str, Dict[str, Any]], bool]:
+    """
+    Comprehensive multi-source evidence ingestor.
+    Gathers extracted skills from Resume, GitHub, and Projects across both
+    persistent database and active in-memory session caches.
+
+    Returns:
+      (candidate_skills_map, has_any_evidence)
+    """
+    candidate_skills: Dict[str, Dict[str, Any]] = {}
+    has_any_evidence = False
+
+    # 1. Ingest from synthesize_living_skilltwin (the core multi-source aggregator)
+    try:
+        twin = synthesize_living_skilltwin(email=email, user_id=user_id, db=db)
+        if twin and twin.skills and len(twin.skills) > 0:
+            has_any_evidence = True
+            for s in twin.skills:
+                key = _normalize_skill_string(s.canonical_name or s.name)
+                candidate_skills[key] = {
+                    "name": s.name,
+                    "canonical_name": s.canonical_name or s.name,
+                    "skill_name": s.name,
+                    "category": s.category,
+                    "proficiency": s.proficiency,
+                    "numeric_proficiency": s.numeric_proficiency,
+                    "confidence_score": s.confidence_score,
+                    "evidence_sources": s.evidence_sources,
+                    "sources": s.evidence_sources,
+                    "evidence_status": s.evidence_status,
+                    "reasoning": s.reasoning,
+                    "quotes": s.evidence_details.resume_quotes if s.evidence_details else [],
+                    "repos": s.evidence_details.github_repos if s.evidence_details else [],
+                    "projects": s.evidence_details.project_refs if s.evidence_details else []
+                }
+    except Exception as e:
+        print(f"[GapAnalysis] synthesize_living_skilltwin ingest note: {e}")
+
+    # 2. Ingest from persistent database user_skills table directly
+    if user_id:
+        try:
+            from backend.shared.user_data_db import get_user_skills, get_all_user_evidence, get_user_projects
+            db_skills = get_user_skills(user_id)
+            if db_skills and len(db_skills) > 0:
+                has_any_evidence = True
+                for item in db_skills:
+                    cname = item.get("canonical_name") or item.get("skill_name")
+                    if cname:
+                        key = _normalize_skill_string(cname)
+                        if key not in candidate_skills:
+                            candidate_skills[key] = {
+                                "name": cname,
+                                "canonical_name": cname,
+                                "skill_name": item.get("skill_name") or cname,
+                                "category": item.get("category", "Technical"),
+                                "proficiency": item.get("proficiency", "Intermediate"),
+                                "numeric_proficiency": 4.5 if item.get("proficiency") == "Advanced" else (3.0 if item.get("proficiency") == "Intermediate" else 2.0),
+                                "confidence_score": item.get("confidence_score", 75.0),
+                                "sources": [item.get("evidence_source", "Resume")],
+                                "evidence_sources": [item.get("evidence_source", "Resume")],
+                                "reasoning": item.get("reasoning", "")
+                            }
+
+            # Check if user has uploaded resume or connected GitHub in DB
+            db_ev = get_all_user_evidence(user_id)
+            if db_ev and len(db_ev) > 0:
+                has_any_evidence = True
+
+            db_proj = get_user_projects(user_id)
+            if db_proj and len(db_proj) > 0:
+                has_any_evidence = True
+        except Exception as e:
+            print(f"[GapAnalysis] Direct DB evidence lookup note: {e}")
+
+    # 3. Ingest from in-memory evidence store (active session / newly uploaded data)
+    user_key = _normalize_user_key(email or user_id or "default_user")
+    store = _get_user_evidence_store(user_key)
+
+    # If the direct store is empty, check candidate aliases
+    if not store.get("skills") and not store.get("resume") and not store.get("github"):
+        for candidate in [email, user_id, "default_user"]:
+            if candidate:
+                cand_key = _normalize_user_key(candidate)
+                cand_store = _in_memory_evidence.get(cand_key)
+                if cand_store and (cand_store.get("skills") or cand_store.get("resume") or cand_store.get("github")):
+                    store = cand_store
+                    break
+
+    # Read extracted skills from in-memory store
+    in_mem_skills = store.get("skills", {})
+    if in_mem_skills:
+        has_any_evidence = True
+        for cname, item in in_mem_skills.items():
+            key = _normalize_skill_string(cname)
+            if key not in candidate_skills:
+                if isinstance(item, dict):
+                    candidate_skills[key] = item
+                else:
+                    candidate_skills[key] = {
+                        "name": getattr(item, "canonical_name", cname),
+                        "canonical_name": getattr(item, "canonical_name", cname),
+                        "skill_name": getattr(item, "skill_name", cname),
+                        "category": getattr(item, "category", "Technical"),
+                        "proficiency": getattr(item, "proficiency", "Intermediate"),
+                        "numeric_proficiency": 4.5 if getattr(item, "proficiency", "") == "Advanced" else 3.0,
+                        "confidence_score": getattr(item, "confidence_score", 80.0),
+                        "sources": [getattr(item, "evidence_source", "Resume")],
+                        "reasoning": getattr(item, "reasoning", "")
+                    }
+
+    if store.get("resume") or store.get("github") or store.get("projects"):
+        has_any_evidence = True
+
+    return candidate_skills, has_any_evidence
 
 
 def compute_skill_gap_analysis(
     role_name: str = "Full-Stack Developer",
     experience_level: str = "Entry Level (0-2 years)",
     industry: str = "All Industries",
-    user_id: Optional[str] = None
+    user_id: Optional[str] = None,
+    email: Optional[str] = None,
+    db: Optional[Session] = None
 ) -> GapAnalysisSummaryResponse:
     """
     Core Gap Engine Computation.
-    Cross-references Living SkillTwin skills against Target Role Curated Requirements.
+    Dynamically cross-references user's verified evidence (Resume, GitHub, Projects)
+    against Target Role requirements to calculate genuine proficiencies, gaps, and match statuses.
     """
     # 1. Fetch Target Role Benchmark Requirements
     benchmark = build_target_role_benchmark(
@@ -164,51 +409,12 @@ def compute_skill_gap_analysis(
         industry=industry
     )
 
-    # 2. Ingest Candidate's Demonstrated Skills from Living SkillTwin Store
-    candidate_skills_dict: Dict[str, Dict[str, Any]] = {}
-
-    # FIRST: Try the persistent database (user_skills table) for user's saved skills
-    if user_id:
-        try:
-            from backend.shared.user_data_db import get_user_skills
-            persistent_skills = get_user_skills(user_id)
-            for item in persistent_skills:
-                name = item.get("canonical_name") or item.get("skill_name")
-                if name:
-                    candidate_skills_dict[name.lower()] = {
-                        "name": name,
-                        "proficiency": item.get("proficiency", "Beginner"),
-                        "numeric": 3.0 if item.get("proficiency") == "Intermediate" else (4.5 if item.get("proficiency") == "Advanced" else 2.0),
-                        "score": item.get("confidence_score", 60),
-                        "confidence": item.get("confidence_score", 70),
-                        "sources": [item.get("evidence_source", "Resume")],
-                        "reasoning": item.get("reasoning", "")
-                    }
-            if candidate_skills_dict:
-                print(f"[GapAnalysis] Loaded {len(candidate_skills_dict)} skills from DB for user {user_id}")
-        except Exception as e:
-            print(f"[GapAnalysis] Note: Could not load from DB ({e}), using fallback")
-
-    # SECOND: Check in-memory evidence store (current session)
-    if not candidate_skills_dict:
-        user_store = _get_user_evidence_store(user_id) if user_id else None
-        if user_store and user_store.get("skills_extracted"):
-            for item in user_store["skills_extracted"]:
-                name = item.get("canonical_name") or item.get("skill_name")
-                if name:
-                    candidate_skills_dict[name.lower()] = {
-                        "name": name,
-                        "proficiency": item.get("proficiency", "Beginner"),
-                        "numeric": 3.0 if item.get("proficiency") == "Intermediate" else (4.5 if item.get("proficiency") == "Advanced" else 2.0),
-                        "confidence": item.get("confidence_score", 70),
-                        "sources": [item.get("evidence_source", "Resume")],
-                        "reasoning": item.get("reasoning", "")
-                    }
-
-    # THIRD: Use default fallback skills if no data found
-    if not candidate_skills_dict:
-        for item in DEFAULT_FALLBACK_SKILLS:
-            candidate_skills_dict[item["name"].lower()] = item
+    # 2. Ingest Candidate's Demonstrated Skills from All Connected Evidence Sources
+    candidate_skills, has_any_evidence = _ingest_all_user_evidence_skills(
+        user_id=user_id,
+        email=email,
+        db=db
+    )
 
     # 3. Analyze each requirement from the Benchmark
     gaps_list: List[SkillGapItem] = []
@@ -222,14 +428,14 @@ def compute_skill_gap_analysis(
     total_weights = 0
 
     for req in benchmark.requirements:
-        skill_key = req.skill.lower()
-        canonical_key = req.canonical_name.lower()
+        req_pct = int(req.industry_avg_proficiency or 75)
+        req_level = req.required_proficiency
 
-        # Check if candidate has evidence for this skill
-        candidate_match = (
-            candidate_skills_dict.get(skill_key) or
-            candidate_skills_dict.get(canonical_key) or
-            candidate_skills_dict.get(req.skill.split()[0].lower())
+        # Match requirement against candidate's verified evidence
+        candidate_match = _match_candidate_skill(
+            req_skill=req.skill,
+            req_canonical=req.canonical_name,
+            candidate_skills=candidate_skills
         )
 
         meta = (
@@ -239,14 +445,25 @@ def compute_skill_gap_analysis(
             {}
         )
 
-        # Dynamic calculation based on actual user skills
         if candidate_match:
-            # User has evidence - calculate from their actual proficiency
-            your_pct = int(candidate_match.get("score", 60))  # Default 60% if found
-            req_pct = int(req.industry_avg_proficiency or 75)
+            # User has verified evidence for this skill
+            your_pct = _calculate_evidence_proficiency_pct(candidate_match)
+            your_score = round(your_pct / 20.0, 1)
+            your_level = candidate_match.get("proficiency", "Intermediate")
+            confidence = int(candidate_match.get("confidence_score") or candidate_match.get("confidence") or 80)
+
+            # Compare against required benchmark
             gap_pct = your_pct - req_pct
 
-            # Determine priority based on importance and gap
+            # Determine Match Status based on evidence
+            if gap_pct >= 0:
+                match_status = "Strong"
+            elif gap_pct >= -15:
+                match_status = "Matched"
+            else:
+                match_status = "Weak"
+
+            # Determine Priority
             if req.importance == "Core" and gap_pct < -20:
                 priority = "Critical"
             elif req.importance in ["Core", "High"] and gap_pct < -15:
@@ -256,27 +473,39 @@ def compute_skill_gap_analysis(
             else:
                 priority = "Low"
 
-            # Determine match status
+            # Evidence summary and reasoning
+            sources_list = candidate_match.get("sources") or candidate_match.get("evidence_sources") or ["Resume"]
+            repos_list = candidate_match.get("repos") or []
+            projects_list = candidate_match.get("projects") or []
+            quotes_list = candidate_match.get("quotes") or []
+
+            evidence_summary = f"Demonstrated across {', '.join(sources_list)}"
+            if repos_list:
+                evidence_summary += f" ({len(repos_list)} GitHub repo{'s' if len(repos_list) > 1 else ''})"
+
             if gap_pct >= 0:
-                match_status = "Strong"
+                why_gap = f"Your verified evidence demonstrates strong capability ({your_pct}%), exceeding the role requirement ({req_pct}%)."
             elif gap_pct >= -15:
-                match_status = "Matched"
-            elif gap_pct >= -30:
-                match_status = "Weak"
+                why_gap = f"Your proficiency ({your_pct}%) closely matches the required benchmark ({req_pct}%) for {role_name}."
             else:
-                match_status = "Missing"
+                why_gap = f"Your current evidence shows {your_pct}% proficiency, creating a {abs(gap_pct)}% gap against the {req_pct}% benchmark required for {role_name}."
 
-            confidence = int(candidate_match.get("confidence", 75))
-            your_level = candidate_match.get("proficiency", "Intermediate")
-            req_level = req.required_proficiency
-            why_gap = f"You have {your_pct}% proficiency but {req.skill} requires {req_pct}% for {role_name} positions."
+            evidence_details = {
+                "sources": sources_list,
+                "repos": repos_list,
+                "quotes": quotes_list,
+                "reasoning": candidate_match.get("reasoning", f"Verified through candidate evidence in {', '.join(sources_list)}.")
+            }
         else:
-            # No evidence - user is missing this skill
+            # Genuine Insufficient Evidence - user has no verified evidence for this skill
             your_pct = 0
-            req_pct = int(req.industry_avg_proficiency or 75)
+            your_score = 0.0
+            your_level = "Insufficient Evidence"
+            confidence = 0
             gap_pct = -req_pct
+            match_status = "Missing"
 
-            # Missing skills with high importance are critical
+            # Missing skills with high importance are prioritized
             if req.importance == "Core":
                 priority = "Critical"
             elif req.importance == "High":
@@ -284,14 +513,17 @@ def compute_skill_gap_analysis(
             else:
                 priority = "Medium"
 
-            match_status = "Missing"
-            confidence = 0
-            your_level = "Insufficient Evidence"
-            req_level = req.required_proficiency
-            why_gap = f"{req.skill} is required for {role_name} but no evidence found in your profile. Add projects or experience demonstrating this skill."
+            why_gap = f"{req.skill} is required ({req_pct}%) for {role_name}, but no verified evidence was found in your connected resume, GitHub, or projects."
+            evidence_summary = "Insufficient evidence in connected sources (Resume / GitHub / Projects)."
+            evidence_details = {
+                "sources": [],
+                "repos": [],
+                "quotes": [],
+                "reasoning": f"No evidence found in uploaded resume, GitHub repositories, or registered projects for {req.skill}."
+            }
 
         # Metric counters
-        if priority == "Critical" or match_status == "Missing":
+        if match_status == "Missing" or priority == "Critical":
             critical_count += 1
         elif match_status == "Weak":
             weak_count += 1
@@ -306,19 +538,13 @@ def compute_skill_gap_analysis(
         total_weighted_match += skill_alignment * weight
         total_weights += weight
 
-        evidence_summary = (
-            f"Demonstrated in {', '.join(candidate_match.get('sources', ['Resume']))}"
-            if candidate_match and candidate_match.get("sources")
-            else "Insufficient evidence in connected sources (Resume / GitHub / Projects)."
-        )
-
         gap_item = SkillGapItem(
             id=f"gap-{uuid.uuid4().hex[:8]}",
             skill=req.skill,
             canonical_name=req.canonical_name,
             category=req.category,
             your_proficiency_pct=your_pct,
-            your_proficiency_score=round(your_pct / 20.0, 1),
+            your_proficiency_score=your_score,
             your_proficiency_level=your_level,
             required_level_pct=req_pct,
             required_level_score=round(req_pct / 20.0, 1),
@@ -330,12 +556,7 @@ def compute_skill_gap_analysis(
             role_importance=req.importance,
             why_this_gap=why_gap,
             evidence_summary=evidence_summary,
-            evidence_details={
-                "sources": candidate_match.get("sources", []) if candidate_match else [],
-                "repos": candidate_match.get("repos", []) if candidate_match else [],
-                "quotes": candidate_match.get("quotes", []) if candidate_match else [],
-                "reasoning": candidate_match.get("reasoning", "") if candidate_match else ""
-            },
+            evidence_details=evidence_details,
             missing_evidence_note=meta.get("missing_evidence") if match_status in ["Missing", "Weak"] else None,
             why_role_requires=meta.get("why_role") or req.description,
             recommended_action=meta.get("recommended_action") or f"Build an end-to-end practical project exercising {req.skill}.",
@@ -346,7 +567,7 @@ def compute_skill_gap_analysis(
     total_skills = len(gaps_list)
     overall_pct = int(total_weighted_match / max(1, total_weights)) if total_weights > 0 else 0
 
-    # Severity distribution - calculated from actual gaps
+    # Severity distribution
     sev_critical = sum(1 for g in gaps_list if g.priority == "Critical")
     sev_high = sum(1 for g in gaps_list if g.priority == "High")
     sev_med = sum(1 for g in gaps_list if g.priority == "Medium")
@@ -388,34 +609,37 @@ def compute_skill_gap_analysis(
             color=color_map.get(cat, "#A855F7")
         ))
 
-    # AI Insights
+    # Identify top critical gaps and strong verified skills for dynamic AI Insights
+    critical_skill_names = [g.skill for g in gaps_list if g.priority == "Critical"][:3]
+    strong_skill_names = [g.skill for g in gaps_list if g.match_status == "Strong"][:3]
+
     ai_insights = [
         GapInsightItem(
             id="insight-1",
             type="critical",
             title="Focus on closing critical gaps first",
-            description="Improving React.js, TypeScript, and Docker skills will increase your industry match score by 25-30%."
+            description=f"Improving {', '.join(critical_skill_names) if critical_skill_names else 'core foundational'} skills will significantly increase your role readiness score."
         ),
         GapInsightItem(
             id="insight-2",
             type="strength",
-            title="Capitalize on strong foundations",
-            description="Your JavaScript, Git, and HTML/CSS skills satisfy baseline expectationsâ€”leverage them when tackling backend & state management milestones."
+            title="Capitalize on verified strengths",
+            description=f"Your verified evidence in {', '.join(strong_skill_names) if strong_skill_names else 'foundational skills'} demonstrates strong baseline competence."
         ),
         GapInsightItem(
             id="insight-3",
             type="recommendation",
             title="Evidence-backed project verification",
-            description="Completing a verified full-stack CRUD application with PostgreSQL containerization will eliminate 4 high-priority gaps simultaneously."
+            description="Completing verified full-stack project deliverables will eliminate high-priority gaps and validate production readiness."
         )
     ]
 
     # Recommended Steps
     recommended_steps = [
-        f"Start with {sev_critical} critical gap skills",
-        "Follow the personalized roadmap",
-        "Build projects to demonstrate skills",
-        "Re-verify and track improvement"
+        f"Start with {sev_critical} critical priority gap skills",
+        "Follow your personalized roadmap milestones",
+        "Build and verify hands-on projects to demonstrate missing competencies",
+        "Re-evaluate your SkillTwin to track real readiness progress"
     ]
 
     readiness_rating = "Moderate"
@@ -425,6 +649,8 @@ def compute_skill_gap_analysis(
         readiness_rating = "Strong"
     elif overall_pct >= 60:
         readiness_rating = "Moderate"
+    elif overall_pct >= 40:
+        readiness_rating = "Good"
     else:
         readiness_rating = "Emerging"
 
@@ -455,11 +681,12 @@ def get_gap_analysis(
     experience: str = Query("Entry Level (0-2 years)", description="Experience level"),
     industry: str = Query("All Industries", description="Industry domain"),
     user_id: Optional[str] = Query(None, description="Optional user ID"),
-    authorization: Optional[str] = Header(None)
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
 ):
     """
     Retrieve evidence-backed Skill Gap Analysis comparing Living SkillTwin with selected Target Role.
-    Uses authenticated token if no user_id is provided.
+    Uses authenticated token or user_id to dynamically analyze all candidate evidence.
     """
     # Use authenticated user_id if not provided
     if not user_id and authorization:
@@ -467,14 +694,14 @@ def get_gap_analysis(
         auth_user_id = get_user_id_from_token(authorization)
         if auth_user_id:
             user_id = auth_user_id
-            print(f"[Gap Analysis] Using authenticated user_id: {user_id}")
 
     try:
         return compute_skill_gap_analysis(
             role_name=role,
             experience_level=experience,
             industry=industry,
-            user_id=user_id
+            user_id=user_id,
+            db=db
         )
     except Exception as e:
         raise HTTPException(
@@ -488,16 +715,25 @@ def recalculate_gap_analysis(
     role: str = Query("Full-Stack Developer"),
     experience: str = Query("Entry Level (0-2 years)"),
     industry: str = Query("All Industries"),
-    user_id: Optional[str] = Query(None)
+    user_id: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
 ):
     """
-    Recalculate Skill Gap Analysis from newly uploaded evidence.
+    Recalculate Skill Gap Analysis from newly uploaded/modified evidence.
     """
+    if not user_id and authorization:
+        from backend.routers.auth import get_user_id_from_token
+        auth_user_id = get_user_id_from_token(authorization)
+        if auth_user_id:
+            user_id = auth_user_id
+
     return compute_skill_gap_analysis(
         role_name=role,
         experience_level=experience,
         industry=industry,
-        user_id=user_id
+        user_id=user_id,
+        db=db
     )
 
 
@@ -505,33 +741,48 @@ def recalculate_gap_analysis(
 def export_gap_report(
     role: str = Query("Full-Stack Developer"),
     experience: str = Query("Entry Level (0-2 years)"),
-    industry: str = Query("All Industries")
+    industry: str = Query("All Industries"),
+    user_id: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None),
+    db: Session = Depends(get_db)
 ):
     """
     Generate downloadable text/markdown summary of the candidate's Gap Analysis.
     """
-    analysis = compute_skill_gap_analysis(role_name=role, experience_level=experience, industry=industry)
+    if not user_id and authorization:
+        from backend.routers.auth import get_user_id_from_token
+        auth_user_id = get_user_id_from_token(authorization)
+        if auth_user_id:
+            user_id = auth_user_id
+
+    analysis = compute_skill_gap_analysis(
+        role_name=role,
+        experience_level=experience,
+        industry=industry,
+        user_id=user_id,
+        db=db
+    )
 
     report_lines = [
         "==================================================================",
-        "          SKILLTWIN â€” EVIDENCE-BASED SKILL GAP REPORT             ",
+        "          SKILLTWIN — EVIDENCE-BASED SKILL GAP REPORT             ",
         "==================================================================",
         f"Generated At: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}",
         f"Target Role: {analysis.target_role} ({analysis.experience_level})",
         f"Overall Role Match: {analysis.overall_match_percentage}% ({analysis.readiness_rating} Readiness)",
         "------------------------------------------------------------------",
         "SUMMARY METRICS:",
-        f"â€¢ Total Gaps Analyzed: {analysis.total_gaps}",
-        f"â€¢ Critical Priority Gaps: {analysis.critical_gaps_count}",
-        f"â€¢ Weak Skills (Below Required): {analysis.weak_skills_count}",
-        f"â€¢ Strong Skills (Above Required): {analysis.strong_skills_count}",
-        f"â€¢ Matched Skills (Satisfies Requirement): {analysis.matched_skills_count}",
+        f"• Total Gaps Analyzed: {analysis.total_gaps}",
+        f"• Critical Priority Gaps: {analysis.critical_gaps_count}",
+        f"• Weak Skills (Below Required): {analysis.weak_skills_count}",
+        f"• Strong Skills (Above Required): {analysis.strong_skills_count}",
+        f"• Matched Skills (Satisfies Requirement): {analysis.matched_skills_count}",
         "------------------------------------------------------------------",
         "GAP SEVERITY BREAKDOWN:",
-        f"â€¢ Critical: {analysis.severity_breakdown.critical_count} ({analysis.severity_breakdown.critical_pct}%)",
-        f"â€¢ High:     {analysis.severity_breakdown.high_count} ({analysis.severity_breakdown.high_pct}%)",
-        f"â€¢ Medium:   {analysis.severity_breakdown.medium_count} ({analysis.severity_breakdown.medium_pct}%)",
-        f"â€¢ Low:      {analysis.severity_breakdown.low_count} ({analysis.severity_breakdown.low_pct}%)",
+        f"• Critical: {analysis.severity_breakdown.critical_count} ({analysis.severity_breakdown.critical_pct}%)",
+        f"• High:     {analysis.severity_breakdown.high_count} ({analysis.severity_breakdown.high_pct}%)",
+        f"• Medium:   {analysis.severity_breakdown.medium_count} ({analysis.severity_breakdown.medium_pct}%)",
+        f"• Low:      {analysis.severity_breakdown.low_count} ({analysis.severity_breakdown.low_pct}%)",
         "------------------------------------------------------------------",
         "DETAILED SKILL GAP TABLE:",
         f"{'SKILL':<28} | {'YOUR':<8} | {'REQ':<8} | {'GAP':<8} | {'PRIORITY':<10} | {'STATUS':<10} | {'REASON'}",

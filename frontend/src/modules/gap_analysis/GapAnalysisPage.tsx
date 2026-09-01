@@ -1308,39 +1308,40 @@ export const GapAnalysisPage: React.FC<GapAnalysisPageProps> = ({
               <div
                 className="modal-content"
                 onClick={e => e.stopPropagation()}
-                style={{ maxWidth: '600px', padding: '24px' }}
+                style={{ maxWidth: '680px', padding: '30px 32px' }}
               >
                 {/* Modal Header */}
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                     <div style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '10px',
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '12px',
                       background: 'rgba(99, 102, 241, 0.15)',
                       border: '1px solid rgba(168, 85, 247, 0.3)',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center'
+                      justifyContent: 'center',
+                      flexShrink: 0
                     }}>
                       {getSkillIcon(selectedSkillForDetail.skill, selectedSkillForDetail.category)}
                     </div>
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>
                           {selectedSkillForDetail.skill}
                         </h3>
                         <span style={{
-                          padding: '2px 8px',
+                          padding: '3px 10px',
                           borderRadius: '6px',
-                          fontSize: '0.68rem',
+                          fontSize: '0.7rem',
                           fontWeight: 700,
                           ...getPriorityStyle(selectedSkillForDetail.priority)
                         }}>
                           {selectedSkillForDetail.priority}
                         </span>
                       </div>
-                      <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', margin: '2px 0 0' }}>
+                      <p style={{ fontSize: '0.76rem', color: 'var(--text-muted)', margin: '4px 0 0' }}>
                         {selectedSkillForDetail.category} • Role Importance: <strong style={{ color: '#F8FAFC' }}>{selectedSkillForDetail.role_importance}</strong>
                       </p>
                     </div>
@@ -1348,104 +1349,104 @@ export const GapAnalysisPage: React.FC<GapAnalysisPageProps> = ({
 
                   <button
                     onClick={() => setSelectedSkillForDetail(null)}
-                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}
+                    style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
                   >
-                    <X size={18} />
+                    <X size={20} />
                   </button>
                 </div>
 
                 {/* Side-by-Side Level & Gap Breakdown */}
                 <div style={{
                   display: 'grid',
-                  gridTemplateColumns: '1fr 1fr 1fr',
-                  gap: '12px',
-                  padding: '14px',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
+                  gap: '16px',
+                  padding: '18px 20px',
                   background: 'rgba(15, 23, 42, 0.8)',
-                  borderRadius: '12px',
+                  borderRadius: '14px',
                   border: '1px solid rgba(255, 255, 255, 0.08)',
-                  marginBottom: '16px'
+                  marginBottom: '22px'
                 }}>
                   <div>
-                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block' }}>YOUR LEVEL</span>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#F8FAFC', marginTop: '2px' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', fontWeight: 600, letterSpacing: '0.04em' }}>YOUR LEVEL</span>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#F8FAFC', marginTop: '4px' }}>
                       {selectedSkillForDetail.your_proficiency_pct}%
                     </div>
-                    <span style={{ fontSize: '0.68rem', color: '#38BDF8' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#38BDF8', marginTop: '2px', display: 'inline-block' }}>
                       {selectedSkillForDetail.your_proficiency_level}
                     </span>
                   </div>
 
                   <div>
-                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block' }}>REQUIRED</span>
-                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#10B981', marginTop: '2px' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', fontWeight: 600, letterSpacing: '0.04em' }}>REQUIRED</span>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#10B981', marginTop: '4px' }}>
                       {selectedSkillForDetail.required_level_pct}%
                     </div>
-                    <span style={{ fontSize: '0.68rem', color: '#34D399' }}>
+                    <span style={{ fontSize: '0.72rem', color: '#34D399', marginTop: '2px', display: 'inline-block' }}>
                       {selectedSkillForDetail.required_proficiency_level}
                     </span>
                   </div>
 
                   <div>
-                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)', display: 'block' }}>GAP SIZE</span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', display: 'block', fontWeight: 600, letterSpacing: '0.04em' }}>GAP SIZE</span>
                     <div style={{
-                      fontSize: '1.1rem',
+                      fontSize: '1.2rem',
                       fontWeight: 800,
                       color: selectedSkillForDetail.gap_percentage < 0 ? '#F87171' : '#34D399',
-                      marginTop: '2px'
+                      marginTop: '4px'
                     }}>
                       {selectedSkillForDetail.gap_percentage > 0 ? `+${selectedSkillForDetail.gap_percentage}%` : `${selectedSkillForDetail.gap_percentage}%`}
                     </div>
-                    <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px', display: 'inline-block' }}>
                       Match: {selectedSkillForDetail.match_status}
                     </span>
                   </div>
                 </div>
 
                 {/* Explainable AI Reasoning */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.78rem' }}>
-                  <div style={{ padding: '12px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#C084FC', fontWeight: 700, marginBottom: '4px' }}>
-                      <Sparkles size={14} /> Why the role requires this skill
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '0.8rem' }}>
+                  <div style={{ padding: '16px 18px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#C084FC', fontWeight: 700, marginBottom: '6px' }}>
+                      <Sparkles size={15} /> Why the role requires this skill
                     </div>
-                    <p style={{ color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>
+                    <p style={{ color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0 }}>
                       {selectedSkillForDetail.why_role_requires}
                     </p>
                   </div>
 
-                  <div style={{ padding: '12px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38BDF8', fontWeight: 700, marginBottom: '4px' }}>
-                      <FileText size={14} /> Evidence Summary
+                  <div style={{ padding: '16px 18px', background: 'rgba(15, 23, 42, 0.7)', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#38BDF8', fontWeight: 700, marginBottom: '6px' }}>
+                      <FileText size={15} /> Evidence Summary
                     </div>
-                    <p style={{ color: 'var(--text-secondary)', lineHeight: 1.45, margin: 0 }}>
+                    <p style={{ color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0 }}>
                       {selectedSkillForDetail.evidence_summary}
                     </p>
                     {selectedSkillForDetail.missing_evidence_note && (
-                      <p style={{ color: '#FCD34D', fontSize: '0.72rem', marginTop: '6px', margin: '6px 0 0' }}>
+                      <p style={{ color: '#FCD34D', fontSize: '0.74rem', marginTop: '10px', margin: '10px 0 0', lineHeight: 1.45 }}>
                         ⚠️ {selectedSkillForDetail.missing_evidence_note}
                       </p>
                     )}
                   </div>
 
-                  <div style={{ padding: '12px', background: 'rgba(16, 185, 129, 0.08)', borderRadius: '10px', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#34D399', fontWeight: 700, marginBottom: '4px' }}>
-                      <Zap size={14} /> Recommended Action & Roadmap Bridge
+                  <div style={{ padding: '16px 18px', background: 'rgba(16, 185, 129, 0.08)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.25)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#34D399', fontWeight: 700, marginBottom: '6px' }}>
+                      <Zap size={15} /> Recommended Action & Roadmap Bridge
                     </div>
-                    <p style={{ color: '#E2E8F0', lineHeight: 1.45, margin: 0 }}>
+                    <p style={{ color: '#E2E8F0', lineHeight: 1.55, margin: 0 }}>
                       {selectedSkillForDetail.recommended_action}
                     </p>
-                    <div style={{ fontSize: '0.7rem', color: '#38BDF8', marginTop: '6px', fontWeight: 600 }}>
+                    <div style={{ fontSize: '0.74rem', color: '#38BDF8', marginTop: '8px', fontWeight: 600 }}>
                       📍 {selectedSkillForDetail.roadmap_destination}
                     </div>
                   </div>
                 </div>
 
                 {/* Modal Footer */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
                   <button
                     type="button"
                     className="btn btn-outline"
                     onClick={() => setSelectedSkillForDetail(null)}
-                    style={{ padding: '6px 14px', fontSize: '0.78rem' }}
+                    style={{ padding: '8px 18px', fontSize: '0.82rem' }}
                   >
                     Close
                   </button>
@@ -1456,7 +1457,7 @@ export const GapAnalysisPage: React.FC<GapAnalysisPageProps> = ({
                       setSelectedSkillForDetail(null);
                       onNavigateToRoadmap?.(analysisData || undefined);
                     }}
-                    style={{ padding: '6px 16px', fontSize: '0.78rem' }}
+                    style={{ padding: '8px 20px', fontSize: '0.82rem' }}
                   >
                     View in Roadmap →
                   </button>

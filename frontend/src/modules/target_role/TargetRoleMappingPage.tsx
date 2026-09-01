@@ -1158,26 +1158,28 @@ export const TargetRoleMappingPage: React.FC<TargetRoleMappingPageProps> = ({
           {/* Modal: About Industry Benchmarks */}
           {isInfoModalOpen && (
             <div className="modal-backdrop" onClick={() => setIsInfoModalOpen(false)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '540px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ padding: '8px', background: 'rgba(168, 85, 247, 0.15)', borderRadius: '8px', color: '#C084FC' }}>
-                      <HelpCircle size={18} />
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: '30px 32px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ padding: '10px', background: 'rgba(168, 85, 247, 0.15)', borderRadius: '10px', color: '#C084FC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <HelpCircle size={22} />
                     </div>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#FFFFFF' }}>Target Role Benchmarks</h3>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>Target Role Benchmarks</h3>
                   </div>
-                  <button onClick={() => setIsInfoModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <X size={18} />
+                  <button onClick={() => setIsInfoModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>
+                    <X size={20} />
                   </button>
                 </div>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  This page establishes the target capability benchmark for your selected role. We synthesize normalized occupational skill requirements derived from industry frameworks (such as ESCO and O*NET standards).
-                </p>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginTop: '8px' }}>
-                  In the next phase (<strong>Page 5 — Gap Analysis</strong>), the engine will compare your evidence-backed SkillTwin profile directly against this requirement benchmark to identify your priority growth areas.
-                </p>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                  <button className="btn btn-primary" onClick={() => setIsInfoModalOpen(false)}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
+                  <p style={{ margin: 0 }}>
+                    This page establishes the target capability benchmark for your selected role. We synthesize normalized occupational skill requirements derived from industry frameworks (such as ESCO and O*NET standards).
+                  </p>
+                  <p style={{ margin: 0 }}>
+                    In the next phase (<strong>Page 5 — Gap Analysis</strong>), the engine will compare your evidence-backed SkillTwin profile directly against this requirement benchmark to identify your priority growth areas.
+                  </p>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                  <button className="btn btn-primary" onClick={() => setIsInfoModalOpen(false)} style={{ padding: '8px 22px', fontSize: '0.82rem' }}>
                     Understood
                   </button>
                 </div>
@@ -1188,31 +1190,31 @@ export const TargetRoleMappingPage: React.FC<TargetRoleMappingPageProps> = ({
           {/* Modal: Market Demand Overview */}
           {isDemandModalOpen && (
             <div className="modal-backdrop" onClick={() => setIsDemandModalOpen(false)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '540px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <div style={{ padding: '8px', background: 'rgba(56, 189, 248, 0.15)', borderRadius: '8px', color: '#38BDF8' }}>
-                      <TrendingUp size={18} />
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: '30px 32px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', gap: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ padding: '10px', background: 'rgba(56, 189, 248, 0.15)', borderRadius: '10px', color: '#38BDF8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <TrendingUp size={22} />
                     </div>
-                    <h3 style={{ fontSize: '1.15rem', fontWeight: 700, color: '#FFFFFF' }}>Market Demand Overview</h3>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>Market Demand Overview</h3>
                   </div>
-                  <button onClick={() => setIsDemandModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <X size={18} />
+                  <button onClick={() => setIsDemandModalOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>
+                    <X size={20} />
                   </button>
                 </div>
-                <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.55, margin: '0 0 16px' }}>
                   Market demand rankings reflect hiring frequency across {mappingData?.role_overview.roles_analyzed} for {selectedRole}.
                 </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '55vh', overflowY: 'auto', paddingRight: '4px' }}>
                   {mappingData?.top_demand_skills.map((s) => (
-                    <div key={s.rank} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '8px' }}>
-                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#F8FAFC' }}>{s.rank}. {s.name} ({s.category})</span>
+                    <div key={s.rank} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 16px', background: 'rgba(15, 23, 42, 0.6)', borderRadius: '10px', border: '1px solid rgba(255, 255, 255, 0.04)' }}>
+                      <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#F8FAFC' }}>{s.rank}. {s.name} ({s.category})</span>
                       {renderDemandBadge(s.demand_level)}
                     </div>
                   ))}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                  <button className="btn btn-primary" onClick={() => setIsDemandModalOpen(false)}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                  <button className="btn btn-primary" onClick={() => setIsDemandModalOpen(false)} style={{ padding: '8px 22px', fontSize: '0.82rem' }}>
                     Close
                   </button>
                 </div>
@@ -1223,45 +1225,45 @@ export const TargetRoleMappingPage: React.FC<TargetRoleMappingPageProps> = ({
           {/* Modal: Single Requirement Detail Inspector */}
           {selectedRequirement && (
             <div className="modal-backdrop" onClick={() => setSelectedRequirement(null)}>
-              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', padding: '30px 32px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', gap: '16px' }}>
                   <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#FFFFFF' }}>{selectedRequirement.skill}</h3>
-                    <span className="badge badge-purple" style={{ fontSize: '0.68rem', marginTop: '4px' }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF', margin: 0 }}>{selectedRequirement.skill}</h3>
+                    <span className="badge badge-purple" style={{ fontSize: '0.7rem', padding: '3px 10px', marginTop: '6px', display: 'inline-block' }}>
                       {selectedRequirement.category}
                     </span>
                   </div>
-                  <button onClick={() => setSelectedRequirement(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>
-                    <X size={18} />
+                  <button onClick={() => setSelectedRequirement(null)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}>
+                    <X size={20} />
                   </button>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', background: 'rgba(15, 23, 42, 0.6)', padding: '12px', borderRadius: '10px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '14px', background: 'rgba(15, 23, 42, 0.75)', padding: '16px 18px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.06)' }}>
                     <div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Importance</div>
-                      <div style={{ marginTop: '2px' }}>{renderImportanceBadge(selectedRequirement.importance)}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' }}>IMPORTANCE</div>
+                      <div style={{ marginTop: '4px' }}>{renderImportanceBadge(selectedRequirement.importance)}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Required Level</div>
-                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#34D399', marginTop: '2px' }}>{selectedRequirement.required_proficiency}</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' }}>REQUIRED LEVEL</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#34D399', marginTop: '4px' }}>{selectedRequirement.required_proficiency}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Industry Avg</div>
-                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#38BDF8', marginTop: '2px' }}>{selectedRequirement.industry_avg_proficiency}%</div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' }}>INDUSTRY AVG</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#38BDF8', marginTop: '4px' }}>{selectedRequirement.industry_avg_proficiency}%</div>
                     </div>
                   </div>
 
-                  <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '12px', borderRadius: '10px' }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '4px' }}>Why this skill matters for {selectedRole}</div>
-                    <p style={{ fontSize: '0.76rem', color: 'var(--text-secondary)', lineHeight: 1.4, margin: 0 }}>
+                  <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '16px 18px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#F8FAFC', marginBottom: '6px' }}>Why this skill matters for {selectedRole}</div>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.55, margin: 0 }}>
                       {selectedRequirement.description}
                     </p>
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
-                  <button className="btn btn-primary" onClick={() => setSelectedRequirement(null)}>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                  <button className="btn btn-primary" onClick={() => setSelectedRequirement(null)} style={{ padding: '8px 22px', fontSize: '0.82rem' }}>
                     Close
                   </button>
                 </div>
