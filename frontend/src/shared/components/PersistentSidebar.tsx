@@ -58,7 +58,7 @@ interface StageDef {
 }
 
 const STAGES: StageDef[] = [
-  { key: 'onboarding', step: 1, label: 'Onboarding', icon: <GraduationCap size={15} />, blockedMsg: '' },
+  { key: 'onboarding', step: 1, label: 'Onboarding', icon: <GraduationCap size={15} />, blockedMsg: 'Onboarding is completed and locked.' },
   { key: 'evidence', step: 2, label: 'Evidence', icon: <FileText size={15} />, blockedMsg: 'Complete onboarding first.' },
   { key: 'skilltwin', step: 3, label: 'Your SkillTwin', icon: <Cpu size={15} />, blockedMsg: 'Add your resume, GitHub profile or projects in Evidence first.' },
   { key: 'target_role', step: 4, label: 'Target Role', icon: <Compass size={15} />, blockedMsg: 'Complete Evidence Collection first.' },
@@ -117,22 +117,27 @@ export const PersistentSidebar: React.FC<PersistentSidebarProps> = ({
       return Boolean((completedStages as any)[key]);
     }
     if (key === 'onboarding') {
-      return Boolean((userProfile && (userProfile.id || userProfile.email)) || localStorage.getItem('skilltwin_onboarding_completed') === 'true');
+      return Boolean(
+        (userProfile && Boolean(userProfile.target_role && (userProfile.education_level || userProfile.degree))) ||
+        localStorage.getItem('skilltwin_onboarding_completed') === 'true'
+      );
     }
     if (key === 'evidence') {
-      const hasEvData = Boolean(localStorage.getItem('skilltwin_resume_data') || localStorage.getItem('skilltwin_github_data') || localStorage.getItem('skilltwin_projects_data'));
+      const hasEvData = Boolean(
+        localStorage.getItem('skilltwin_resume_data') ||
+        localStorage.getItem('skilltwin_github_data') ||
+        localStorage.getItem('skilltwin_projects_data')
+      );
       return hasEvData || localStorage.getItem('skilltwin_evidence_completed') === 'true';
     }
     if (key === 'skilltwin') {
-      const evDone = isCompleted('evidence');
-      return Boolean(localStorage.getItem('skilltwin_skilltwin_completed') === 'true' || (evDone && (currentStep >= 3 || localStorage.getItem('skilltwin_gap_completed') === 'true' || localStorage.getItem('skilltwin_target_role_completed') === 'true')));
+      return localStorage.getItem('skilltwin_skilltwin_completed') === 'true';
     }
     if (key === 'target_role') {
-      const evDone = isCompleted('evidence');
-      return Boolean(localStorage.getItem('skilltwin_target_role_completed') === 'true' || (evDone && (currentStep >= 4 || localStorage.getItem('skilltwin_gap_completed') === 'true' || Boolean(userProfile?.target_role))));
+      return localStorage.getItem('skilltwin_target_role_completed') === 'true';
     }
     if (key === 'gap') {
-      return localStorage.getItem('skilltwin_gap_completed') === 'true' || currentStep >= 5;
+      return localStorage.getItem('skilltwin_gap_completed') === 'true';
     }
     if (key === 'roadmap') {
       return localStorage.getItem('skilltwin_roadmap_completed') === 'true';
@@ -141,7 +146,7 @@ export const PersistentSidebar: React.FC<PersistentSidebarProps> = ({
       return localStorage.getItem('skilltwin_verification_completed') === 'true';
     }
     if (key === 'skilltwin_updated') {
-      return localStorage.getItem('skilltwin_skilltwin_updated_completed') === 'true' || currentStep >= 8;
+      return localStorage.getItem('skilltwin_skilltwin_updated_completed') === 'true';
     }
     if (key === 'readiness') {
       return localStorage.getItem('skilltwin_readiness_completed') === 'true';
@@ -150,7 +155,12 @@ export const PersistentSidebar: React.FC<PersistentSidebarProps> = ({
   };
 
   const isAvailable = (key: string): boolean => {
-    if (key === 'onboarding') return true;
+    if (key === 'onboarding') {
+      if (currentStep > 1 || localStorage.getItem('skilltwin_evidence_entered') === 'true') {
+        return false;
+      }
+      return true;
+    }
     if (key === 'evidence') return isCompleted('onboarding');
     if (key === 'skilltwin') return isCompleted('evidence');
     if (key === 'target_role') return isCompleted('evidence');
@@ -249,6 +259,26 @@ export const PersistentSidebar: React.FC<PersistentSidebarProps> = ({
           );
         })}
       </nav>
+
+      {/* Career Motivation / SkillTwin Insight */}
+      <div className="psb-insight-box">
+        <div className="psb-insight-header">
+          <span className="psb-insight-star">✦</span>
+          <span className="psb-insight-tag">BUILD YOUR SKILLTWIN</span>
+        </div>
+
+        <div className="psb-insight-quote-container">
+          <div className="psb-quote-mark psb-quote-mark--open">“</div>
+          <p className="psb-insight-quote-text">
+            Your career is built<br />one skill at a time.
+          </p>
+          <div className="psb-quote-mark psb-quote-mark--close">”</div>
+        </div>
+
+        <div className="psb-insight-mantra">
+          Keep learning.<br />Keep building.<br />Keep proving.
+        </div>
+      </div>
 
       {/* Utility row: kept to icons so it reads as a footer, not another menu. */}
       <div className="psb-utils">

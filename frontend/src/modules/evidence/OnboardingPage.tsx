@@ -90,7 +90,16 @@ export const OnboardingPage: React.FC<OnboardingPageProps> = ({
       setFormData(prev => ({
         ...prev,
         name: prev.name || userProfile.name || '',
-        email: authenticatedEmail || userProfile.email || prev.email
+        email: authenticatedEmail || userProfile.email || prev.email,
+        education_level: prev.education_level || userProfile.education_level || '',
+        degree: prev.degree || userProfile.degree || '',
+        branch: prev.branch || userProfile.branch || '',
+        semester_year: prev.semester_year || userProfile.semester_year || '',
+        target_role: prev.target_role || userProfile.target_role || '',
+        career_interests: prev.career_interests || userProfile.career_interests || '',
+        study_time_per_day: prev.study_time_per_day || userProfile.study_time_per_day || '',
+        preferred_learning_style: (prev.preferred_learning_style || userProfile.preferred_learning_style || 'Hands-on') as any,
+        preferred_language: prev.preferred_language || userProfile.preferred_language || 'English'
       }));
     }
   }, [userProfile, authenticatedEmail]);

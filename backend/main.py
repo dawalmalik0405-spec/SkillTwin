@@ -27,27 +27,30 @@ app = FastAPI(
 )
 
 # Configure CORS for Frontend integration.
-# In production this service serves the built UI itself (see the bottom of this
-# file), so every request is same-origin and needs no CORS headers at all. CORS
-# is only required in dev, where Vite runs on :5173 and the API on :8000.
-#
-# An empty origin list therefore means "allow no cross-origin requests" -- it
-# must NOT fall back to allow_origins=["*"], because Starlette pairs a wildcard
-# with allow_credentials=True by echoing back whichever Origin asked, which would
-# let any website make authenticated calls against a user's session.
-_dev_origins = "http://localhost:5173,http://127.0.0.1:5173"
-_default_origins = "" if os.getenv("ENVIRONMENT") == "production" else _dev_origins
-cors_origins_str = os.getenv("CORS_ORIGINS", _default_origins)
-origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+_dev_origins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+    "http://localhost:5175",
+    "http://127.0.0.1:5175",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
+cors_origins_str = os.getenv("CORS_ORIGINS", "")
+env_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+origins = list(set(_dev_origins + env_origins))
 
-if origins:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=origins,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Register Feature Routers
 app.include_router(auth.router)

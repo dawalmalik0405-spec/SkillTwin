@@ -17,13 +17,11 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID
 
-# Handle imports for both module execution and direct script execution
-_current_dir = Path(__file__).resolve().parent
-_backend_dir = _current_dir.parent
-if str(_backend_dir) not in sys.path:
-    sys.path.insert(0, str(_backend_dir))
+try:
+    from backend.database import Base
+except ImportError:
+    from database import Base
 
-from database import Base
 
 
 # =========================================================

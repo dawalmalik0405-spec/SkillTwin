@@ -24,6 +24,7 @@ import CareerReadinessPage from './modules/readiness/CareerReadinessPage';
 import LandingPage from './modules/landing/LandingPage';
 import SkillTwinLoadingScreen from './modules/landing/SkillTwinLoadingScreen';
 import AuthModal from './modules/auth/AuthModal';
+import DashboardParticles from './shared/components/DashboardParticles';
 
 export type AppView =
   | 'landing'
@@ -106,7 +107,7 @@ export const App: React.FC = () => {
   };
 
   const isOnboardingCompleted = Boolean(
-    (activeProfile && (activeProfile.id || activeProfile.email)) ||
+    (activeProfile && Boolean(activeProfile.target_role && (activeProfile.education_level || activeProfile.degree))) ||
     localStorage.getItem('skilltwin_onboarding_completed') === 'true'
   );
 
@@ -160,7 +161,6 @@ export const App: React.FC = () => {
         const existingProfile = await apiClient.getProfile(user.email);
         if (existingProfile && (existingProfile.target_role || existingProfile.education_level || existingProfile.degree)) {
           mergedProfile = { ...existingProfile, ...user };
-          localStorage.setItem('skilltwin_onboarding_completed', 'true');
         }
       } catch (e) {
         console.warn('Profile recovery note:', e);
@@ -170,8 +170,12 @@ export const App: React.FC = () => {
     localStorage.setItem('skilltwin_active_profile', JSON.stringify(mergedProfile));
     setAuthToken(apiClient.getToken());
     setIsAuthModalOpen(false);
+
+    // Reset evidence lock for fresh post-login session so onboarding page is always opened first
+    setHasEnteredEvidence(false);
+    localStorage.removeItem('skilltwin_evidence_entered');
     sessionStorage.setItem('skilltwin_in_app_session', 'true');
-    handleNavigateToOnboarding();
+    setCurrentView('onboarding');
   };
 
   const handleLogout = async () => {
@@ -182,10 +186,33 @@ export const App: React.FC = () => {
     }
     setAuthToken(null);
     setActiveProfile(null);
-    localStorage.removeItem('skilltwin_auth_token');
-    localStorage.removeItem('skilltwin_auth_user');
-    localStorage.removeItem('skilltwin_active_profile');
+    setHasEnteredEvidence(false);
+    setEvidenceCompleted(false);
+
+    const pipelineKeys = [
+      'skilltwin_auth_token',
+      'skilltwin_auth_user',
+      'skilltwin_active_profile',
+      'skilltwin_onboarding_completed',
+      'skilltwin_evidence_completed',
+      'skilltwin_evidence_entered',
+      'skilltwin_resume_data',
+      'skilltwin_github_data',
+      'skilltwin_projects_data',
+      'skilltwin_skilltwin_completed',
+      'skilltwin_target_role_completed',
+      'skilltwin_gap_completed',
+      'skilltwin_roadmap_completed',
+      'skilltwin_verification_completed',
+      'skilltwin_skilltwin_updated_completed',
+      'skilltwin_readiness_completed',
+      'skilltwin_active_gap_data',
+      'skilltwin_evidence_session',
+      'skilltwin_current_view'
+    ];
+    pipelineKeys.forEach(k => localStorage.removeItem(k));
     sessionStorage.removeItem('skilltwin_in_app_session');
+    sessionStorage.removeItem('skilltwin_evidence_session');
     setCurrentView('landing');
   };
 
@@ -280,7 +307,7 @@ export const App: React.FC = () => {
 
   const isStageAvailable = (stage: string): boolean => {
     if (stage === 'landing') return true;
-    if (stage === 'onboarding') return true;
+    if (stage === 'onboarding') return !hasEnteredEvidence && localStorage.getItem('skilltwin_evidence_entered') !== 'true';
     if (stage === 'evidence') return isOnboardingCompleted;
 
     const evDone = hasEvidence();
@@ -364,9 +391,39 @@ export const App: React.FC = () => {
     );
   }
 
-  // Render Page 1: Onboarding (Locked once entered Evidence Collection)
-  if (currentView === 'onboarding') {
-    if (hasEnteredEvidence || localStorage.getItem('skilltwin_evidence_entered') === 'true') {
+  // Render Non-Landing Application Pages with Blue + Purple Theme & Smooth Transitions
+  const renderCurrentView = () => {
+    if (currentView === 'onboarding') {
+      if (hasEnteredEvidence || localStorage.getItem('skilltwin_evidence_entered') === 'true') {
+        return (
+          <EvidenceCollectionPage
+            userProfile={activeProfile}
+            onNavigateToOnboarding={handleNavigateToOnboarding}
+            onNavigateToProfile={() => setCurrentView('profile')}
+            onNavigateToSettings={() => setCurrentView('settings')}
+            onNavigateToHelp={() => setCurrentView('help')}
+            onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+            onNavigateToTargetRole={() => navigateToStage('target_role')}
+            onEvidenceUpdated={(completed) => setEvidenceCompleted(completed)}
+          />
+        );
+      }
+      return (
+        <OnboardingPage
+          userProfile={activeProfile}
+          onOnboardingComplete={(profile) => {
+            setActiveProfile(profile);
+            localStorage.setItem('skilltwin_onboarding_completed', 'true');
+            localStorage.setItem('skilltwin_active_profile', JSON.stringify(profile));
+            localStorage.setItem('skilltwin_evidence_entered', 'true');
+            setHasEnteredEvidence(true);
+            setCurrentView('evidence');
+          }}
+        />
+      );
+    }
+
+    if (currentView === 'evidence') {
       return (
         <EvidenceCollectionPage
           userProfile={activeProfile}
@@ -380,378 +437,343 @@ export const App: React.FC = () => {
         />
       );
     }
-    return (
-      <OnboardingPage
-        userProfile={activeProfile}
-        onOnboardingComplete={(profile) => {
-          setActiveProfile(profile);
-          localStorage.setItem('skilltwin_onboarding_completed', 'true');
-          localStorage.setItem('skilltwin_active_profile', JSON.stringify(profile));
-          localStorage.setItem('skilltwin_evidence_entered', 'true');
-          setHasEnteredEvidence(true);
-          setCurrentView('evidence');
-        }}
-      />
-    );
-  }
 
-  // Render Page 2: Evidence Collection & AI Analysis
-  if (currentView === 'evidence') {
-    return (
-      <EvidenceCollectionPage
-        userProfile={activeProfile}
-        onNavigateToOnboarding={handleNavigateToOnboarding}
-        onNavigateToProfile={() => setCurrentView('profile')}
-        onNavigateToSettings={() => setCurrentView('settings')}
-        onNavigateToHelp={() => setCurrentView('help')}
-        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
-        onNavigateToTargetRole={() => navigateToStage('target_role')}
-        onEvidenceUpdated={(completed) => setEvidenceCompleted(completed)}
-      />
-    );
-  }
+    if (currentView === 'skilltwin') {
+      return (
+        <SkillTwinPage
+          userProfile={activeProfile}
+          onNavigateToOnboarding={handleNavigateToOnboarding}
+          onNavigateToEvidence={() => navigateToStage('evidence')}
+          onNavigateToTargetRole={() => navigateToStage('target_role')}
+          onNavigateToGapAnalysis={() => navigateToStage('gap')}
+          onNavigateToRoadmap={() => navigateToStage('roadmap')}
+          onNavigateToProfile={() => setCurrentView('profile')}
+          onNavigateToSettings={() => setCurrentView('settings')}
+          onNavigateToHelp={() => setCurrentView('help')}
+        />
+      );
+    }
 
-  // Render Page 3: Living SkillTwin
-  if (currentView === 'skilltwin') {
-    return (
-      <SkillTwinPage
-        userProfile={activeProfile}
-        onNavigateToOnboarding={handleNavigateToOnboarding}
-        onNavigateToEvidence={() => navigateToStage('evidence')}
-        onNavigateToTargetRole={() => navigateToStage('target_role')}
-        onNavigateToGapAnalysis={() => navigateToStage('gap')}
-        onNavigateToRoadmap={() => navigateToStage('roadmap')}
-        onNavigateToProfile={() => setCurrentView('profile')}
-        onNavigateToSettings={() => setCurrentView('settings')}
-        onNavigateToHelp={() => setCurrentView('help')}
-      />
-    );
-  }
+    if (currentView === 'target_role') {
+      return (
+        <TargetRoleMappingPage
+          userProfile={activeProfile}
+          onNavigateToOnboarding={handleNavigateToOnboarding}
+          onNavigateToEvidence={() => navigateToStage('evidence')}
+          onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+          onNavigateToGapAnalysis={() => navigateToStage('gap')}
+          onNavigateToRoadmap={() => navigateToStage('roadmap')}
+          onNavigateToProfile={() => setCurrentView('profile')}
+          onNavigateToSettings={() => setCurrentView('settings')}
+          onNavigateToHelp={() => setCurrentView('help')}
+        />
+      );
+    }
 
-  // Render Page 4: Target Role / Industry Mapping
-  if (currentView === 'target_role') {
-    return (
-      <TargetRoleMappingPage
-        userProfile={activeProfile}
-        onNavigateToOnboarding={handleNavigateToOnboarding}
-        onNavigateToEvidence={() => navigateToStage('evidence')}
-        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
-        onNavigateToGapAnalysis={() => navigateToStage('gap')}
-        onNavigateToRoadmap={() => navigateToStage('roadmap')}
-        onNavigateToProfile={() => setCurrentView('profile')}
-        onNavigateToSettings={() => setCurrentView('settings')}
-        onNavigateToHelp={() => setCurrentView('help')}
-      />
-    );
-  }
+    if (currentView === 'gap') {
+      return (
+        <GapAnalysisPage
+          userProfile={activeProfile}
+          onNavigateToOnboarding={handleNavigateToOnboarding}
+          onNavigateToEvidence={() => navigateToStage('evidence')}
+          onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+          onNavigateToTargetRole={() => navigateToStage('target_role')}
+          onNavigateToGapAnalysis={() => navigateToStage('gap')}
+          onNavigateToRoadmap={(gapData) => {
+            if (gapData) {
+              localStorage.setItem('skilltwin_active_gap_data', JSON.stringify(gapData));
+            }
+            navigateToStage('roadmap');
+          }}
+          onNavigateToProfile={() => setCurrentView('profile')}
+          onNavigateToSettings={() => setCurrentView('settings')}
+          onNavigateToHelp={() => setCurrentView('help')}
+        />
+      );
+    }
 
-  // Render Page 5: Skill Gap Analysis
-  if (currentView === 'gap') {
-    return (
-      <GapAnalysisPage
-        userProfile={activeProfile}
-        onNavigateToOnboarding={handleNavigateToOnboarding}
-        onNavigateToEvidence={() => navigateToStage('evidence')}
-        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
-        onNavigateToTargetRole={() => navigateToStage('target_role')}
-        onNavigateToGapAnalysis={() => navigateToStage('gap')}
-        onNavigateToRoadmap={(gapData) => {
-          if (gapData) {
-            localStorage.setItem('skilltwin_active_gap_data', JSON.stringify(gapData));
-          }
-          navigateToStage('roadmap');
-        }}
-        onNavigateToProfile={() => setCurrentView('profile')}
-        onNavigateToSettings={() => setCurrentView('settings')}
-        onNavigateToHelp={() => setCurrentView('help')}
-      />
-    );
-  }
+    if (currentView === 'roadmap') {
+      return (
+        <RoadmapPage
+          userProfile={activeProfile}
+          onNavigateToOnboarding={handleNavigateToOnboarding}
+          onNavigateToEvidence={() => navigateToStage('evidence')}
+          onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+          onNavigateToTargetRole={() => navigateToStage('target_role')}
+          onNavigateToGapAnalysis={() => navigateToStage('gap')}
+          onNavigateToRoadmap={() => navigateToStage('roadmap')}
+          onNavigateToVerification={() => navigateToStage('verification')}
+          onNavigateToProfile={() => setCurrentView('profile')}
+          onNavigateToSettings={() => setCurrentView('settings')}
+          onNavigateToHelp={() => setCurrentView('help')}
+        />
+      );
+    }
 
-  // Render Page 6: Personalized Roadmap
-  if (currentView === 'roadmap') {
-    return (
-      <RoadmapPage
-        userProfile={activeProfile}
-        onNavigateToOnboarding={handleNavigateToOnboarding}
-        onNavigateToEvidence={() => navigateToStage('evidence')}
-        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
-        onNavigateToTargetRole={() => navigateToStage('target_role')}
-        onNavigateToGapAnalysis={() => navigateToStage('gap')}
-        onNavigateToRoadmap={() => navigateToStage('roadmap')}
-        onNavigateToVerification={() => navigateToStage('verification')}
-        onNavigateToProfile={() => setCurrentView('profile')}
-        onNavigateToSettings={() => setCurrentView('settings')}
-        onNavigateToHelp={() => setCurrentView('help')}
-      />
-    );
-  }
+    if (currentView === 'verification') {
+      return (
+        <ProjectVerificationPage
+          userProfile={activeProfile}
+          onNavigateToOnboarding={handleNavigateToOnboarding}
+          onNavigateToEvidence={() => navigateToStage('evidence')}
+          onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+          onNavigateToTargetRole={() => navigateToStage('target_role')}
+          onNavigateToGapAnalysis={() => navigateToStage('gap')}
+          onNavigateToRoadmap={() => navigateToStage('roadmap')}
+          onNavigateToVerification={() => navigateToStage('verification')}
+          onNavigateToSkillTwinUpdated={() => navigateToStage('skilltwin_updated')}
+          onNavigateToProfile={() => setCurrentView('profile')}
+          onNavigateToSettings={() => setCurrentView('settings')}
+          onNavigateToHelp={() => setCurrentView('help')}
+        />
+      );
+    }
 
-  // Render Page 7: Project Verification
-  if (currentView === 'verification') {
-    return (
-      <ProjectVerificationPage
-        userProfile={activeProfile}
-        onNavigateToOnboarding={handleNavigateToOnboarding}
-        onNavigateToEvidence={() => navigateToStage('evidence')}
-        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
-        onNavigateToTargetRole={() => navigateToStage('target_role')}
-        onNavigateToGapAnalysis={() => navigateToStage('gap')}
-        onNavigateToRoadmap={() => navigateToStage('roadmap')}
-        onNavigateToVerification={() => navigateToStage('verification')}
-        onNavigateToSkillTwinUpdated={() => navigateToStage('skilltwin_updated')}
-        onNavigateToProfile={() => setCurrentView('profile')}
-        onNavigateToSettings={() => setCurrentView('settings')}
-        onNavigateToHelp={() => setCurrentView('help')}
-      />
-    );
-  }
+    if (currentView === 'skilltwin_updated') {
+      return (
+        <SkillTwinUpdatedPage
+          userProfile={activeProfile}
+          onNavigateToOnboarding={handleNavigateToOnboarding}
+          onNavigateToEvidence={() => navigateToStage('evidence')}
+          onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+          onNavigateToTargetRole={() => navigateToStage('target_role')}
+          onNavigateToGapAnalysis={() => navigateToStage('gap')}
+          onNavigateToRoadmap={() => navigateToStage('roadmap')}
+          onNavigateToVerification={() => navigateToStage('verification')}
+          onNavigateToSkillTwinUpdated={() => navigateToStage('skilltwin_updated')}
+          onNavigateToCareerReadiness={() => navigateToStage('readiness')}
+          onNavigateToProfile={() => setCurrentView('profile')}
+          onNavigateToSettings={() => setCurrentView('settings')}
+          onNavigateToHelp={() => setCurrentView('help')}
+        />
+      );
+    }
 
-  // Render Page 8: SkillTwin Updated
-  if (currentView === 'skilltwin_updated') {
-    return (
-      <SkillTwinUpdatedPage
-        userProfile={activeProfile}
-        onNavigateToOnboarding={handleNavigateToOnboarding}
-        onNavigateToEvidence={() => navigateToStage('evidence')}
-        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
-        onNavigateToTargetRole={() => navigateToStage('target_role')}
-        onNavigateToGapAnalysis={() => navigateToStage('gap')}
-        onNavigateToRoadmap={() => navigateToStage('roadmap')}
-        onNavigateToVerification={() => navigateToStage('verification')}
-        onNavigateToSkillTwinUpdated={() => navigateToStage('skilltwin_updated')}
-        onNavigateToCareerReadiness={() => navigateToStage('readiness')}
-        onNavigateToProfile={() => setCurrentView('profile')}
-        onNavigateToSettings={() => setCurrentView('settings')}
-        onNavigateToHelp={() => setCurrentView('help')}
-      />
-    );
-  }
+    if (currentView === 'readiness') {
+      return (
+        <CareerReadinessPage
+          userProfile={activeProfile}
+          onNavigateToOnboarding={handleNavigateToOnboarding}
+          onNavigateToEvidence={() => navigateToStage('evidence')}
+          onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+          onNavigateToTargetRole={() => navigateToStage('target_role')}
+          onNavigateToGapAnalysis={() => navigateToStage('gap')}
+          onNavigateToRoadmap={() => navigateToStage('roadmap')}
+          onNavigateToVerification={() => navigateToStage('verification')}
+          onNavigateToSkillTwinUpdated={() => navigateToStage('skilltwin_updated')}
+          onNavigateToCareerReadiness={() => navigateToStage('readiness')}
+          onNavigateToProfile={() => setCurrentView('profile')}
+          onNavigateToSettings={() => setCurrentView('settings')}
+          onNavigateToHelp={() => setCurrentView('help')}
+        />
+      );
+    }
 
-  // Render Page 9: Career Readiness / Continuous Loop
-  if (currentView === 'readiness') {
-    return (
-      <CareerReadinessPage
-        userProfile={activeProfile}
-        onNavigateToOnboarding={handleNavigateToOnboarding}
-        onNavigateToEvidence={() => navigateToStage('evidence')}
-        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
-        onNavigateToTargetRole={() => navigateToStage('target_role')}
-        onNavigateToGapAnalysis={() => navigateToStage('gap')}
-        onNavigateToRoadmap={() => navigateToStage('roadmap')}
-        onNavigateToVerification={() => navigateToStage('verification')}
-        onNavigateToSkillTwinUpdated={() => navigateToStage('skilltwin_updated')}
-        onNavigateToCareerReadiness={() => navigateToStage('readiness')}
-        onNavigateToProfile={() => setCurrentView('profile')}
-        onNavigateToSettings={() => setCurrentView('settings')}
-        onNavigateToHelp={() => setCurrentView('help')}
-      />
-    );
-  }
+    if (currentView === 'profile') {
+      return (
+        <ProfilePage
+          userProfile={activeProfile}
+          onUpdateProfile={handleUpdateProfile}
+          onNavigateToOnboarding={handleNavigateToOnboarding}
+          onNavigateToEvidence={() => navigateToStage('evidence')}
+          onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+          onNavigateToTargetRole={() => navigateToStage('target_role')}
+          onNavigateToGapAnalysis={() => navigateToStage('gap')}
+          onNavigateToRoadmap={() => navigateToStage('roadmap')}
+          onNavigateToSettings={() => setCurrentView('settings')}
+          onNavigateToHelp={() => setCurrentView('help')}
+        />
+      );
+    }
 
-  // Render Profile View
-  if (currentView === 'profile') {
-    return (
-      <ProfilePage
-        userProfile={activeProfile}
-        onUpdateProfile={handleUpdateProfile}
-        onNavigateToOnboarding={handleNavigateToOnboarding}
-        onNavigateToEvidence={() => navigateToStage('evidence')}
-        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
-        onNavigateToTargetRole={() => navigateToStage('target_role')}
-        onNavigateToGapAnalysis={() => navigateToStage('gap')}
-        onNavigateToRoadmap={() => navigateToStage('roadmap')}
-        onNavigateToSettings={() => setCurrentView('settings')}
-        onNavigateToHelp={() => setCurrentView('help')}
-      />
-    );
-  }
+    if (currentView === 'settings') {
+      return (
+        <SettingsPage
+          userProfile={activeProfile}
+          onNavigateToOnboarding={handleNavigateToOnboarding}
+          onNavigateToEvidence={() => navigateToStage('evidence')}
+          onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+          onNavigateToTargetRole={() => navigateToStage('target_role')}
+          onNavigateToGapAnalysis={() => navigateToStage('gap')}
+          onNavigateToRoadmap={() => navigateToStage('roadmap')}
+          onNavigateToProfile={() => setCurrentView('profile')}
+          onNavigateToHelp={() => setCurrentView('help')}
+          onResetAllData={handleDeleteProfileData}
+          onSignOut={handleLogout}
+        />
+      );
+    }
 
-  // Render Settings View
-  if (currentView === 'settings') {
-    return (
-      <SettingsPage
-        userProfile={activeProfile}
-        onNavigateToOnboarding={handleNavigateToOnboarding}
-        onNavigateToEvidence={() => navigateToStage('evidence')}
-        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
-        onNavigateToTargetRole={() => navigateToStage('target_role')}
-        onNavigateToGapAnalysis={() => navigateToStage('gap')}
-        onNavigateToRoadmap={() => navigateToStage('roadmap')}
-        onNavigateToProfile={() => setCurrentView('profile')}
-        onNavigateToHelp={() => setCurrentView('help')}
-        onResetAllData={handleDeleteProfileData}
-        onSignOut={handleLogout}
-      />
-    );
-  }
+    if (currentView === 'help') {
+      return (
+        <HelpPage
+          userProfile={activeProfile}
+          onNavigateToOnboarding={handleNavigateToOnboarding}
+          onNavigateToEvidence={() => navigateToStage('evidence')}
+          onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
+          onNavigateToTargetRole={() => navigateToStage('target_role')}
+          onNavigateToGapAnalysis={() => navigateToStage('gap')}
+          onNavigateToRoadmap={() => navigateToStage('roadmap')}
+          onNavigateToProfile={() => setCurrentView('profile')}
+          onNavigateToSettings={() => setCurrentView('settings')}
+        />
+      );
+    }
 
-  // Render Help & About View
-  if (currentView === 'help') {
+    // Diagnostics / Foundation View
     return (
-      <HelpPage
-        userProfile={activeProfile}
-        onNavigateToOnboarding={handleNavigateToOnboarding}
-        onNavigateToEvidence={() => navigateToStage('evidence')}
-        onNavigateToSkillTwin={() => navigateToStage('skilltwin')}
-        onNavigateToTargetRole={() => navigateToStage('target_role')}
-        onNavigateToGapAnalysis={() => navigateToStage('gap')}
-        onNavigateToRoadmap={() => navigateToStage('roadmap')}
-        onNavigateToProfile={() => setCurrentView('profile')}
-        onNavigateToSettings={() => setCurrentView('settings')}
-      />
-    );
-  }
+      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 24px 64px' }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <button
+              onClick={() => setCurrentView('evidence')}
+              className="btn btn-outline"
+              style={{ padding: '8px 14px', fontSize: '0.8rem' }}
+            >
+              <ArrowLeft size={16} /> Back to Evidence Collection (Page 2)
+            </button>
 
-  // Render Diagnostics & Foundation View
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#FFFFFF' }}>
+                  SkillTwin Pipeline & Diagnostics
+                </h1>
+                <span className="badge badge-info" style={{ fontSize: '0.65rem' }}>Foundation Status</span>
+              </div>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
+                React (Vite) ↔ FastAPI (Python) ↔ PostgreSQL Database
+              </p>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            {lastCheckTime && (
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Clock size={14} /> {lastCheckTime}
+              </span>
+            )}
+            <button
+              id="refresh-health-btn"
+              className="btn btn-outline"
+              onClick={checkSystemHealth}
+              disabled={isLoading}
+            >
+              <RefreshCw size={16} className={isLoading ? 'animated-glow' : ''} style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }} />
+              {isLoading ? 'Checking...' : 'Refresh'}
+            </button>
+          </div>
+        </header>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: '20px',
+          marginBottom: '32px'
+        }}>
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Layout size={24} color="#38BDF8" />
+                <div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Frontend Layer</h3>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Vite + React 18 + TypeScript</p>
+                </div>
+              </div>
+              <span className="badge badge-connected">
+                <span className="pulse-dot green" /> Running (Port 5173)
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>UI Language:</span>
+                <span className="mono" style={{ color: '#C084FC' }}>TypeScript 5.x</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Styling Engine:</span>
+                <span>Vanilla CSS (Glassmorphism)</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Active Views:</span>
+                <span style={{ color: '#38BDF8' }}>Page 1 (Onboarding) + Page 2 (Evidence)</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Server size={24} color="#818CF8" />
+                <div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Backend Server</h3>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>FastAPI + Python 3.12/3.14</p>
+                </div>
+              </div>
+              <span className={`badge ${isBackendHealthy ? 'badge-connected' : 'badge-disconnected'}`}>
+                <span className={`pulse-dot ${isBackendHealthy ? 'green' : 'red'}`} />
+                {isBackendHealthy ? 'Active (Port 8000)' : 'Unreachable'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Status:</span>
+                <span style={{ color: isBackendHealthy ? '#34D399' : '#F87171', fontWeight: 600 }}>
+                  {healthData?.status?.toUpperCase() || 'OFFLINE'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Service:</span>
+                <span>{healthData?.service || 'SkillTwin Backend'}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>API Docs:</span>
+                <a href="http://127.0.0.1:8000/docs" target="_blank" rel="noreferrer" style={{ color: '#818CF8', textDecoration: 'none' }}>
+                  /docs (Swagger UI) ↗
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-panel" style={{ padding: '24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Database size={24} color="#C084FC" />
+                <div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Database Engine</h3>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>PostgreSQL 16 (Port 5432)</p>
+                </div>
+              </div>
+              <span className={`badge ${isDbConnected ? 'badge-connected' : 'badge-info'}`}>
+                <span className={`pulse-dot ${isDbConnected ? 'green' : 'amber'}`} />
+                {isDbConnected ? 'Connected' : 'Active (Fallback Cache)'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Driver:</span>
+                <span className="mono">psycopg2 / SQLAlchemy 2.0</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Latency:</span>
+                <span className="mono" style={{ color: '#34D399' }}>
+                  {healthData?.database?.latency_ms !== undefined ? `${healthData.database.latency_ms} ms` : 'N/A'}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: 'var(--text-secondary)' }}>Verified Tables:</span>
+                <span>users, evidence_sources, skills, skill_twin</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '32px 24px 64px' }}>
-      {/* Top Diagnostics Header */}
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <button
-            onClick={() => setCurrentView('evidence')}
-            className="btn btn-outline"
-            style={{ padding: '8px 14px', fontSize: '0.8rem' }}
-          >
-            <ArrowLeft size={16} /> Back to Evidence Collection (Page 2)
-          </button>
-
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#FFFFFF' }}>
-                SkillTwin Pipeline & Diagnostics
-              </h1>
-              <span className="badge badge-info" style={{ fontSize: '0.65rem' }}>Foundation Status</span>
-            </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
-              React (Vite) ↔ FastAPI (Python) ↔ PostgreSQL Database
-            </p>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          {lastCheckTime && (
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Clock size={14} /> {lastCheckTime}
-            </span>
-          )}
-          <button
-            id="refresh-health-btn"
-            className="btn btn-outline"
-            onClick={checkSystemHealth}
-            disabled={isLoading}
-          >
-            <RefreshCw size={16} className={isLoading ? 'animated-glow' : ''} style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }} />
-            {isLoading ? 'Checking...' : 'Refresh'}
-          </button>
-        </div>
-      </header>
-
-      {/* Architecture Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-        gap: '20px',
-        marginBottom: '32px'
-      }}>
-        {/* Frontend Status Card */}
-        <div className="glass-panel" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Layout size={24} color="#38BDF8" />
-              <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Frontend Layer</h3>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Vite + React 18 + TypeScript</p>
-              </div>
-            </div>
-            <span className="badge badge-connected">
-              <span className="pulse-dot green" /> Running (Port 5173)
-            </span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>UI Language:</span>
-              <span className="mono" style={{ color: '#C084FC' }}>TypeScript 5.x</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Styling Engine:</span>
-              <span>Vanilla CSS (Glassmorphism)</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Active Views:</span>
-              <span style={{ color: '#38BDF8' }}>Page 1 (Onboarding) + Page 2 (Evidence)</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Backend Status Card */}
-        <div className="glass-panel" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Server size={24} color="#818CF8" />
-              <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Backend Server</h3>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>FastAPI + Python 3.12/3.14</p>
-              </div>
-            </div>
-            <span className={`badge ${isBackendHealthy ? 'badge-connected' : 'badge-disconnected'}`}>
-              <span className={`pulse-dot ${isBackendHealthy ? 'green' : 'red'}`} />
-              {isBackendHealthy ? 'Active (Port 8000)' : 'Unreachable'}
-            </span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Status:</span>
-              <span style={{ color: isBackendHealthy ? '#34D399' : '#F87171', fontWeight: 600 }}>
-                {healthData?.status?.toUpperCase() || 'OFFLINE'}
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Service:</span>
-              <span>{healthData?.service || 'SkillTwin Backend'}</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>API Docs:</span>
-              <a href="http://127.0.0.1:8000/docs" target="_blank" rel="noreferrer" style={{ color: '#818CF8', textDecoration: 'none' }}>
-                /docs (Swagger UI) ↗
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* Database Status Card */}
-        <div className="glass-panel" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <Database size={24} color="#C084FC" />
-              <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Database Engine</h3>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>PostgreSQL 16 (Port 5432)</p>
-              </div>
-            </div>
-            <span className={`badge ${isDbConnected ? 'badge-connected' : 'badge-info'}`}>
-              <span className={`pulse-dot ${isDbConnected ? 'green' : 'amber'}`} />
-              {isDbConnected ? 'Connected' : 'Active (Fallback Cache)'}
-            </span>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Driver:</span>
-              <span className="mono">psycopg2 / SQLAlchemy 2.0</span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Latency:</span>
-              <span className="mono" style={{ color: '#34D399' }}>
-                {healthData?.database?.latency_ms !== undefined ? `${healthData.database.latency_ms} ms` : 'N/A'}
-              </span>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-              <span style={{ color: 'var(--text-secondary)' }}>Verified Tables:</span>
-              <span>users, evidence_sources, skills, skill_twin</span>
-            </div>
-          </div>
-        </div>
+    <div key={currentView} className="app-shell-bg page-transition">
+      <DashboardParticles />
+      <div style={{ position: 'relative', zIndex: 1 }}>
+        {renderCurrentView()}
       </div>
     </div>
   );

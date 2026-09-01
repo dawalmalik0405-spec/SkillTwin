@@ -564,10 +564,10 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                 {/* =========================================================
                     CARD 1: RESUME CARD
                    ========================================================= */}
-                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
+                <div className="glass-panel evidence-card">
+                  <div className="evidence-card-content">
                     {/* Top Header */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <div className="evidence-card-header">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{
                           width: '36px',
@@ -578,7 +578,8 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#C084FC'
+                          color: '#C084FC',
+                          flexShrink: 0
                         }}>
                           <FileText size={18} />
                         </div>
@@ -590,7 +591,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>1</span>
                     </div>
 
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: '16px' }}>
+                    <p className="evidence-card-desc">
                       Upload your resume (PDF or DOCX) and our AI will extract your skills, experience, and education.
                     </p>
 
@@ -612,29 +613,17 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
 
                     {/* Resume Card Body: Analyzing State, Completed State, or Empty Dropzone */}
                     {isResumeUploading ? (
-                      <div style={{
-                        border: '1.5px dashed rgba(192, 132, 252, 0.4)',
-                        borderRadius: '12px',
-                        padding: '28px 16px',
-                        textAlign: 'center',
-                        background: 'rgba(15, 23, 42, 0.7)'
-                      }}>
+                      <div className="evidence-dropzone-box" style={{ borderColor: 'rgba(192, 132, 252, 0.4)', background: 'rgba(15, 23, 42, 0.7)' }}>
                         <Loader2 size={28} color="#C084FC" style={{ animation: 'spin 1s linear infinite', margin: '0 auto 8px' }} />
                         <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#F8FAFC' }}>Analyzing document...</div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '2px' }}>AI extracting skills & context</div>
                       </div>
                     ) : resumeData ? (
                       /* Completed Evidence Card State */
-                      <div>
-                        <div style={{
-                          padding: '14px',
-                          background: 'rgba(6, 78, 59, 0.2)',
-                          border: '1px solid rgba(16, 185, 129, 0.35)',
-                          borderRadius: '12px',
-                          marginBottom: '12px'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', overflow: 'hidden' }}>
+                      <div className="evidence-card-body">
+                        <div className="evidence-uploaded-box">
+                          <div className="evidence-file-row">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, overflow: 'hidden' }}>
                               <div style={{
                                 width: '34px',
                                 height: '34px',
@@ -648,11 +637,11 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                               }}>
                                 <FileText size={18} color="#34D399" />
                               </div>
-                              <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#F8FAFC' }} title={resumeData.filename}>
+                              <div className="evidence-file-info">
+                                <div className="evidence-file-name" title={resumeData.filename}>
                                   {resumeData.filename}
                                 </div>
-                                <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                <div className="evidence-file-meta">
                                   {resumeData.file_size_kb} KB • {resumeData.file_type.toUpperCase()}
                                 </div>
                               </div>
@@ -662,16 +651,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                             </span>
                           </div>
 
-                          <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            fontSize: '0.72rem',
-                            color: '#34D399',
-                            fontWeight: 600,
-                            paddingTop: '6px',
-                            borderTop: '1px solid rgba(16, 185, 129, 0.2)'
-                          }}>
+                          <div className="evidence-stats-row">
                             <span>✓ {resumeData.skills_extracted.length} skills extracted</span>
                             {resumeData.technologies && resumeData.technologies.length > 0 && (
                               <span>• {resumeData.technologies.length} technologies</span>
@@ -697,7 +677,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                     ) : (
                       /* Empty Dropzone State (before upload) */
                       <div
-                        className="upload-dropzone"
+                        className="upload-dropzone evidence-dropzone-box"
                         onDragOver={(e) => e.preventDefault()}
                         onDrop={handleDrop}
                         onClick={triggerFileInput}
@@ -725,14 +705,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                   </div>
 
                   {/* Card Footer Status */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginTop: '16px',
-                    paddingTop: '12px',
-                    borderTop: '1px solid var(--border-subtle)'
-                  }}>
+                  <div className="evidence-card-footer">
                     {resumeData ? (
                       <>
                         <div className="badge badge-analyzed">
@@ -763,10 +736,10 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                 {/* =========================================================
                     CARD 2: GITHUB CARD
                    ========================================================= */}
-                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
+                <div className="glass-panel evidence-card">
+                  <div className="evidence-card-content">
                     {/* Top Header */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <div className="evidence-card-header">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{
                           width: '36px',
@@ -777,7 +750,8 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#FFFFFF'
+                          color: '#FFFFFF',
+                          flexShrink: 0
                         }}>
                           <Github size={18} />
                         </div>
@@ -789,28 +763,22 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>2</span>
                     </div>
 
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: '16px' }}>
+                    <p className="evidence-card-desc">
                       Connect your GitHub account to analyze your repositories, code quality, and contributions.
                     </p>
 
                     {/* GitHub Connected Profile Box */}
                     {githubData ? (
-                      <div>
-                        <div style={{
-                          padding: '14px',
-                          background: 'rgba(6, 78, 59, 0.2)',
-                          border: '1px solid rgba(16, 185, 129, 0.35)',
-                          borderRadius: '12px',
-                          marginBottom: '12px'
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <Github size={20} color="#34D399" />
-                              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#F8FAFC' }}>
+                      <div className="evidence-card-body">
+                        <div className="evidence-uploaded-box">
+                          <div className="evidence-file-row">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, overflow: 'hidden' }}>
+                              <Github size={20} color="#34D399" style={{ flexShrink: 0 }} />
+                              <span className="evidence-file-name">
                                 {githubData.username}
                               </span>
                             </div>
-                            <span className="badge badge-connected" style={{ padding: '2px 8px', fontSize: '0.65rem' }}>
+                            <span className="badge badge-connected" style={{ padding: '2px 8px', fontSize: '0.65rem', flexShrink: 0 }}>
                               Connected
                             </span>
                           </div>
@@ -823,11 +791,11 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                           Last synced: {new Date(githubData.last_synced).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
                         </div>
 
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div className="evidence-btn-group">
                           <button
                             type="button"
                             className="btn btn-outline"
-                            style={{ flex: 1, padding: '8px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                            style={{ flex: 1, minWidth: '100px', padding: '8px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                             onClick={handleResyncGithub}
                             disabled={isGithubResyncing}
                             title="Resync the currently connected GitHub profile"
@@ -838,7 +806,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                           <button
                             type="button"
                             className="btn btn-outline"
-                            style={{ flex: 1, padding: '8px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                            style={{ flex: 1, minWidth: '110px', padding: '8px', fontSize: '0.78rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                             onClick={() => {
                               setGithubUsername('');
                               setGithubProfileUrl('');
@@ -853,13 +821,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                       </div>
                     ) : (
                       /* Not Connected State */
-                      <div style={{
-                        border: '1.5px dashed rgba(255, 255, 255, 0.12)',
-                        borderRadius: '12px',
-                        padding: '24px 16px',
-                        textAlign: 'center',
-                        background: 'rgba(10, 15, 29, 0.6)'
-                      }}>
+                      <div className="evidence-dropzone-box" onClick={() => setIsGithubModalOpen(true)}>
                         <div style={{ color: 'var(--text-muted)', marginBottom: '10px' }}>
                           <FolderGit2 size={28} color="#94A3B8" />
                         </div>
@@ -870,7 +832,10 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                           type="button"
                           className="btn btn-outline"
                           style={{ padding: '7px 16px', fontSize: '0.78rem', background: 'rgba(255,255,255,0.08)' }}
-                          onClick={() => setIsGithubModalOpen(true)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsGithubModalOpen(true);
+                          }}
                         >
                           <Github size={14} /> Connect GitHub
                         </button>
@@ -879,14 +844,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                   </div>
 
                   {/* Card Footer Status */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginTop: '16px',
-                    paddingTop: '12px',
-                    borderTop: '1px solid var(--border-subtle)'
-                  }}>
+                  <div className="evidence-card-footer">
                     {githubData ? (
                       <>
                         <div className="badge badge-analyzed">
@@ -917,10 +875,10 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                 {/* =========================================================
                     CARD 3: PROJECTS CARD
                    ========================================================= */}
-                <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
+                <div className="glass-panel evidence-card">
+                  <div className="evidence-card-content">
                     {/* Top Header */}
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <div className="evidence-card-header">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <div style={{
                           width: '36px',
@@ -931,7 +889,8 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          color: '#38BDF8'
+                          color: '#38BDF8',
+                          flexShrink: 0
                         }}>
                           <Briefcase size={18} />
                         </div>
@@ -943,13 +902,13 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                       <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>3</span>
                     </div>
 
-                    <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.4, marginBottom: '16px' }}>
+                    <p className="evidence-card-desc">
                       Add your notable projects. Our AI will analyze them to identify skills and technologies used.
                     </p>
 
                     {/* Projects Content Box */}
                     {projectsData.length > 0 ? (
-                      <div>
+                      <div className="evidence-card-body">
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '140px', overflowY: 'auto', marginBottom: '12px' }}>
                           {projectsData.map(p => (
                             <div
@@ -996,14 +955,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                     ) : (
                       /* Empty Projects Add Zone */
                       <div
-                        style={{
-                          border: '1.5px dashed rgba(56, 189, 248, 0.3)',
-                          borderRadius: '12px',
-                          padding: '24px 16px',
-                          textAlign: 'center',
-                          background: 'rgba(10, 15, 29, 0.6)',
-                          cursor: 'pointer'
-                        }}
+                        className="evidence-dropzone-box"
                         onClick={() => setIsProjectModalOpen(true)}
                       >
                         <div style={{
@@ -1029,6 +981,10 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                           type="button"
                           className="btn btn-outline"
                           style={{ padding: '6px 14px', fontSize: '0.75rem' }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsProjectModalOpen(true);
+                          }}
                         >
                           + Add Project Link
                         </button>
@@ -1037,14 +993,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
                   </div>
 
                   {/* Card Footer Status */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    marginTop: '16px',
-                    paddingTop: '12px',
-                    borderTop: '1px solid var(--border-subtle)'
-                  }}>
+                  <div className="evidence-card-footer">
                     {projectsData.length > 0 ? (
                       <>
                         <div className="badge badge-analyzed">
@@ -1125,7 +1074,7 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
             {/* =========================================================
                 RIGHT COLUMN: AI EXTRACTION SUMMARY & NEXT STEPS PANEL
                ========================================================= */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <div className="evidence-summary-column">
               {/* AI Extraction Summary Panel */}
               <div className="glass-panel" style={{ padding: '22px' }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#FFFFFF', marginBottom: '16px' }}>
