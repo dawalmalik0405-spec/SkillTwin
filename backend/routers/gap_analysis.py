@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Query, HTTPException, status, Header
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 
@@ -454,11 +454,21 @@ def get_gap_analysis(
     role: str = Query("Full-Stack Developer", description="Target role name"),
     experience: str = Query("Entry Level (0-2 years)", description="Experience level"),
     industry: str = Query("All Industries", description="Industry domain"),
-    user_id: Optional[str] = Query(None, description="Optional user ID")
+    user_id: Optional[str] = Query(None, description="Optional user ID"),
+    authorization: Optional[str] = Header(None)
 ):
     """
     Retrieve evidence-backed Skill Gap Analysis comparing Living SkillTwin with selected Target Role.
+    Uses authenticated token if no user_id is provided.
     """
+    # Use authenticated user_id if not provided
+    if not user_id and authorization:
+        from backend.routers.auth import get_user_id_from_token
+        auth_user_id = get_user_id_from_token(authorization)
+        if auth_user_id:
+            user_id = auth_user_id
+            print(f"[Gap Analysis] Using authenticated user_id: {user_id}")
+
     try:
         return compute_skill_gap_analysis(
             role_name=role,

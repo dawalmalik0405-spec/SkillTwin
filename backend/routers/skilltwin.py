@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from typing import Optional, List, Dict, Any
-from fastapi import APIRouter, Depends, Query, HTTPException, status
+from fastapi import APIRouter, Depends, Query, HTTPException, status, Header
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -621,11 +621,21 @@ def get_skilltwin_profile(
     email: Optional[str] = Query(None),
     user_id: Optional[str] = Query(None),
     target_role: Optional[str] = Query(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    authorization: Optional[str] = Header(None)
 ):
     """
     Fetch the Living SkillTwin Profile synthesized from candidate evidence.
+    Uses authenticated token if no user_id is provided.
     """
+    # Try to extract user_id from auth token if not provided
+    if not user_id and authorization:
+        from backend.routers.auth import get_user_id_from_token
+        auth_user_id = get_user_id_from_token(authorization)
+        if auth_user_id:
+            user_id = auth_user_id
+            print(f"[SkillTwin] Using authenticated user_id: {user_id}")
+
     try:
         return synthesize_living_skilltwin(email=email, user_id=user_id, target_role_override=target_role, db=db)
     except Exception as e:

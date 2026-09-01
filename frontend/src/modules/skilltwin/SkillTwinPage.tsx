@@ -54,7 +54,8 @@ export const SkillTwinPage: React.FC<SkillTwinPageProps> = ({
   onNavigateToSettings,
   onNavigateToHelp
 }) => {
-  const userEmail = userProfile?.email || 'layeeba@skilltwin.dev';
+  // Always use the userId if available - backend will use authenticated token as fallback
+  const userEmail = userProfile?.email;
   const userId = userProfile?.id;
   const targetRole = userProfile?.target_role || 'Full-Stack Developer';
 

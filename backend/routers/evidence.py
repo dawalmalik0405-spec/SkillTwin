@@ -5,7 +5,7 @@ import json
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, Header
 from sqlalchemy.orm import Session
 import httpx
 from pypdf import PdfReader
@@ -1068,14 +1068,23 @@ async def add_project(
 @router.get("/summary", response_model=EvidenceSummaryResponse)
 def get_evidence_summary(
     email: Optional[str] = None,
-    user_id: Optional[str] = None
+    user_id: Optional[str] = None,
+    authorization: Optional[str] = Header(None)
 ):
     """
     Dynamically calculates real aggregated metrics across Resume,
     GitHub, and Projects for the student.
 
     Reads from persistent DB first (survives restarts), then falls back to in-memory.
+    Uses authenticated token if no user_id is provided.
     """
+    # Use authenticated user_id if not provided
+    if not user_id and authorization:
+        from backend.routers.auth import get_user_id_from_token
+        auth_user_id = get_user_id_from_token(authorization)
+        if auth_user_id:
+            user_id = auth_user_id
+            print(f"[Evidence Summary] Using authenticated user_id: {user_id}")
     # FIRST: Try to load from persistent database
     persistent_resume = None
     persistent_github = None

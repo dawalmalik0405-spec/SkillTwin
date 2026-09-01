@@ -54,7 +54,8 @@ export const EvidenceCollectionPage: React.FC<EvidenceCollectionPageProps> = ({
   onEvidenceUpdated
 }) => {
   // Active email / user ID
-  const userEmail = userProfile?.email || 'layeeba@skilltwin.dev';
+  // Use authenticated token from backend if no userProfile
+  const userEmail = userProfile?.email;
   const userId = userProfile?.id;
 
   // Real Evidence State with localStorage cache recovery
