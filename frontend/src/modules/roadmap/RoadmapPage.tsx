@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Sparkles,
   ChevronDown,
@@ -1334,7 +1335,7 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
           )}
 
           {/* DETAIL MODAL FOR SELECTED PHASE */}
-          {selectedPhaseForDetail && (
+          {selectedPhaseForDetail && createPortal(
             <div className="modal-backdrop" onClick={() => setSelectedPhaseForDetail(null)}>
               <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '680px', padding: '30px 32px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px', gap: '16px' }}>
@@ -1456,7 +1457,8 @@ export const RoadmapPage: React.FC<RoadmapPageProps> = ({
                   </button>
                 </div>
               </div>
-            </div>
+            </div>,
+            document.body
           )}
 
           {/* FULL MILESTONES MODAL */}

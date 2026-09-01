@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import {
   X,
   Brain,
@@ -184,7 +185,7 @@ export const QuizModal: React.FC<QuizModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div className="modal-backdrop">
       <div className="quiz-modal">
         <div className="quiz-head">
@@ -415,7 +416,8 @@ export const QuizModal: React.FC<QuizModalProps> = ({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

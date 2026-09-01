@@ -15,6 +15,8 @@ SkillTwin is an evidence-based skill development platform designed to help stude
 
 Instead of relying only on self-declared skills, SkillTwin aims to create a dynamic skill profile that evolves as students gain experience, identify skill gaps, and work toward industry-relevant career goals.
 
+> 🌐 **Live Deployed Demo**: [SkillTwin Live Service](https://skilltwin.onrender.com) *(Update with your production URL)*
+
 ---
 
 ## Table of Contents
@@ -25,6 +27,7 @@ Instead of relying only on self-declared skills, SkillTwin aims to create a dyna
 - [Prototype Workflow & Architecture](#prototype-workflow)
 - [Evidence Used](#evidence-used)
 - [Team Members & Contributions](#team-members--contributions)
+- [Reviewer Notes](#reviewer-notes)
 - [Technology Stack](#technology-stack)
 - [Local Setup & Quick Start](#local-setup--quick-start)
 - [API Endpoints Overview](#api-endpoints-overview)
@@ -35,6 +38,7 @@ Instead of relying only on self-declared skills, SkillTwin aims to create a dyna
 - [Future Scope](#future-scope)
 - [Project Status](#project-status)
 - [Deployment](#deployment)
+- [Security Policy](#security-policy)
 - [License](#license)
 
 ---
@@ -196,6 +200,17 @@ The evidence collected from these sources is analyzed and mapped to the student'
 Both team members contributed substantially and approximately equally to the overall project. Contributions included ideation, problem research, system design, development, AI integration, UI/UX, testing, debugging, documentation, iteration, and presentation preparation.
 
 The project was developed collaboratively, with responsibilities divided according to the team members' technical roles while both members contributed to the overall product development process.
+
+---
+
+## Reviewer Notes
+
+> 📌 **Notice for Hackathon Evaluators & Reviewers**:
+>
+> 1. **Single-Service Architecture**: The frontend (React SPA) and backend (FastAPI) are deployed together as a single container on Render. Requesting `/` serves the built React web application, while `/api/*` serves the REST API endpoints and `/docs` serves interactive OpenAPI documentation.
+> 2. **Environment & Keys**: AI-powered features (Gap Analysis, Knowledge Check Quizzes, Learning Resources) utilize OpenRouter API endpoints configured via `OPENROUTER_API_KEY`. In local mode, fallback heuristics ensure complete UI functionality even if an API key is not supplied.
+> 3. **Database Migration**: The PostgreSQL schema (`backend/schema.sql`) automatically initializes all database tables (`users`, `resumes`, `github_profiles`, `skill_twins`, `roadmaps`, `quizzes`, `readiness_scores`) upon deployment boot.
+> 4. **Project Reports**: The official Round 1 PDF report is committed at the repository root as [`SkillTwin_Master_Implementation_Plan.pdf`](SkillTwin_Master_Implementation_Plan.pdf).
 
 ---
 

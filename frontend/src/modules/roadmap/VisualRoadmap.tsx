@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import {
   CheckCircle2,
   Lock,
@@ -517,7 +518,7 @@ export const VisualRoadmap: React.FC<VisualRoadmapProps> = ({
         </p>
       </div>
 
-      {selectedNode && (
+      {selectedNode && createPortal(
         <div className="modal-backdrop" onClick={() => setSelectedNode(null)}>
           <div className="vr-detail" onClick={e => e.stopPropagation()}>
             <div
@@ -657,7 +658,8 @@ export const VisualRoadmap: React.FC<VisualRoadmapProps> = ({
               </p>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
